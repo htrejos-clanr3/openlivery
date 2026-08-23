@@ -8,6 +8,7 @@ from ..ratelimit import widget_rate_limit
 from ..schemas import WidgetConfigOut, WidgetMessageIn, WidgetReply
 from ..services.tools import run_completion
 from ..services.knowledge import build_system_prompt, retrieve_knowledge
+from ..services.prompt_security import to_llm_message
 from ..services.providers import resolve_agent_credentials
 from ..services.usage import record_usage
 
@@ -120,7 +121,7 @@ async def widget_message(public_id: str, payload: WidgetMessageIn, db: Session =
     history = list(reversed(history))
     messages = [
         {"role": "system", "content": build_system_prompt(agent, knowledge.text)},
-        *[{"role": item.role, "content": item.content} for item in history],
+        *[to_llm_message(item.role, item.content) for item in history],
     ]
     base_url, api_key = credentials
     try:

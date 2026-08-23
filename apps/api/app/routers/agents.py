@@ -14,6 +14,7 @@ from ..deps import get_current_user
 from ..models import Agent, AgentQA, Client, KnowledgeDocument, User, WhatsAppChannel
 from ..schemas import AgentCreate, AgentOut, AgentUpdate, DocumentOut, ManualContextRequest, QAPairCreate, QAPairOut
 from ..services.knowledge import embed_document_chunks
+from ..services.prompt_security import scan_document_text
 
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
@@ -144,6 +145,14 @@ async def upload_document(
         if not document.extracted_text:
             document.status = "error"
             document.error_message = "No extractable text was found in the PDF. It may be a scanned document."
+        else:
+            injection_flags = scan_document_text(document.extracted_text)
+            if injection_flags:
+                document.status = "error"
+                document.error_message = (
+                    "The PDF contains patterns that look like prompt-injection attempts "
+                    f"({', '.join(sorted(set(injection_flags)))}). Review the file and upload a clean version."
+                )
     except Exception:
         document.status = "error"
         document.error_message = "The PDF could not be processed. Check that the file is not damaged or protected."

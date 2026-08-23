@@ -18,6 +18,7 @@ from ..schemas import (
 from ..services.tools import run_completion
 from ..services.knowledge import build_system_prompt, retrieve_knowledge
 from ..services.media import describe_image, transcribe_audio
+from ..services.prompt_security import build_vision_instruction, to_llm_message
 from ..services.providers import resolve_agent_credentials, resolve_provider_credentials
 from ..services.usage import record_usage
 from ..services.whatsapp import send_channel_message
@@ -192,7 +193,10 @@ async def _generate_reply(
     refreshed = _conversation(db, user, conversation.id)
     recent = refreshed.messages[-agent.memory_limit:] if agent.memory_limit else []
     history = [{"role": item.role, "content": item.content} for item in recent]
-    messages = [{"role": "system", "content": build_system_prompt(agent, knowledge.text)}, *history]
+    messages = [
+        {"role": "system", "content": build_system_prompt(agent, knowledge.text)},
+        *[to_llm_message(item["role"], item["content"]) for item in history],
+    ]
     base_url, api_key = credentials
     completion = await run_completion(
         db, agent, base_url, api_key, messages, temperature=agent.temperature, max_tokens=agent.max_tokens
@@ -267,9 +271,9 @@ async def send_media_message(
 
     if is_image:
         model = agent.image_model.strip() or agent.model.strip()
-        instruction = (
-            "Describe con detalle el contenido de esta imagen para que un asistente pueda responder al usuario."
-            + (f" El usuario escribió: {caption}" if caption else "")
+        instruction = build_vision_instruction(
+            "Describe con detalle el contenido de esta imagen para que un asistente pueda responder al usuario.",
+            caption or None,
         )
         description = await describe_image(base_url, api_key, model, data, content_type, instruction)
         content = (f"{caption}\n\n" if caption else "") + f"[Imagen recibida] {description}"

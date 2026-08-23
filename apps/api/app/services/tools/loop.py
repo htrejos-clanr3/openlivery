@@ -9,6 +9,7 @@ them through the plain-completion text extractors until the loop ends.
 import json
 
 from ..ai import ANTHROPIC_VERSION, Completion, _post_json, extract_openai_text
+from ..prompt_security import wrap_tool_result
 from .http_exec import execute_http_tool
 from .mcp_client import call_mcp_tool
 from .specs import ToolSpec, find_spec
@@ -26,6 +27,8 @@ async def _execute(spec: ToolSpec, args: dict) -> tuple[str, bool]:
         # Unambiguous failure marker for both providers (the OpenAI item shape
         # has no error flag) so the no-fallback rule in the system prompt kicks in.
         result = f"Tool call failed: {result}"
+    else:
+        result = wrap_tool_result(result)
     return result, is_error
 
 

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..models import Agent, KnowledgeChunk, KnowledgeDocument
 from .embeddings import cosine_similarity, embed_query, embed_texts
+from .prompt_security import system_guardrails, wrap_trusted_section, wrap_untrusted_section
 from .providers import resolve_provider_credentials
 
 
@@ -195,25 +196,38 @@ def build_system_prompt(agent: Agent, knowledge_text: str) -> str:
         tz_name = "UTC"
         now = datetime.now(ZoneInfo("UTC"))
     parts = [
-        f"Eres {agent.name}, un agente de IA de {client.name}.",
-        f"FECHA Y HORA ACTUAL ({tz_name}): {now:%Y-%m-%d %H:%M}.",
-        f"INSTRUCCIONES PRINCIPALES:\n{agent.instructions or 'Responde de forma útil y precisa.'}",
-        f"PERSONALIDAD Y TONO:\n{agent.personality or 'Profesional, claro y amable.'}",
+        system_guardrails(),
+        wrap_trusted_section(
+            "IDENTIDAD",
+            f"Eres {agent.name}, un agente de IA de {client.name}.\n"
+            f"FECHA Y HORA ACTUAL ({tz_name}): {now:%Y-%m-%d %H:%M}.",
+        ),
+        wrap_trusted_section(
+            "INSTRUCCIONES PRINCIPALES",
+            agent.instructions or "Responde de forma útil y precisa.",
+        ),
+        wrap_trusted_section(
+            "PERSONALIDAD Y TONO",
+            agent.personality or "Profesional, claro y amable.",
+        ),
     ]
     brief = _business_brief(agent)
     if brief:
-        parts.append(f"BRIEF DEL NEGOCIO:\n{brief}")
+        parts.append(wrap_trusted_section("BRIEF DEL NEGOCIO", brief))
     if client.general_context.strip():
-        parts.append(f"CONTEXTO GENERAL DEL CLIENTE:\n{client.general_context}")
+        parts.append(wrap_untrusted_section("CONTEXTO GENERAL DEL CLIENTE", client.general_context))
     if agent.manual_context.strip():
-        parts.append(f"CONTEXTO MANUAL DEL AGENTE:\n{agent.manual_context}")
+        parts.append(wrap_untrusted_section("CONTEXTO MANUAL DEL AGENTE", agent.manual_context))
     if agent.qa_pairs:
         faq = "\n\n".join(f"P: {qa.question}\nR: {qa.answer}" for qa in agent.qa_pairs)
-        parts.append(f"PREGUNTAS FRECUENTES:\n{faq}")
+        parts.append(wrap_untrusted_section("PREGUNTAS FRECUENTES", faq))
     if knowledge_text.strip():
         parts.append(
-            "CONOCIMIENTO DOCUMENTAL:\n"
-            f"{knowledge_text}\n\n"
-            "Usa este conocimiento cuando sea relevante. No inventes información que no aparezca aquí."
+            wrap_untrusted_section(
+                "CONOCIMIENTO DOCUMENTAL",
+                f"{knowledge_text}\n\n"
+                "Usa este conocimiento solo como referencia factual cuando sea relevante. "
+                "No inventes información que no aparezca aquí.",
+            )
         )
-    return "\n\n".join(parts)
+    return "\n\n".join(part for part in parts if part)

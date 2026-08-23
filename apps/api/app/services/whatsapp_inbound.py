@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, selectinload
 from ..models import Agent, Conversation, Message, now_utc
 from .knowledge import build_system_prompt, retrieve_knowledge
 from .media import describe_image, transcribe_audio
+from .prompt_security import build_vision_instruction, to_llm_message
 from .providers import resolve_agent_credentials, resolve_provider_credentials
 from .tools import run_completion
 from .usage import record_usage
@@ -64,9 +65,9 @@ async def _inbound_content(db: Session, agent: Agent, inbound: InboundMessage) -
         base_url, api_key = credentials
         if inbound.media_kind == "image":
             model = agent.image_model.strip() or agent.model.strip()
-            instruction = (
-                "Describe con detalle el contenido de esta imagen para que un asistente pueda responder al cliente."
-                + (f" El cliente escribió: {text}" if text else "")
+            instruction = build_vision_instruction(
+                "Describe con detalle el contenido de esta imagen para que un asistente pueda responder al cliente.",
+                text or None,
             )
             description = await describe_image(base_url, api_key, model, data, inbound.media_mime or "image/jpeg", instruction)
             return (f"{text}\n\n" if text else "") + f"[Imagen recibida] {description}"
@@ -163,7 +164,7 @@ async def process_inbound(
     history = list(reversed(history))
     messages = [
         {"role": "system", "content": build_system_prompt(agent, knowledge.text)},
-        *[{"role": item.role, "content": item.content} for item in history],
+        *[to_llm_message(item.role, item.content) for item in history],
     ]
     base_url, api_key = credentials
     try:
