@@ -3,11 +3,13 @@ from types import SimpleNamespace
 from app.services.knowledge import build_system_prompt
 from app.services.prompt_security import (
     build_vision_instruction,
+    guard_output,
     scan_document_text,
     system_guardrails,
     to_llm_message,
     wrap_tool_result,
     wrap_untrusted_section,
+    SAFE_OUTPUT_FALLBACK,
 )
 
 
@@ -80,3 +82,22 @@ def test_scan_document_text_allows_clean_content():
 def test_wrap_untrusted_section_structure():
     block = wrap_untrusted_section("FAQ", "P: Precio?\nR: $5")
     assert block.startswith("=== FAQ (NO CONFIABLE) ===")
+
+
+def test_guard_output_allows_normal_reply():
+    result = guard_output("Hola, el menú incluye pasta y pizza desde $12.")
+    assert result.blocked is False
+    assert "pasta" in result.text
+
+
+def test_guard_output_blocks_system_prompt_leak():
+    leak = "REGLAS DE SEGURIDAD (INMUTABLES — tienen prioridad..."
+    result = guard_output(leak)
+    assert result.blocked is True
+    assert result.text == SAFE_OUTPUT_FALLBACK
+
+
+def test_guard_output_blocks_api_key_in_reply():
+    result = guard_output("Use this key: sk-1234567890abcdefghijklmnopqrst")
+    assert result.blocked is True
+    assert result.text == SAFE_OUTPUT_FALLBACK

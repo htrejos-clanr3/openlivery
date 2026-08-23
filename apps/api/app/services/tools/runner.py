@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from ...models import Agent, AgentTool
 from ..ai import Completion, chat_completion
+from ..prompt_security import guard_output
 from .loop import anthropic_tool_loop, openai_tool_loop
 from .specs import build_tool_specs
 
@@ -35,6 +36,18 @@ def _with_tool_rules(messages: list[dict]) -> list[dict]:
     return [{"role": "system", "content": TOOL_USAGE_RULES}, *amended]
 
 
+def _guard_completion(completion: Completion) -> Completion:
+    guarded = guard_output(completion.text)
+    if not guarded.blocked:
+        return completion
+    return Completion(
+        guarded.text,
+        completion.input_tokens,
+        completion.output_tokens,
+        completion.tool_calls,
+    )
+
+
 async def run_completion(
     db: Session,
     agent: Agent,
@@ -48,13 +61,22 @@ async def run_completion(
     model = agent.model.strip()
     rows = db.scalars(select(AgentTool).where(AgentTool.agent_id == agent.id, AgentTool.enabled.is_(True))).all()
     specs = build_tool_specs(list(rows))
-    if not specs:
-        return await chat_completion(agent.provider, base_url, api_key, model, messages, temperature=temperature, max_tokens=max_tokens)
-    messages = _with_tool_rules(messages)
     try:
-        if agent.provider == "anthropic":
-            return await anthropic_tool_loop(base_url, api_key, model, messages, specs, temperature, max_tokens)
-        return await openai_tool_loop(base_url, api_key, model, messages, specs, temperature, max_tokens)
+        if not specs:
+            completion = await chat_completion(
+                agent.provider, base_url, api_key, model, messages, temperature=temperature, max_tokens=max_tokens
+            )
+        else:
+            messages = _with_tool_rules(messages)
+            if agent.provider == "anthropic":
+                completion = await anthropic_tool_loop(
+                    base_url, api_key, model, messages, specs, temperature, max_tokens
+                )
+            else:
+                completion = await openai_tool_loop(
+                    base_url, api_key, model, messages, specs, temperature, max_tokens
+                )
+        return _guard_completion(completion)
     except HTTPException:
         raise
     except (httpx.HTTPError, KeyError, ValueError, IndexError) as exc:
