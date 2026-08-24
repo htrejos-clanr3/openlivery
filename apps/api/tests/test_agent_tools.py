@@ -282,12 +282,11 @@ def test_anthropic_tool_loop_round_trip(monkeypatch):
 
     assert completion.text == "Your order shipped."
     assert completion.input_tokens == 30 and completion.output_tokens == 12
-    assert completion.tool_calls == [{
-        "name": "check_order",
-        "arguments": {"order_id": "42"},
-        "result_preview": 'HTTP 200: {"status": "shipped"}',
-        "is_error": False,
-    }]
+    assert completion.tool_calls[0]["name"] == "check_order"
+    assert completion.tool_calls[0]["arguments"] == {"order_id": "42"}
+    assert completion.tool_calls[0]["is_error"] is False
+    assert "HTTP 200: {\"status\": \"shipped\"}" in completion.tool_calls[0]["result_preview"]
+    assert "NO CONFIABLE" in completion.tool_calls[0]["result_preview"]
 
 
 def test_openai_tool_loop_round_trip(monkeypatch):
@@ -316,7 +315,10 @@ def test_openai_tool_loop_round_trip(monkeypatch):
     }
     second_input = llm_calls[1]["payload"]["input"]
     assert function_call in second_input
-    assert second_input[-1] == {"type": "function_call_output", "call_id": "call_1", "output": 'HTTP 200: {"status": "shipped"}'}
+    assert second_input[-1]["type"] == "function_call_output"
+    assert second_input[-1]["call_id"] == "call_1"
+    assert "HTTP 200: {\"status\": \"shipped\"}" in second_input[-1]["output"]
+    assert "NO CONFIABLE" in second_input[-1]["output"]
     assert completion.text == "Shipped!"
     assert completion.tool_calls and completion.tool_calls[0]["name"] == "check_order"
 
