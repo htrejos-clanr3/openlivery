@@ -1,7 +1,7 @@
 import type { Conversation } from "@/types";
 
 /** Relative-ish timestamps for inbox rows and bubbles. */
-export function formatWhen(iso: string, locale: string = "en"): string {
+export function formatWhen(iso: string, locale: string = "es"): string {
   const date = new Date(iso);
   const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   const sameDay = date.toDateString() === new Date().toDateString();

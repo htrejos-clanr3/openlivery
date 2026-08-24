@@ -79,5 +79,5 @@ export const agentTemplates: AgentTemplate[] = [
 ];
 
 export function localize(value: Localized, lang: Lang): string {
-  return value[lang] ?? value.en;
+  return value[lang] ?? value.es ?? value.en;
 }
