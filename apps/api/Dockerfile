@@ -12,12 +12,15 @@ RUN groupadd --gid 10001 openlivery \
 WORKDIR /app/backend
 
 COPY requirements.txt ./requirements.txt
+COPY requirements-dev.txt ./requirements-dev.txt
 COPY pyproject.toml ./pyproject.toml
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY alembic.ini ./alembic.ini
 COPY migrations ./migrations
 COPY app ./app
+# Tests stay in the image so `make test` can run them after installing
+# requirements-dev; they are not imported by the runtime process.
 COPY tests ./tests
 
 RUN mkdir -p /app/backend/storage \
