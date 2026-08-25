@@ -12,8 +12,9 @@ from sqlalchemy.orm import Session
 
 from ...models import Agent, AgentTool
 from ..ai import Completion, chat_completion
+from ..providers import api_style_for
 from ..prompt_security import guard_output
-from .loop import anthropic_tool_loop, openai_tool_loop
+from .loop import anthropic_tool_loop, openai_chat_tool_loop, openai_tool_loop
 from .specs import build_tool_specs
 
 # Injected whenever the agent has tools: tool output is untrusted data and
@@ -68,12 +69,17 @@ async def run_completion(
             )
         else:
             messages = _with_tool_rules(messages)
-            if agent.provider == "anthropic":
+            style = api_style_for(agent.provider)
+            if style == "anthropic_messages":
                 completion = await anthropic_tool_loop(
                     base_url, api_key, model, messages, specs, temperature, max_tokens
                 )
-            else:
+            elif style == "openai_responses":
                 completion = await openai_tool_loop(
+                    base_url, api_key, model, messages, specs, temperature, max_tokens
+                )
+            else:
+                completion = await openai_chat_tool_loop(
                     base_url, api_key, model, messages, specs, temperature, max_tokens
                 )
         return _guard_completion(completion)

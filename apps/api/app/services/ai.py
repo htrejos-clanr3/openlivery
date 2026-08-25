@@ -3,6 +3,8 @@ from dataclasses import dataclass
 import httpx
 from fastapi import HTTPException
 
+from .providers import api_style_for
+
 
 ANTHROPIC_VERSION = "2023-06-01"
 
@@ -31,12 +33,14 @@ async def chat_completion(
     temperature: float | None = None,
     max_tokens: int | None = None,
 ) -> Completion:
-    """Generate a reply using the provider's modern chat API: the OpenAI
-    Responses API, or the Anthropic Messages API."""
+    """Generate a reply using the provider's chat API."""
     try:
-        if provider == "anthropic":
+        style = api_style_for(provider)
+        if style == "anthropic_messages":
             return await _anthropic_messages(base_url, api_key, model, messages, temperature, max_tokens)
-        return await _openai_responses(base_url, api_key, model, messages, temperature, max_tokens)
+        if style == "openai_responses":
+            return await _openai_responses(base_url, api_key, model, messages, temperature, max_tokens)
+        return await _openai_chat_completions(base_url, api_key, model, messages, temperature, max_tokens)
     except HTTPException:
         raise
     except (httpx.HTTPError, KeyError, ValueError, IndexError) as exc:
@@ -65,6 +69,24 @@ async def _openai_responses(base_url, api_key, model, messages, temperature, max
         text=extract_openai_text(data),
         input_tokens=int(usage.get("input_tokens") or 0),
         output_tokens=int(usage.get("output_tokens") or 0),
+    )
+
+
+async def _openai_chat_completions(base_url, api_key, model, messages, temperature, max_tokens) -> Completion:
+    url = f"{base_url.rstrip('/')}/chat/completions"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    base_payload: dict = {"model": model, "messages": messages}
+    sampling: dict = {}
+    if temperature is not None:
+        sampling["temperature"] = temperature
+    if max_tokens is not None:
+        sampling["max_tokens"] = max_tokens
+    data = await _post_json(url, headers, base_payload, sampling)
+    usage = data.get("usage") or {}
+    return Completion(
+        text=extract_chat_completion_text(data),
+        input_tokens=int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0),
+        output_tokens=int(usage.get("completion_tokens") or usage.get("output_tokens") or 0),
     )
 
 
@@ -120,6 +142,23 @@ def extract_openai_text(data: dict) -> str:
     return text
 
 
+def extract_chat_completion_text(data: dict) -> str:
+    """Pull assistant text from an OpenAI-compatible /chat/completions result."""
+    choices = data.get("choices") or []
+    if not choices:
+        raise ValueError("empty response")
+    message = choices[0].get("message") or {}
+    content = message.get("content")
+    if isinstance(content, str) and content.strip():
+        return content.strip()
+    if isinstance(content, list):
+        parts = [part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"]
+        text = "".join(parts).strip()
+        if text:
+            return text
+    raise ValueError("empty response")
+
+
 def _is_sampling_param_error(response: httpx.Response) -> bool:
     message = _safe_provider_error(response).lower()
     return any(hint in message for hint in _SAMPLING_PARAM_HINTS)
@@ -138,7 +177,7 @@ def _safe_provider_error(response: httpx.Response) -> str:
 
 async def test_provider(provider: str, base_url: str, api_key: str) -> dict:
     """Verify a provider key by listing its models."""
-    if provider == "anthropic":
+    if api_style_for(provider) == "anthropic_messages":
         headers = {"x-api-key": api_key, "anthropic-version": ANTHROPIC_VERSION}
     else:
         headers = {"Authorization": f"Bearer {api_key}"}

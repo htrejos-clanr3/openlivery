@@ -282,6 +282,8 @@ textarea { line-height: 1.55; }
 .switch-row small { font-size: 12px; }
 .form-footer { padding: 16px 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .form-footer.split { justify-content: space-between; }
+.form-footer-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.continue-hint { color: var(--muted); font-size: 12px; }
 .back-link { margin-bottom: 20px; font-size: 13px; }
 .entity-header { min-height: 70px; display: flex; align-items: center; gap: 16px; }
 .entity-header > div:nth-child(2) { flex: 1; }
@@ -337,6 +339,13 @@ textarea { line-height: 1.55; }
 .key-configured { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
 .key-configured-status { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-weight: 600; font-size: 14px; }
 .key-configured-actions { display: flex; gap: 8px; }
+.provider-setup-panel { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+.provider-setup-status { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.provider-setup-status.ok { color: var(--green); }
+.provider-setup-status.warn { color: var(--amber, #b45309); }
+.provider-setup-hint { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.provider-setup-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.button.compact { padding: 6px 12px; font-size: 13px; }
 .toast-viewport { position: fixed; top: 18px; right: 18px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: min(380px, calc(100vw - 36px)); pointer-events: none; }
 .toast { pointer-events: auto; display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: white; box-shadow: 0 12px 30px rgba(15, 23, 42, .16); font-size: 14px; color: var(--ink); animation: toast-in .18s ease; }
 .toast-icon { flex: 0 0 auto; display: inline-flex; margin-top: 1px; }

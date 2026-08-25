@@ -8,14 +8,42 @@ from ..security import decrypt_secret
 
 
 PROVIDERS: dict[str, dict[str, str]] = {
-    "openai": {"label": "OpenAI", "base_url": "https://api.openai.com/v1"},
-    "anthropic": {"label": "Anthropic", "base_url": "https://api.anthropic.com/v1"},
+    "openai": {
+        "label": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "api_style": "openai_responses",
+    },
+    "anthropic": {
+        "label": "Anthropic",
+        "base_url": "https://api.anthropic.com/v1",
+        "api_style": "anthropic_messages",
+    },
+    "deepseek": {
+        "label": "DeepSeek",
+        "base_url": "https://api.deepseek.com/v1",
+        "api_style": "openai_chat",
+    },
+    "moonshot": {
+        "label": "Kimi (Moonshot)",
+        "base_url": "https://api.moonshot.cn/v1",
+        "api_style": "openai_chat",
+    },
+    "dashscope": {
+        "label": "Qwen (DashScope)",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "api_style": "openai_chat",
+    },
 }
 SUPPORTED = tuple(PROVIDERS)
+PROVIDER_PATTERN = r"^(" + "|".join(SUPPORTED) + r")$"
 
 
 def base_url_for(provider: str) -> str:
     return PROVIDERS[provider]["base_url"]
+
+
+def api_style_for(provider: str) -> str:
+    return PROVIDERS[provider]["api_style"]
 
 
 def resolve_provider_credentials(db: Session, agency_id, provider: str) -> tuple[str, str] | None:

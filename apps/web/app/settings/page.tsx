@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Eye, EyeOff, ImagePlus, LoaderCircle, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, LoaderCircle, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { PageHead } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
@@ -80,7 +80,7 @@ function ProviderKeyCard({ preset, state, busy, onSave, onRemove, t }: { preset:
   }
 
   return (
-    <section className="form-section"><div className="section-copy"><h2>{preset.label}</h2><p>{t("settings.providers.byo", { label: preset.label })}</p></div>
+    <section className="form-section"><div className="section-copy"><h2>{preset.label}</h2><p>{t("settings.providers.byo", { label: preset.label })}</p><a className="text-button" href={preset.keyUrl} target="_blank" rel="noreferrer">{t("settings.providers.getKey")} <ExternalLink size={14} /></a></div>
       <div className="form-fields">
         {configured ? (
           <div className="key-configured">

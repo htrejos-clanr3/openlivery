@@ -71,6 +71,28 @@ def test_anthropic_uses_messages_api(monkeypatch):
     assert captured["payload"]["max_tokens"] == 100
 
 
+def test_deepseek_uses_chat_completions_api(monkeypatch):
+    captured = {}
+    _fake_http(monkeypatch, captured, {"choices": [{"message": {"role": "assistant", "content": "OK"}}]})
+    answer = asyncio.run(
+        ai_service.chat_completion(
+            "deepseek", "https://api.deepseek.test/v1", "secret", "deepseek-chat",
+            [{"role": "system", "content": "Be brief"}, {"role": "user", "content": "Hello"}],
+            temperature=0.5,
+            max_tokens=512,
+        )
+    )
+    assert answer.text == "OK"
+    assert captured["url"].endswith("/chat/completions")
+    assert captured["headers"]["Authorization"] == "Bearer secret"
+    assert captured["payload"]["messages"] == [
+        {"role": "system", "content": "Be brief"},
+        {"role": "user", "content": "Hello"},
+    ]
+    assert captured["payload"]["temperature"] == 0.5
+    assert captured["payload"]["max_tokens"] == 512
+
+
 def test_register_login_logout_and_me(client: TestClient):
     payload = {
         "agency_name": "North Studio",

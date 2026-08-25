@@ -5,14 +5,15 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, LoaderCircle, PencilLine, Sparkles } from "lucide-react";
 import { Alert } from "@/components/ui";
+import { ProviderSetupPanel } from "@/components/provider-setup-panel";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n";
-import { PROVIDERS, modelsFor, estimateTokens, modelContextWindow } from "@/lib/providers";
+import { PROVIDERS, modelsFor, defaultModelFor, estimateTokens, modelContextWindow } from "@/lib/providers";
 import { Combobox } from "@/components/combobox";
 import { TIMEZONES } from "@/lib/timezones";
 import { agentTemplates, localize } from "@/lib/agent-templates";
-import type { Agent, Client } from "@/types";
+import type { Agent, Client, Provider } from "@/types";
 
 const BROWSER_TZ = (() => {
   try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"; } catch { return "UTC"; }
@@ -40,6 +41,7 @@ export default function NewAgentPage() {
   const [temperature, setTemperature] = useState(0.7);
   const [maxTokens, setMaxTokens] = useState(2048);
   const [memoryLimit, setMemoryLimit] = useState(30);
+  const [providerStates, setProviderStates] = useState<Provider[]>([]);
 
   useEffect(() => {
     const preferred = new URLSearchParams(window.location.search).get("client") || "";
@@ -47,6 +49,7 @@ export default function NewAgentPage() {
       setClients(c);
       setClientId(preferred || c[0]?.id || "");
     }).catch(() => {});
+    api<Provider[]>("/providers").then(setProviderStates).catch(() => {});
   }, []);
 
   const promptTokens = useMemo(() => estimateTokens([description, instructions, personality].join("\n")), [description, instructions, personality]);
@@ -64,6 +67,12 @@ export default function NewAgentPage() {
     setStep(1);
   }
 
+  function onProviderChange(next: string) {
+    setProvider(next);
+    const options = modelsFor(next);
+    if (!options.includes(model)) setModel(defaultModelFor(next));
+  }
+
   const canNext = step !== 1 || (name.trim().length > 0 && Boolean(clientId));
 
   async function create() {
@@ -74,7 +83,7 @@ export default function NewAgentPage() {
         provider, model: model || "", timezone,
         temperature, max_tokens: maxTokens, memory_limit: memoryLimit, is_active: true,
       }) });
-      router.push(`/agents/${agent.id}`);
+      router.push(`/agents/${agent.id}?tab=knowledge`);
     } catch (err) { toast.error(messageFrom(err)); setBusy(false); }
   }
 
@@ -137,9 +146,10 @@ export default function NewAgentPage() {
         <div className="wizard-copy"><h2>{t("agents.wizard.modelTitle")}</h2><p>{t("agents.wizard.modelSubtitle")}</p></div>
         <label>{t("agents.detail.timezoneLabel")}<Combobox value={timezone} onChange={setTimezone} options={TIMEZONES} placeholder={t("agents.detail.timezoneLabel")} /></label>
         <div className="form-grid">
-          <label>{t("agents.new.providerLabel")}<select value={provider} onChange={(e) => setProvider(e.target.value)}>{PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
+          <label>{t("agents.new.providerLabel")}<select value={provider} onChange={(e) => onProviderChange(e.target.value)}>{PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label>
           <label>{t("agents.new.modelLabel")}<Combobox value={model} onChange={setModel} options={modelsFor(provider)} placeholder={t("agents.new.modelPlaceholder")} allowCustom /></label>
         </div>
+        <ProviderSetupPanel providerId={provider} providers={providerStates} />
         <div className="context-bar"><div style={{ width: `${contextPct}%` }} /><small><Sparkles size={12} /> {t("agents.detail.contextUsage", { count: promptTokens.toLocaleString(lang), total: contextWindow.toLocaleString(lang) })}</small></div>
         <div className="slider-field"><div className="slider-head"><span>{t("agents.detail.temperatureLabel")}</span><strong>{temperature.toFixed(1)}/2</strong></div><input type="range" min="0" max="2" step="0.1" value={temperature} onChange={(e) => setTemperature(Number(e.target.value))} /></div>
         <div className="slider-field"><div className="slider-head"><span>{t("agents.detail.maxTokensLabel")}</span><strong>{maxTokens}/8192</strong></div><input type="range" min="256" max="8192" step="256" value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))} /></div>

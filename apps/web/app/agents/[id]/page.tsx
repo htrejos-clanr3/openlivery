@@ -11,11 +11,19 @@ import { useToast } from "@/components/toast";
 import { ChatPlayground } from "@/components/chat-playground";
 import { AgentToolsTab } from "@/components/agent-tools/agent-tools-tab";
 import { Combobox } from "@/components/combobox";
-import { PROVIDERS, modelsFor, estimateTokens, modelContextWindow, AUDIO_MODELS, IMAGE_MODELS } from "@/lib/providers";
+import { ProviderSetupPanel } from "@/components/provider-setup-panel";
+import { PROVIDERS, modelsFor, defaultModelFor, estimateTokens, modelContextWindow, AUDIO_MODELS, IMAGE_MODELS, isOpenAIOnlyCapabilityProvider } from "@/lib/providers";
 import { TIMEZONES } from "@/lib/timezones";
-import type { Agent, AgentTool, Client, KnowledgeDocument, QAPair } from "@/types";
+import type { Agent, AgentTool, Client, KnowledgeDocument, Provider, QAPair } from "@/types";
 
 type Tab = "details" | "knowledge" | "tools" | "widget" | "playground";
+
+const AGENT_TAB_ORDER: Tab[] = ["details", "knowledge", "tools", "widget", "playground"];
+
+function nextAgentTab(current: Tab): Tab | null {
+  const index = AGENT_TAB_ORDER.indexOf(current);
+  return index >= 0 && index < AGENT_TAB_ORDER.length - 1 ? AGENT_TAB_ORDER[index + 1]! : null;
+}
 
 export default function AgentDetailPage() {
   const t = useT();
@@ -40,13 +48,14 @@ export default function AgentDetailPage() {
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([]);
   const [qaPairs, setQaPairs] = useState<QAPair[]>([]);
   const [tools, setTools] = useState<AgentTool[]>([]);
+  const [providerStates, setProviderStates] = useState<Provider[]>([]);
   const [tab, setTab] = useState<Tab>("details");
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
-    const [a, c, d, q, tl] = await Promise.all([api<Agent>(`/agents/${id}`), api<Client[]>("/clients"), api<KnowledgeDocument[]>(`/agents/${id}/documents`), api<QAPair[]>(`/agents/${id}/qa`), api<AgentTool[]>(`/agents/${id}/tools`)]);
-    setAgent(a); setClients(c); setDocuments(d); setQaPairs(q); setTools(tl);
+    const [a, c, d, q, tl, p] = await Promise.all([api<Agent>(`/agents/${id}`), api<Client[]>("/clients"), api<KnowledgeDocument[]>(`/agents/${id}/documents`), api<QAPair[]>(`/agents/${id}/qa`), api<AgentTool[]>(`/agents/${id}/tools`), api<Provider[]>("/providers")]);
+    setAgent(a); setClients(c); setDocuments(d); setQaPairs(q); setTools(tl); setProviderStates(p);
     setProvider(a.provider); setModel(a.model); setTimezone(a.timezone || "UTC");
     setTemperature(a.temperature); setMaxTokens(a.max_tokens); setMemoryLimit(a.memory_limit);
     setImageEnabled(a.image_enabled); setImageModel(a.image_model || "gpt-4.1");
@@ -61,13 +70,37 @@ export default function AgentDetailPage() {
     [agent],
   );
   const contextPct = Math.min(100, Math.round((promptTokens / contextWindow) * 100));
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => {
+    load();
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    if (requested && AGENT_TAB_ORDER.includes(requested as Tab)) setTab(requested as Tab);
+  }, [id]);
+
+  function onProviderChange(next: string) {
+    setProvider(next);
+    const options = modelsFor(next);
+    if (!options.includes(model)) setModel(defaultModelFor(next));
+  }
+
+  function goToTab(next: Tab) {
+    setTab(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function advanceFrom(current: Tab) {
+    const next = nextAgentTab(current);
+    if (next) goToTab(next);
+  }
 
   async function saveConfig(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true);
     const form = new FormData(event.currentTarget);
     const payload = { client_id: form.get("client_id"), name: form.get("name"), description: form.get("description"), instructions: form.get("instructions"), personality: form.get("personality"), brief_summary: form.get("brief_summary"), brief_products: form.get("brief_products"), brief_audience: form.get("brief_audience"), brief_policies: form.get("brief_policies"), brief_goal: form.get("brief_goal"), brief_dos: form.get("brief_dos"), brief_donts: form.get("brief_donts"), provider, model, timezone, temperature, max_tokens: maxTokens, memory_limit: memoryLimit, image_enabled: imageEnabled, image_model: imageModel, audio_enabled: audioEnabled, audio_model: audioModel };
-    try { setAgent(await api<Agent>(`/agents/${id}`, { method: "PATCH", body: JSON.stringify(payload) })); toast.success(t("agents.detail.configSaved")); }
+    try {
+      setAgent(await api<Agent>(`/agents/${id}`, { method: "PATCH", body: JSON.stringify(payload) }));
+      toast.success(t("agents.detail.configSaved"));
+      advanceFrom("details");
+    }
     catch (err) { toast.error(messageFrom(err)); } finally { setBusy(false); }
   }
 
@@ -84,14 +117,22 @@ export default function AgentDetailPage() {
   async function saveContext(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true);
     const form = new FormData(event.currentTarget);
-    try { setAgent(await api<Agent>(`/agents/${id}/context`, { method: "PUT", body: JSON.stringify({ manual_context: form.get("manual_context") }) })); toast.success(t("agents.detail.manualContextSaved")); }
+    try {
+      setAgent(await api<Agent>(`/agents/${id}/context`, { method: "PUT", body: JSON.stringify({ manual_context: form.get("manual_context") }) }));
+      toast.success(t("agents.detail.manualContextSaved"));
+      advanceFrom("knowledge");
+    }
     catch (err) { toast.error(messageFrom(err)); } finally { setBusy(false); }
   }
 
   async function saveWidget(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true);
     const payload = { widget_enabled: widgetEnabled, widget_greeting: widgetGreeting, widget_color: widgetColor, widget_position: widgetPosition };
-    try { setAgent(await api<Agent>(`/agents/${id}`, { method: "PATCH", body: JSON.stringify(payload) })); toast.success(t("agents.detail.widgetSaved")); }
+    try {
+      setAgent(await api<Agent>(`/agents/${id}`, { method: "PATCH", body: JSON.stringify(payload) }));
+      toast.success(t("agents.detail.widgetSaved"));
+      advanceFrom("widget");
+    }
     catch (err) { toast.error(messageFrom(err)); } finally { setBusy(false); }
   }
 
@@ -152,9 +193,10 @@ export default function AgentDetailPage() {
       </div></section>
       <section className="settings-section"><div className="settings-copy"><h3>{t("agents.detail.aiModelHeading")}</h3><p>{t("agents.detail.aiModelCopy")}</p></div><div className="settings-fields">
         <label>{t("agents.detail.timezoneLabel")}<Combobox value={timezone} onChange={setTimezone} options={TIMEZONES} placeholder={t("agents.detail.timezoneLabel")} /></label>
-        <div className="form-grid"><label>{t("agents.detail.providerLabel")}<select value={provider} onChange={(e) => setProvider(e.target.value)}>{PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label><label>{t("agents.detail.modelLabel")}<Combobox value={model} onChange={setModel} options={modelsFor(provider)} placeholder={t("agents.detail.modelPlaceholder")} allowCustom /></label></div>
+        <div className="form-grid"><label>{t("agents.detail.providerLabel")}<select value={provider} onChange={(e) => onProviderChange(e.target.value)}>{PROVIDERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select></label><label>{t("agents.detail.modelLabel")}<Combobox value={model} onChange={setModel} options={modelsFor(provider)} placeholder={t("agents.detail.modelPlaceholder")} allowCustom /></label></div>
+        <ProviderSetupPanel providerId={provider} providers={providerStates} />
         <div className="context-bar"><div style={{ width: `${contextPct}%` }} /><small><Sparkles size={12} /> {t("agents.detail.contextUsage", { count: promptTokens.toLocaleString("es"), total: contextWindow.toLocaleString("es") })}</small></div>
-        <Alert type="info">{t("agents.detail.providerKeysPrefix")}<Link href="/settings">{t("agents.detail.settingsLink")}</Link>.</Alert>
+        {isOpenAIOnlyCapabilityProvider(provider) && <Alert type="info">{t("agents.detail.capabilitiesOpenAI")}</Alert>}
         <div className="slider-field"><div className="slider-head"><span>{t("agents.detail.temperatureLabel")}</span><strong>{temperature.toFixed(1)}/2</strong></div><input type="range" min="0" max="2" step="0.1" value={temperature} onChange={(e) => setTemperature(Number(e.target.value))} /><span className="field-help">{t("agents.detail.temperatureHint")}</span></div>
         <div className="slider-field"><div className="slider-head"><span>{t("agents.detail.maxTokensLabel")}</span><strong>{maxTokens}/8192</strong></div><input type="range" min="256" max="8192" step="256" value={maxTokens} onChange={(e) => setMaxTokens(Number(e.target.value))} /><span className="field-help">{t("agents.detail.maxTokensHint")}</span></div>
         <div className="slider-field"><div className="slider-head"><span>{t("agents.detail.memoryLimitLabel")}</span><strong>{memoryLimit}/100</strong></div><input type="range" min="0" max="100" step="1" value={memoryLimit} onChange={(e) => setMemoryLimit(Number(e.target.value))} /><span className="field-help">{t("agents.detail.memoryLimitHint")}</span></div>
@@ -170,11 +212,11 @@ export default function AgentDetailPage() {
         </div>
         <Alert type="info">{t("agents.detail.capabilitiesOpenAI")}</Alert>
       </div></section>
-      <div className="sticky-save"><span>{t("agents.detail.stickyNote")}</span><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {t("agents.detail.saveConfig")}</button></div>
+      <div className="sticky-save"><span>{t("agents.detail.stickyContinueHint", { step: t("agents.detail.tabKnowledge") })}</span><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {t("agents.detail.saveAndContinue")}</button></div>
     </form>}
 
     {tab === "knowledge" && <><div className="knowledge-layout">
-      <form className="panel knowledge-context" onSubmit={saveContext}><div className="panel-head"><div><h3>{t("agents.detail.manualContextHeading")}</h3><p>{t("agents.detail.manualContextCopy")}</p></div></div><textarea name="manual_context" rows={12} defaultValue={agent.manual_context} placeholder={t("agents.detail.manualContextPlaceholder")} /><div className="knowledge-actions"><small>{t("agents.detail.charsSaved", { count: agent.manual_context.length.toLocaleString("es") })}</small><button className="button secondary" disabled={busy}><Save size={16} /> {t("agents.detail.saveContext")}</button></div></form>
+      <form className="panel knowledge-context" onSubmit={saveContext}><div className="panel-head"><div><h3>{t("agents.detail.manualContextHeading")}</h3><p>{t("agents.detail.manualContextCopy")}</p></div></div><textarea name="manual_context" rows={12} defaultValue={agent.manual_context} placeholder={t("agents.detail.manualContextPlaceholder")} /><div className="knowledge-actions"><small>{t("agents.detail.charsSaved", { count: agent.manual_context.length.toLocaleString("es") })}</small><button className="button secondary" disabled={busy}><Save size={16} /> {t("agents.detail.saveContextAndContinue")}</button></div></form>
       <section className="panel documents-panel"><div className="panel-head"><div><h3>{t("agents.detail.pdfHeading")}</h3><p>{t("agents.detail.pdfCopy")}</p></div></div>
         <button className="dropzone" onClick={() => fileRef.current?.click()} disabled={busy}><span><UploadCloud size={24} /></span><strong>{busy ? t("agents.detail.processing") : t("agents.detail.uploadPdf")}</strong><small>{t("agents.detail.uploadHint")}</small></button><input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => upload(e.target.files?.[0])} />
         <div className="documents-list">{documents.map((doc) => <div className="document-row" key={doc.id}><span className={`document-icon ${doc.status}`}><FileText size={19} /></span><div><strong>{doc.filename}</strong><small>{doc.status === "processed" ? t("agents.detail.charsExtracted", { count: doc.character_count.toLocaleString("es") }) : doc.error_message}</small></div><span className={`document-status ${doc.status}`}>{doc.status === "processed" ? <><CheckCircle2 size={14} /> {t("agents.detail.processed")}</> : <><XCircle size={14} /> {t("agents.detail.error")}</>}</span><button className="icon-button danger-icon" onClick={() => removeDocument(doc)} title={t("agents.detail.delete")}><Trash2 size={16} /></button></div>)}{!documents.length && <div className="inline-empty slim"><FileText size={22} /><div><strong>{t("agents.detail.noDocumentsTitle")}</strong><span>{t("agents.detail.noDocumentsHint")}</span></div></div>}</div>
@@ -183,9 +225,13 @@ export default function AgentDetailPage() {
     <section className="panel"><div className="panel-head"><div><h3>{t("agents.detail.qaHeading")}</h3><p>{t("agents.detail.qaCopy")}</p></div></div>
       <form className="qa-form" onSubmit={addQA}><input name="question" required placeholder={t("agents.detail.qaQuestionPlaceholder")} /><textarea name="answer" rows={2} required placeholder={t("agents.detail.qaAnswerPlaceholder")} /><button className="button secondary align-start" disabled={busy}><Plus size={15} /> {t("agents.detail.qaAdd")}</button></form>
       <div className="qa-list">{qaPairs.map((pair) => <div className="qa-item" key={pair.id}><div><strong>{pair.question}</strong><small>{pair.answer}</small></div><button type="button" className="icon-button danger-icon" onClick={() => removeQA(pair)} title={t("agents.detail.delete")}><Trash2 size={16} /></button></div>)}{!qaPairs.length && <div className="inline-empty slim"><MessageSquareText size={22} /><div><strong>{t("agents.detail.qaEmpty")}</strong></div></div>}</div>
-    </section></>}
+    </section>
+    <div className="sticky-save"><span>{t("agents.detail.stickyContinueHint", { step: t("tools.tab") })}</span><button type="button" className="button primary" onClick={() => advanceFrom("knowledge")}>{t("agents.detail.continueTo", { step: t("tools.tab") })}</button></div></>}
 
-    {tab === "tools" && <AgentToolsTab agentId={id} tools={tools} onToolsChange={setTools} />}
+    {tab === "tools" && <>
+      <AgentToolsTab agentId={id} tools={tools} onToolsChange={setTools} />
+      <div className="sticky-save"><span>{t("agents.detail.stickyContinueHint", { step: t("agents.detail.tabWidget") })}</span><button type="button" className="button primary" onClick={() => advanceFrom("tools")}>{t("agents.detail.continueTo", { step: t("agents.detail.tabWidget") })}</button></div>
+    </>}
 
     {tab === "widget" && <form className="settings-form" onSubmit={saveWidget}>
       <section className="settings-section"><div className="settings-copy"><h3>{t("agents.detail.widgetHeading")}</h3><p>{t("agents.detail.widgetCopy")}</p></div><div className="settings-fields">
@@ -202,7 +248,7 @@ export default function AgentDetailPage() {
           <div className="embed-actions"><button type="button" className="button secondary" onClick={() => { navigator.clipboard.writeText(widgetSnippet); toast.success(t("agents.detail.widgetCopied")); }}><Copy size={15} /> {t("agents.detail.widgetCopy2")}</button><a className="button ghost" href={`/widget/${agent.widget_public_id}`} target="_blank" rel="noreferrer"><ExternalLink size={15} /> {t("agents.detail.widgetPreview")}</a></div>
         </> : <Alert type="info">{t("agents.detail.widgetEnableFirst")}</Alert>}
       </div></section>
-      <div className="sticky-save"><span>{t("agents.detail.stickyNote")}</span><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {t("agents.detail.saveConfig")}</button></div>
+      <div className="sticky-save"><span>{t("agents.detail.stickyContinueHint", { step: t("agents.detail.tabPlayground") })}</span><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {t("agents.detail.saveAndContinue")}</button></div>
     </form>}
 
     {tab === "playground" && <ChatPlayground lockedAgentId={agent.id} />}

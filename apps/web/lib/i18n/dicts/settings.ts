@@ -33,6 +33,7 @@ const en = {
     reveal: "Show key",
     hide: "Hide key",
     savedNotVerified: "Saved, but the key could not be verified:",
+    getKey: "Get API key",
   },
 };
 
@@ -70,6 +71,7 @@ const es: typeof en = {
     reveal: "Mostrar clave",
     hide: "Ocultar clave",
     savedNotVerified: "Guardada, pero no se pudo verificar la clave:",
+    getKey: "Obtener API key",
   },
 };
 

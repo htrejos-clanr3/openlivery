@@ -8,7 +8,7 @@ them through the plain-completion text extractors until the loop ends.
 
 import json
 
-from ..ai import ANTHROPIC_VERSION, Completion, _post_json, extract_openai_text
+from ..ai import ANTHROPIC_VERSION, Completion, _post_json, extract_chat_completion_text, extract_openai_text
 from ..prompt_security import wrap_tool_result
 from .http_exec import execute_http_tool
 from .mcp_client import call_mcp_tool
@@ -130,4 +130,56 @@ async def openai_tool_loop(
                 result, is_error = await _execute(spec, args)
             _record(metadata, call.get("name", ""), args, result, is_error)
             input_items.append({"type": "function_call_output", "call_id": call.get("call_id"), "output": result})
+    raise ValueError("tool loop did not converge")
+
+
+async def openai_chat_tool_loop(
+    base_url: str, api_key: str, model: str, messages: list[dict], specs: list[ToolSpec],
+    temperature: float | None, max_tokens: int | None,
+) -> Completion:
+    url = f"{base_url.rstrip('/')}/chat/completions"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    convo: list[dict] = list(messages)
+    tools = [
+        {"type": "function", "function": {"name": s.name, "description": s.description, "parameters": s.input_schema}}
+        for s in specs
+    ]
+    sampling: dict = {}
+    if temperature is not None:
+        sampling["temperature"] = temperature
+    if max_tokens is not None:
+        sampling["max_tokens"] = max_tokens
+    input_tokens = output_tokens = 0
+    metadata: list[dict] = []
+
+    for iteration in range(MAX_TOOL_ITERATIONS + 1):
+        payload: dict = {"model": model, "messages": convo, "tools": tools}
+        if iteration == MAX_TOOL_ITERATIONS:
+            payload["tool_choice"] = "none"
+        data = await _post_json(url, headers, payload, sampling)
+        usage = data.get("usage") or {}
+        input_tokens += int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+        output_tokens += int(usage.get("completion_tokens") or usage.get("output_tokens") or 0)
+        choice = (data.get("choices") or [{}])[0]
+        message = choice.get("message") or {}
+        tool_calls = message.get("tool_calls") or []
+        if choice.get("finish_reason") != "tool_calls" or not tool_calls:
+            text = (message.get("content") or "").strip()
+            if not text:
+                text = extract_chat_completion_text(data)
+            return Completion(text, input_tokens, output_tokens, tool_calls=metadata or None)
+        convo.append(message)
+        for call in tool_calls:
+            try:
+                args = json.loads(call.get("function", {}).get("arguments") or "{}")
+            except ValueError:
+                args = {}
+            name = call.get("function", {}).get("name", "")
+            spec = find_spec(specs, name)
+            if spec is None:
+                result, is_error = f"Error: unknown tool '{name}'", True
+            else:
+                result, is_error = await _execute(spec, args)
+            _record(metadata, name, args, result, is_error)
+            convo.append({"role": "tool", "tool_call_id": call.get("id"), "content": result})
     raise ValueError("tool loop did not converge")
