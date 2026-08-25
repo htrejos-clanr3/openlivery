@@ -21,6 +21,10 @@ const en = {
     connect: "Connect",
     configure: "Configure",
   },
+  upload: {
+    dropHint: "Drag and drop or click to browse",
+    dropActive: "Drop the file here",
+  },
   nav: {
     section: "Platform",
     home: "Home",
@@ -108,6 +112,10 @@ const es: typeof en = {
     comingSoon: "Próximamente",
     connect: "Conectar",
     configure: "Configurar",
+  },
+  upload: {
+    dropHint: "Arrastra y suelta o haz clic para buscar",
+    dropActive: "Suelta el archivo aquí",
   },
   nav: {
     section: "Plataforma",

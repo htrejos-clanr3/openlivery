@@ -43,6 +43,7 @@ const en = {
     send: "Send",
     attachImage: "Attach an image",
     disclaimer: "Responses come from the configured provider and may contain errors.",
+    imageDropHint: "Drag an image here or use the attach button · Responses may contain errors.",
   },
 };
 
@@ -90,6 +91,7 @@ const es: typeof en = {
     send: "Enviar",
     attachImage: "Adjuntar una imagen",
     disclaimer: "Las respuestas provienen del proveedor configurado y pueden contener errores.",
+    imageDropHint: "Arrastra una imagen aquí o usa el botón de adjuntar · Las respuestas pueden contener errores.",
   },
 };
 
