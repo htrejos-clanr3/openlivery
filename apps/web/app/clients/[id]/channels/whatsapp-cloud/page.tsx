@@ -97,6 +97,8 @@ function WhatsAppCloudChannelPageInner() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [guideManagedOpen, setGuideManagedOpen] = useState(false);
   const [guideByoOpen, setGuideByoOpen] = useState(false);
+  const [guideCompareOpen, setGuideCompareOpen] = useState(false);
+  const [guideMcpOpen, setGuideMcpOpen] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   const [showTechnical, setShowTechnical] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -520,25 +522,86 @@ function WhatsAppCloudChannelPageInner() {
                   {guideByoOpen && (
                     <div className="wa-nested-body">
                       <p>{t("clients.whatsappCloud.guideByoIntro")}</p>
+                      <div className="wa-guide-block">
+                        <h3>{t("clients.whatsappCloud.guideByoWhereTitle")}</h3>
+                        <p>{t("clients.whatsappCloud.guideByoWhereCopy")}</p>
+                        <img
+                          className="wa-guide-diagram"
+                          src="/whatsapp-meta-guide/api-setup-ids.svg"
+                          alt={t("clients.whatsappCloud.guideByoImageAlt")}
+                        />
+                        <p className="wa-guide-note">
+                          <a href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started/" target="_blank" rel="noreferrer">
+                            {t("clients.whatsappCloud.guideDocsHint")}
+                          </a>
+                        </p>
+                      </div>
                       <ol className="wa-guide-steps">
                         <li>{t("clients.whatsappCloud.guideByo1")}</li>
                         <li>{t("clients.whatsappCloud.guideByo2")}</li>
                         <li>{t("clients.whatsappCloud.guideByo3")}</li>
                         <li>{t("clients.whatsappCloud.guideByo4")}</li>
+                        <li>{t("clients.whatsappCloud.guideByo5")}</li>
                         <li>
-                          {t("clients.whatsappCloud.guideByo5")}{" "}
+                          {t("clients.whatsappCloud.guideByo6")}{" "}
                           <button type="button" className="text-button" onClick={() => setAdvancedOpen(true)}>
                             {t("clients.whatsappCloud.advancedTitle")}
                           </button>
                         </li>
-                        <li>{t("clients.whatsappCloud.guideByo6")}</li>
                       </ol>
                       <p className="wa-guide-note">{t("clients.whatsappCloud.guideWebhookNote")}</p>
                     </div>
                   )}
                 </div>
 
-                <p className="wa-guide-note">{t("clients.whatsappCloud.guideDocsHint")}</p>
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideCompareOpen((v) => !v)}
+                    aria-expanded={guideCompareOpen}
+                  >
+                    <strong>{t("clients.whatsappCloud.guideCompareTitle")}</strong>
+                    <ChevronDown size={16} className={guideCompareOpen ? "open" : ""} />
+                  </button>
+                  {guideCompareOpen && (
+                    <div className="wa-nested-body">
+                      <p>{t("clients.whatsappCloud.guideCompareIntro")}</p>
+                      <ul className="wa-guide-steps">
+                        <li>{t("clients.whatsappCloud.guideCompareQr")}</li>
+                        <li>{t("clients.whatsappCloud.guideCompareCloud")}</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideMcpOpen((v) => !v)}
+                    aria-expanded={guideMcpOpen}
+                  >
+                    <strong>{t("clients.whatsappCloud.guideMcpTitle")}</strong>
+                    <ChevronDown size={16} className={guideMcpOpen ? "open" : ""} />
+                  </button>
+                  {guideMcpOpen && (
+                    <div className="wa-nested-body">
+                      <p>{t("clients.whatsappCloud.guideMcpIntro")}</p>
+                      <a
+                        className="button secondary wa-guide-link"
+                        href="https://developers.facebook.com/documentation/mcp/devtools-mcp"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ExternalLink size={16} /> {t("clients.whatsappCloud.guideMcpLink")}
+                      </a>
+                      <p className="wa-guide-note">{t("clients.whatsappCloud.guideDocsRepo")}</p>
+                    </div>
+                  )}
+                </div>
+
+                <p className="wa-guide-note">{t("clients.whatsappCloud.guideDocsRepo")}</p>
               </div>
             )}
           </section>

@@ -842,6 +842,7 @@ textarea { line-height: 1.55; }
 .wa-guide-checklist li.done { color: #087b52; font-weight: 600; }
 .wa-guide-steps { margin: 0; padding-left: 20px; color: #545d6e; font-size: 13px; line-height: 1.75; }
 .wa-guide-note { color: #737b8a !important; font-size: 12px !important; }
+.wa-guide-diagram { display: block; width: 100%; max-width: 640px; height: auto; margin-top: 12px; border: 1px solid #e6e9ed; border-radius: 10px; background: #fff; }
 .wa-nested-accordion { border: 1px solid #e6e9ed; border-radius: 10px; overflow: hidden; background: #fff; }
 .wa-nested-trigger { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 0; background: #f7f9fc; cursor: pointer; text-align: left; }
 .wa-nested-trigger strong { color: #242b38; font-size: 13px; font-weight: 650; }
