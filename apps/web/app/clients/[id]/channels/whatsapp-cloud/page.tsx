@@ -94,7 +94,9 @@ function WhatsAppCloudChannelPageInner() {
   const [accessToken, setAccessToken] = useState("");
   const [appSecret, setAppSecret] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideManagedOpen, setGuideManagedOpen] = useState(false);
+  const [guideByoOpen, setGuideByoOpen] = useState(false);
   const [showSecrets, setShowSecrets] = useState(false);
   const [showTechnical, setShowTechnical] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -445,8 +447,8 @@ function WhatsAppCloudChannelPageInner() {
             </section>
           )}
 
-          <section className="wa-panel">
-            <button type="button" className="wa-accordion-trigger" onClick={() => setGuideOpen((v) => !v)}>
+          <section className="wa-panel wa-accordion-panel">
+            <button type="button" className="wa-accordion-trigger" onClick={() => setGuideOpen((v) => !v)} aria-expanded={guideOpen}>
               <span><BookOpen size={19} /></span>
               <div>
                 <h2>{t("clients.whatsappCloud.guideTitle")}</h2>
@@ -455,7 +457,7 @@ function WhatsAppCloudChannelPageInner() {
               <ChevronDown size={18} className={guideOpen ? "open" : ""} />
             </button>
             {guideOpen && (
-              <div className="wa-guide">
+              <div className="wa-accordion-body wa-guide">
                 <a
                   className="button secondary wa-guide-link"
                   href="https://developers.facebook.com/apps/"
@@ -465,46 +467,77 @@ function WhatsAppCloudChannelPageInner() {
                   <ExternalLink size={16} /> {t("clients.whatsappCloud.guideOpenMeta")}
                 </a>
 
-                <h3>{t("clients.whatsappCloud.guideChecklistTitle")}</h3>
-                <ul className="wa-guide-checklist">
-                  {setupChecks.map((item) => (
-                    <li key={item.id} className={item.done ? "done" : ""}>
-                      {item.done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-                      <span>{item.label}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="wa-guide-block">
+                  <h3>{t("clients.whatsappCloud.guideChecklistTitle")}</h3>
+                  <ul className="wa-guide-checklist">
+                    {setupChecks.map((item) => (
+                      <li key={item.id} className={item.done ? "done" : ""}>
+                        {item.done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                        <span>{item.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-                <h3>{t("clients.whatsappCloud.guideManagedTitle")}</h3>
-                <p>{t("clients.whatsappCloud.guideManagedIntro")}</p>
-                {!options?.managed_available && (
-                  <Alert type="info">{t("clients.whatsappCloud.managedUnavailable")}</Alert>
-                )}
-                <ol className="wa-guide-steps">
-                  <li>{t("clients.whatsappCloud.guideManaged1")}</li>
-                  <li>{t("clients.whatsappCloud.guideManaged2")}</li>
-                  <li>{t("clients.whatsappCloud.guideManaged3")}</li>
-                  <li>{t("clients.whatsappCloud.guideManaged4", { url: oauthRedirectExample })}</li>
-                  <li>{t("clients.whatsappCloud.guideManaged5")}</li>
-                  <li>{t("clients.whatsappCloud.guideManaged6")}</li>
-                </ol>
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideManagedOpen((v) => !v)}
+                    aria-expanded={guideManagedOpen}
+                  >
+                    <strong>{t("clients.whatsappCloud.guideManagedTitle")}</strong>
+                    <ChevronDown size={16} className={guideManagedOpen ? "open" : ""} />
+                  </button>
+                  {guideManagedOpen && (
+                    <div className="wa-nested-body">
+                      <p>{t("clients.whatsappCloud.guideManagedIntro")}</p>
+                      {!options?.managed_available && (
+                        <Alert type="info">{t("clients.whatsappCloud.managedUnavailable")}</Alert>
+                      )}
+                      <ol className="wa-guide-steps">
+                        <li>{t("clients.whatsappCloud.guideManaged1")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged2")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged3")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged4", { url: oauthRedirectExample })}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged5")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged6")}</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
 
-                <h3>{t("clients.whatsappCloud.guideByoTitle")}</h3>
-                <p>{t("clients.whatsappCloud.guideByoIntro")}</p>
-                <ol className="wa-guide-steps">
-                  <li>{t("clients.whatsappCloud.guideByo1")}</li>
-                  <li>{t("clients.whatsappCloud.guideByo2")}</li>
-                  <li>{t("clients.whatsappCloud.guideByo3")}</li>
-                  <li>{t("clients.whatsappCloud.guideByo4")}</li>
-                  <li>
-                    {t("clients.whatsappCloud.guideByo5")}{" "}
-                    <button type="button" className="text-button" onClick={() => setAdvancedOpen(true)}>
-                      {t("clients.whatsappCloud.advancedTitle")}
-                    </button>
-                  </li>
-                  <li>{t("clients.whatsappCloud.guideByo6")}</li>
-                </ol>
-                <p className="wa-guide-note">{t("clients.whatsappCloud.guideWebhookNote")}</p>
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideByoOpen((v) => !v)}
+                    aria-expanded={guideByoOpen}
+                  >
+                    <strong>{t("clients.whatsappCloud.guideByoTitle")}</strong>
+                    <ChevronDown size={16} className={guideByoOpen ? "open" : ""} />
+                  </button>
+                  {guideByoOpen && (
+                    <div className="wa-nested-body">
+                      <p>{t("clients.whatsappCloud.guideByoIntro")}</p>
+                      <ol className="wa-guide-steps">
+                        <li>{t("clients.whatsappCloud.guideByo1")}</li>
+                        <li>{t("clients.whatsappCloud.guideByo2")}</li>
+                        <li>{t("clients.whatsappCloud.guideByo3")}</li>
+                        <li>{t("clients.whatsappCloud.guideByo4")}</li>
+                        <li>
+                          {t("clients.whatsappCloud.guideByo5")}{" "}
+                          <button type="button" className="text-button" onClick={() => setAdvancedOpen(true)}>
+                            {t("clients.whatsappCloud.advancedTitle")}
+                          </button>
+                        </li>
+                        <li>{t("clients.whatsappCloud.guideByo6")}</li>
+                      </ol>
+                      <p className="wa-guide-note">{t("clients.whatsappCloud.guideWebhookNote")}</p>
+                    </div>
+                  )}
+                </div>
+
                 <p className="wa-guide-note">{t("clients.whatsappCloud.guideDocsHint")}</p>
               </div>
             )}
@@ -536,14 +569,14 @@ function WhatsAppCloudChannelPageInner() {
             )}
           </section>
 
-          <section className="wa-panel">
-            <button type="button" className="wa-accordion-trigger" onClick={() => setAdvancedOpen((v) => !v)}>
+          <section className="wa-panel wa-accordion-panel">
+            <button type="button" className="wa-accordion-trigger" onClick={() => setAdvancedOpen((v) => !v)} aria-expanded={advancedOpen}>
               <span><KeyRound size={19} /></span>
               <div><h2>{t("clients.whatsappCloud.advancedTitle")}</h2><p>{t("clients.whatsappCloud.advancedCopy")}</p></div>
               <ChevronDown size={18} className={advancedOpen ? "open" : ""} />
             </button>
             {advancedOpen && (
-              <form className="wa-cloud-form" onSubmit={saveAdvanced}>
+              <form className="wa-accordion-body wa-cloud-form" onSubmit={saveAdvanced}>
                 <label>{t("clients.whatsappCloud.phoneNumberIdLabel")}<input value={phoneNumberId} onChange={(event) => setPhoneNumberId(event.target.value)} disabled={busy} /></label>
                 <label>{t("clients.whatsappCloud.wabaIdLabel")}<input value={wabaId} onChange={(event) => setWabaId(event.target.value)} disabled={busy} /></label>
                 <label>
