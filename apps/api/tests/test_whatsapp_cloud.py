@@ -277,3 +277,184 @@ def test_webhook_image_uses_capability(authenticated_client: TestClient, monkeyp
     detail = client.get(f"/api/conversations/{conversation['id']}").json()
     assert "a photo of the menu" in detail["messages"][0]["content"]
     assert "What is this?" in detail["messages"][0]["content"]
+
+
+def test_health_hides_secrets_and_reports_status(authenticated_client: TestClient, monkeypatch):
+    from app.services import whatsapp_cloud_health as health_service
+
+    client = authenticated_client
+    customer, _agent, _channel = _setup_channel(client)
+    monkeypatch.setattr(
+        health_service,
+        "verify_phone_number",
+        AsyncMock(return_value={"display_phone_number": "+57 300 111 2233", "verified_name": "Bistro"}),
+    )
+    monkeypatch.setattr(
+        whatsapp_cloud_router,
+        "verify_phone_number",
+        AsyncMock(return_value={"display_phone_number": "+57 300 111 2233", "verified_name": "Bistro"}),
+    )
+    connected = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/connect").json()
+    assert connected["status"] == "connected"
+    health = client.get(f"/api/whatsapp-cloud/channels/{customer['id']}/health").json()
+    assert health["connected"] is True
+    assert health["token_configured"] is True
+    assert health["agent_assigned"] is True
+    assert health["webhook_configured"] is True
+    dumped = json.dumps(health)
+    assert "access_token" not in health
+    assert "meta-access-token" not in dumped
+    assert "meta-app-secret" not in dumped
+    assert APP_SECRET not in dumped
+
+
+def test_agent_assignment_rejects_other_client(authenticated_client: TestClient):
+    client = authenticated_client
+    customer, agent, _channel = _setup_channel(client)
+    other = client.post(
+        "/api/clients",
+        json={"name": "Other Shop", "industry": "", "description": "", "general_context": "", "is_active": True},
+    ).json()
+    foreign = client.post(
+        "/api/agents",
+        json={
+            "client_id": other["id"],
+            "provider": "openai",
+            "model": "gpt-4.1-mini",
+            "name": "Foreign",
+            "description": "",
+            "instructions": "",
+            "personality": "",
+            "is_active": True,
+        },
+    ).json()
+    response = client.patch(
+        f"/api/whatsapp-cloud/channels/{customer['id']}/agent",
+        json={"agent_id": foreign["id"]},
+    )
+    assert response.status_code == 400
+    ok = client.patch(
+        f"/api/whatsapp-cloud/channels/{customer['id']}/agent",
+        json={"agent_id": agent["id"]},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["agent_id"] == agent["id"]
+
+
+def test_mock_signup_completes_without_meta(authenticated_client: TestClient, monkeypatch):
+    from app.config import get_settings
+    from app.services import whatsapp_meta_signup as signup
+
+    client = authenticated_client
+    customer = client.post(
+        "/api/clients",
+        json={"name": "Mock Cafe", "industry": "", "description": "", "general_context": "", "is_active": True},
+    ).json()
+    client.put("/api/providers/openai", json={"api_key": "secret"})
+    agent = client.post(
+        "/api/agents",
+        json={
+            "client_id": customer["id"],
+            "provider": "openai",
+            "model": "gpt-4.1-mini",
+            "name": "Host",
+            "description": "",
+            "instructions": "",
+            "personality": "",
+            "is_active": True,
+        },
+    ).json()
+
+    settings = get_settings().model_copy(update={"meta_mock_mode": True, "meta_app_id": "dev-mock"})
+    monkeypatch.setattr(signup, "get_settings", lambda: settings)
+    monkeypatch.setattr(whatsapp_cloud_router, "get_settings", lambda: settings)
+    monkeypatch.setattr("app.services.whatsapp_cloud.get_settings", lambda: settings)
+
+    options = client.get("/api/whatsapp-cloud/signup/options").json()
+    assert options["managed_available"] is True
+    assert options["mock_mode"] is True
+
+    session = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/signup/session").json()
+    assert session["state"]
+    complete = client.post(
+        f"/api/whatsapp-cloud/channels/{customer['id']}/signup/complete",
+        json={"state": session["state"], "agent_id": agent["id"], "use_mock": True},
+    )
+    assert complete.status_code == 200, complete.text
+    body = complete.json()
+    assert body["channel"]["status"] == "connected"
+    assert body["channel"]["phone_number_id"].startswith("mock-")
+    assert "access_token" not in body["channel"]
+    assert all(step["done"] for step in body["steps"])
+
+    health = client.get(f"/api/whatsapp-cloud/channels/{customer['id']}/health").json()
+    assert health["connected"] is True
+    assert health["ui_status"] == "connected"
+
+
+def test_signup_state_binds_client(authenticated_client: TestClient, monkeypatch):
+    from app.config import get_settings
+    from app.services import whatsapp_meta_signup as signup
+
+    client = authenticated_client
+    customer, agent, _ = _setup_channel(client)
+    other = client.post(
+        "/api/clients",
+        json={"name": "Other", "industry": "", "description": "", "general_context": "", "is_active": True},
+    ).json()
+    settings = get_settings().model_copy(update={"meta_mock_mode": True, "meta_app_id": "dev-mock"})
+    monkeypatch.setattr(signup, "get_settings", lambda: settings)
+    monkeypatch.setattr(whatsapp_cloud_router, "get_settings", lambda: settings)
+
+    session = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/signup/session").json()
+    stolen = client.post(
+        f"/api/whatsapp-cloud/channels/{other['id']}/signup/complete",
+        json={"state": session["state"], "agent_id": agent["id"], "use_mock": True},
+    )
+    assert stolen.status_code == 403
+
+
+def test_webhook_accepts_platform_app_secret(authenticated_client: TestClient, monkeypatch):
+    client = authenticated_client
+    other = client.post(
+        "/api/clients",
+        json={"name": "Platform Secret Shop", "industry": "", "description": "", "general_context": "", "is_active": True},
+    ).json()
+    client.put("/api/providers/openai", json={"api_key": "secret"})
+    agent2 = client.post(
+        "/api/agents",
+        json={
+            "client_id": other["id"],
+            "provider": "openai",
+            "model": "gpt-4.1-mini",
+            "name": "Host",
+            "description": "",
+            "instructions": "",
+            "personality": "",
+            "is_active": True,
+        },
+    ).json()
+    channel2 = client.put(
+        f"/api/whatsapp-cloud/channels/{other['id']}",
+        json={"agent_id": agent2["id"], "phone_number_id": "999", "access_token": "tok"},
+    ).json()
+    assert channel2["has_app_secret"] is False
+
+    platform_secret = "platform-meta-secret"
+    monkeypatch.setattr(webhook_router, "resolve_app_secret_for_channel", lambda ch: platform_secret)
+    monkeypatch.setattr(whatsapp_inbound_service, "run_completion", AsyncMock(return_value=ai_service.Completion(text="Hi")))
+    monkeypatch.setattr(webhook_router, "send_text", AsyncMock(return_value="wamid.out"))
+
+    payload = _webhook_payload([{"from": "57300", "id": "wamid.plat", "type": "text", "text": {"body": "hola"}}])
+    response = _post_signed(client, channel2["id"], payload, secret=platform_secret)
+    assert response.status_code == 200, response.text
+
+
+def test_humanize_token_errors():
+    from app.services.whatsapp_errors import humanize_whatsapp_error
+
+    result = humanize_whatsapp_error("OAuthException: Error validating access token")
+    assert result["code"] == "TOKEN_EXPIRED"
+    assert "OAuthException" not in result["message"]
+    scrubbed = humanize_whatsapp_error("bad EAAG123tokenhere")
+    assert "[redacted]" in scrubbed["technical"]

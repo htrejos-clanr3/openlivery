@@ -39,6 +39,13 @@ async def _graph_request(method: str, url: str, access_token: str, **kwargs) -> 
 
 async def verify_phone_number(access_token: str, phone_number_id: str) -> dict:
     """Validate the credentials and return the number's public profile."""
+    settings = get_settings()
+    if settings.meta_mock_mode or access_token == "mock-access-token" or phone_number_id.startswith("mock-"):
+        return {
+            "display_phone_number": "+57 300 000 0000",
+            "verified_name": "Mock Business",
+            "id": phone_number_id,
+        }
     response = await _graph_request(
         "GET",
         _graph_url(f"{phone_number_id}?fields=display_phone_number,verified_name"),

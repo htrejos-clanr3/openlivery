@@ -21,6 +21,7 @@ from ..ratelimit import whatsapp_cloud_webhook_rate_limit
 from ..security import decrypt_secret
 from ..services.whatsapp_cloud import fetch_media, send_text
 from ..services.whatsapp_inbound import InboundMessage, process_inbound
+from ..services.whatsapp_meta_signup import resolve_app_secret_for_channel
 
 
 public_router = APIRouter(prefix="/public/whatsapp-cloud", tags=["WhatsApp Cloud public"])
@@ -81,10 +82,10 @@ def _parse_message(message: dict, contacts: dict[str, str]) -> InboundMessage | 
 )
 async def receive_webhook(channel_id: uuid.UUID, request: Request, db: Session = Depends(get_db)):
     channel = _channel(db, channel_id)
-    if not channel.encrypted_app_secret:
+    app_secret = resolve_app_secret_for_channel(channel)
+    if not app_secret:
         raise HTTPException(status_code=403, detail="Channel is not configured")
     raw = await request.body()
-    app_secret = decrypt_secret(channel.encrypted_app_secret)
     expected = "sha256=" + hmac.new(app_secret.encode(), raw, hashlib.sha256).hexdigest()
     signature = request.headers.get("X-Hub-Signature-256") or ""
     if not hmac.compare_digest(signature, expected):

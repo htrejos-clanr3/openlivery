@@ -244,6 +244,8 @@ class WhatsAppCloudChannel(Base):
     # Token the owner pastes into their Meta app's webhook config; it must be
     # re-displayable, so it is stored in plain text like portal_domain_token.
     webhook_verify_token: Mapped[str] = mapped_column(String(64), default=new_public_id, server_default="")
+    # manual = BYO Meta app; managed/embedded = OpenLivery platform Meta app / signup.
+    connection_mode: Mapped[str] = mapped_column(String(20), default="manual", server_default="manual")
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

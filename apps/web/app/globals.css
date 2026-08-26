@@ -805,7 +805,23 @@ textarea { line-height: 1.55; }
 .wa-phone strong { color: #1f2b27; font-size: 18px; }
 .wa-phone em { color: #6e7974; font-size: 12px; font-style: normal; }
 .wa-ready { display: flex; align-items: center; gap: 7px; color: #087b52; font-size: 12px; font-weight: 650; }
-.wa-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; }
+.wa-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.wa-progress { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.wa-progress li { display: flex; align-items: center; gap: 10px; color: #737b8a; font-size: 14px; }
+.wa-progress li.done { color: #087b52; font-weight: 600; }
+.wa-status-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 8px; }
+.wa-status-grid small { display: block; color: #737b8a; font-size: 12px; margin-bottom: 4px; }
+.wa-status-grid strong { color: #1f2b27; font-size: 15px; }
+.wa-live-dot { color: #087b52 !important; font-weight: 650; }
+.wa-benefits { margin-top: 22px; padding-top: 18px; border-top: 1px solid #eceef3; }
+.wa-benefits h3 { margin: 0 0 10px; font-size: 14px; }
+.wa-benefits ul { margin: 0; padding-left: 0; list-style: none; color: #545d6e; font-size: 13px; line-height: 1.8; }
+.wa-advanced-toggle { margin-top: 14px; }
+.wa-accordion-trigger { width: 100%; display: flex; align-items: flex-start; gap: 12px; text-align: left; border: 0; background: transparent; padding: 0; cursor: pointer; }
+.wa-accordion-trigger > svg:last-child { margin-left: auto; transition: transform .15s ease; color: #87909f; }
+.wa-accordion-trigger > svg:last-child.open { transform: rotate(180deg); }
+.wa-agent-help { margin-top: 16px; padding: 14px; border-radius: 10px; background: #f7f9fc; border: 1px solid #e6e9ed; }
+.wa-tech-error { margin-top: 10px; white-space: pre-wrap; font-size: 12px; color: #5a6373; }
 .wa-cloud-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .wa-cloud-form label { display: flex; flex-direction: column; gap: 7px; color: #3c4454; font-size: 13px; font-weight: 600; }
 .wa-copy-field { margin-top: 12px; display: flex; align-items: flex-end; gap: 10px; }

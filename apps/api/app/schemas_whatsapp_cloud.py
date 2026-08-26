@@ -11,6 +11,11 @@ class WhatsAppCloudChannelUpdate(BaseModel):
     # Secrets are write-only: omitted or blank values keep the stored ones.
     access_token: str | None = Field(default=None, max_length=4000)
     app_secret: str | None = Field(default=None, max_length=255)
+    connection_mode: str | None = Field(default=None, pattern=r"^(manual|managed|embedded)$")
+
+
+class WhatsAppCloudAgentUpdate(BaseModel):
+    agent_id: uuid.UUID
 
 
 class WhatsAppCloudChannelOut(BaseModel):
@@ -18,6 +23,7 @@ class WhatsAppCloudChannelOut(BaseModel):
     client_id: uuid.UUID
     agent_id: uuid.UUID
     status: str
+    connection_mode: str = "manual"
     phone_number: str | None
     display_name: str | None
     phone_number_id: str
@@ -27,7 +33,66 @@ class WhatsAppCloudChannelOut(BaseModel):
     webhook_url: str
     webhook_verify_token: str
     last_error: str | None
+    error_message: str | None = None
+    error_code: str | None = None
     is_enabled: bool
     last_connected_at: datetime | None
     created_at: datetime
     updated_at: datetime
+
+
+class WhatsAppCloudHealthOut(BaseModel):
+    connected: bool
+    ui_status: str
+    connection_mode: str
+    status: str
+    phone_number: str | None = None
+    display_name: str | None = None
+    phone_number_id: str | None = None
+    waba_id: str | None = None
+    waba_configured: bool
+    token_configured: bool
+    app_secret_configured: bool
+    permissions_valid: bool
+    webhook_configured: bool
+    agent_assigned: bool
+    is_enabled: bool
+    graph_reachable: bool
+    last_inbound_message_at: str | None = None
+    last_outbound_message_at: str | None = None
+    last_connected_at: str | None = None
+    last_error: str | None = None
+    error: dict | None = None
+
+
+class WhatsAppSignupOptionsOut(BaseModel):
+    managed_available: bool
+    mock_mode: bool
+    meta_app_id: str | None = None
+    meta_config_id: str | None = None
+    graph_version: str
+    blocked_reason: str | None = None
+
+
+class WhatsAppSignupSessionOut(BaseModel):
+    state: str
+    meta_app_id: str | None = None
+    meta_config_id: str | None = None
+    mock_mode: bool
+    redirect_url: str | None = None
+    blocked_reason: str | None = None
+
+
+class WhatsAppSignupCompleteRequest(BaseModel):
+    state: str = Field(min_length=10)
+    code: str | None = Field(default=None, max_length=4000)
+    # Embedded Signup may also pass phone_number_id / waba_id from the JS event.
+    phone_number_id: str | None = Field(default=None, max_length=80)
+    waba_id: str | None = Field(default=None, max_length=80)
+    agent_id: uuid.UUID | None = None
+    use_mock: bool = False
+
+
+class WhatsAppSignupCompleteOut(BaseModel):
+    channel: WhatsAppCloudChannelOut
+    steps: list[dict]

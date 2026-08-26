@@ -169,6 +169,7 @@ export type WhatsAppCloudChannel = {
   client_id: string;
   agent_id: string;
   status: "disconnected" | "connected" | "error";
+  connection_mode?: "manual" | "managed" | "embedded";
   phone_number: string | null;
   display_name: string | null;
   phone_number_id: string;
@@ -178,10 +179,54 @@ export type WhatsAppCloudChannel = {
   webhook_url: string;
   webhook_verify_token: string;
   last_error: string | null;
+  error_message?: string | null;
+  error_code?: string | null;
   is_enabled: boolean;
   last_connected_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type WhatsAppCloudHealth = {
+  connected: boolean;
+  ui_status: string;
+  connection_mode: string;
+  status: string;
+  phone_number: string | null;
+  display_name: string | null;
+  phone_number_id: string | null;
+  waba_id: string | null;
+  waba_configured: boolean;
+  token_configured: boolean;
+  app_secret_configured: boolean;
+  permissions_valid: boolean;
+  webhook_configured: boolean;
+  agent_assigned: boolean;
+  is_enabled: boolean;
+  graph_reachable: boolean;
+  last_inbound_message_at: string | null;
+  last_outbound_message_at: string | null;
+  last_connected_at: string | null;
+  last_error: string | null;
+  error: { message: string; code: string; technical: string } | null;
+};
+
+export type WhatsAppSignupOptions = {
+  managed_available: boolean;
+  mock_mode: boolean;
+  meta_app_id: string | null;
+  meta_config_id: string | null;
+  graph_version: string;
+  blocked_reason: string | null;
+};
+
+export type WhatsAppSignupSession = {
+  state: string;
+  meta_app_id: string | null;
+  meta_config_id: string | null;
+  mock_mode: boolean;
+  redirect_url: string | null;
+  blocked_reason: string | null;
 };
 
 export type PortalPublic = {

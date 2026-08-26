@@ -32,8 +32,15 @@ class Settings(BaseSettings):
     whatsapp_bridge_url: str = "http://localhost:3101"
     whatsapp_bridge_token: str = "dev-local-change-this-bridge-token"
     # Meta Graph API root used by the WhatsApp Cloud API channel; override to
-    # point at a mock server in tests.
+    # point at a mock server in tests. Version is the last path segment (v23.0).
     meta_graph_base_url: str = "https://graph.facebook.com/v23.0"
+    # Platform Meta App for managed Embedded Signup (not per-client BYO).
+    meta_app_id: str = ""
+    meta_app_secret: str = ""
+    meta_whatsapp_config_id: str = ""
+    # When true, signup/complete can finish without real Meta credentials.
+    meta_mock_mode: bool = False
+    meta_oauth_redirect_path: str = "/api/whatsapp-cloud/oauth/callback"
 
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", APP_DIR / ".env"),
