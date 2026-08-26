@@ -60,7 +60,7 @@ migrate: ## Apply Alembic migrations in the running api container
 	$(COMPOSE) exec api alembic upgrade head
 
 test: ## Run backend tests + rebuild web/whatsapp validation stages
-	$(COMPOSE) exec api pytest -q
+	$(COMPOSE) exec api sh -c 'pip install -q -r requirements-dev.txt && export PATH="$$HOME/.local/bin:$$PATH" && pytest -q'
 	$(COMPOSE) build web whatsapp
 
 shell-api: ## Open a shell in the api container
