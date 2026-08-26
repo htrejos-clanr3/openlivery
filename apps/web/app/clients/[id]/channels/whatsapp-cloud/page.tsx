@@ -485,34 +485,6 @@ function WhatsAppCloudChannelPageInner() {
                   <button
                     type="button"
                     className="wa-nested-trigger"
-                    onClick={() => setGuideManagedOpen((v) => !v)}
-                    aria-expanded={guideManagedOpen}
-                  >
-                    <strong>{t("clients.whatsappCloud.guideManagedTitle")}</strong>
-                    <ChevronDown size={16} className={guideManagedOpen ? "open" : ""} />
-                  </button>
-                  {guideManagedOpen && (
-                    <div className="wa-nested-body">
-                      <p>{t("clients.whatsappCloud.guideManagedIntro")}</p>
-                      {!options?.managed_available && (
-                        <Alert type="info">{t("clients.whatsappCloud.managedUnavailable")}</Alert>
-                      )}
-                      <ol className="wa-guide-steps">
-                        <li>{t("clients.whatsappCloud.guideManaged1")}</li>
-                        <li>{t("clients.whatsappCloud.guideManaged2")}</li>
-                        <li>{t("clients.whatsappCloud.guideManaged3")}</li>
-                        <li>{t("clients.whatsappCloud.guideManaged4", { url: oauthRedirectExample })}</li>
-                        <li>{t("clients.whatsappCloud.guideManaged5")}</li>
-                        <li>{t("clients.whatsappCloud.guideManaged6")}</li>
-                      </ol>
-                    </div>
-                  )}
-                </div>
-
-                <div className="wa-nested-accordion">
-                  <button
-                    type="button"
-                    className="wa-nested-trigger"
                     onClick={() => setGuideByoOpen((v) => !v)}
                     aria-expanded={guideByoOpen}
                   >
@@ -522,6 +494,15 @@ function WhatsAppCloudChannelPageInner() {
                   {guideByoOpen && (
                     <div className="wa-nested-body">
                       <p>{t("clients.whatsappCloud.guideByoIntro")}</p>
+                      <div className="wa-guide-block">
+                        <h3>{t("clients.whatsappCloud.guideByoNeedTitle")}</h3>
+                        <ul className="wa-guide-checklist">
+                          <li><Circle size={16} /><span>{t("clients.whatsappCloud.guideByoNeedPhone")}</span></li>
+                          <li><Circle size={16} /><span>{t("clients.whatsappCloud.guideByoNeedWaba")}</span></li>
+                          <li><Circle size={16} /><span>{t("clients.whatsappCloud.guideByoNeedToken")}</span></li>
+                          <li><Circle size={16} /><span>{t("clients.whatsappCloud.guideByoNeedSecret")}</span></li>
+                        </ul>
+                      </div>
                       <div className="wa-guide-block">
                         <h3>{t("clients.whatsappCloud.guideByoWhereTitle")}</h3>
                         <p>{t("clients.whatsappCloud.guideByoWhereCopy")}</p>
@@ -548,8 +529,37 @@ function WhatsAppCloudChannelPageInner() {
                             {t("clients.whatsappCloud.advancedTitle")}
                           </button>
                         </li>
+                        <li>{t("clients.whatsappCloud.guideByo7")}</li>
                       </ol>
                       <p className="wa-guide-note">{t("clients.whatsappCloud.guideWebhookNote")}</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideManagedOpen((v) => !v)}
+                    aria-expanded={guideManagedOpen}
+                  >
+                    <strong>{t("clients.whatsappCloud.guideManagedTitle")}</strong>
+                    <ChevronDown size={16} className={guideManagedOpen ? "open" : ""} />
+                  </button>
+                  {guideManagedOpen && (
+                    <div className="wa-nested-body">
+                      <p>{t("clients.whatsappCloud.guideManagedIntro")}</p>
+                      {!options?.managed_available && (
+                        <Alert type="info">{t("clients.whatsappCloud.managedUnavailable")}</Alert>
+                      )}
+                      <ol className="wa-guide-steps">
+                        <li>{t("clients.whatsappCloud.guideManaged1")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged2")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged3")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged4", { url: oauthRedirectExample })}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged5")}</li>
+                        <li>{t("clients.whatsappCloud.guideManaged6")}</li>
+                      </ol>
                     </div>
                   )}
                 </div>
