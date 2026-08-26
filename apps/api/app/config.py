@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # When true, signup/complete can finish without real Meta credentials.
     meta_mock_mode: bool = False
     meta_oauth_redirect_path: str = "/api/whatsapp-cloud/oauth/callback"
+    # Google Identity (password OR Google). Leave empty to disable Google buttons.
+    google_oauth_client_id: str = ""
+    # When true, forgot-password responses include the raw token (local/tests only).
+    auth_expose_reset_token: bool = False
 
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", APP_DIR / ".env"),

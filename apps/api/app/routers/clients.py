@@ -1,13 +1,22 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import Client, User, new_domain_token
-from ..schemas import ClientCreate, ClientDomainOut, ClientDomainSet, ClientOut, ClientPortalUpdate, ClientUpdate
+from ..models import Client, PortalUser, User, new_domain_token, now_utc
+from ..schemas import (
+    ClientCreate,
+    ClientDomainOut,
+    ClientDomainSet,
+    ClientOut,
+    ClientPortalUpdate,
+    ClientUpdate,
+    PortalUserCreate,
+    PortalUserOut,
+)
 from ..security import hash_password
 from ..services import dns as dns_service
 from ..slugs import slugify, unique_slug
@@ -96,8 +105,14 @@ def update_client_portal(
         values["portal_slug"] = candidate
     for key, value in values.items():
         setattr(client, key, value)
-    if client.portal_enabled and (not client.portal_email or not client.portal_password_hash):
-        raise HTTPException(status_code=400, detail="Set an email and a password before enabling the portal")
+    has_portal_users = bool(
+        db.scalar(select(PortalUser.id).where(PortalUser.client_id == client.id, PortalUser.is_active.is_(True)))
+    )
+    if client.portal_enabled and not has_portal_users and (not client.portal_email or not client.portal_password_hash):
+        raise HTTPException(
+            status_code=400,
+            detail="Invite a portal user or set legacy email/password before enabling the portal",
+        )
     db.commit()
     return _client(db, user, client_id)
 
@@ -148,6 +163,65 @@ def delete_client_domain(client_id: uuid.UUID, db: Session = Depends(get_db), us
     client.portal_domain_token = ""
     db.commit()
     return _domain_out(_client(db, user, client_id))
+
+
+@router.get("/{client_id}/portal-users", response_model=list[PortalUserOut])
+def list_portal_users(client_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    _client(db, user, client_id)
+    return db.scalars(select(PortalUser).where(PortalUser.client_id == client_id).order_by(PortalUser.created_at.desc())).all()
+
+
+@router.post("/{client_id}/portal-users", response_model=PortalUserOut, status_code=status.HTTP_201_CREATED)
+def create_portal_user(
+    client_id: uuid.UUID,
+    payload: PortalUserCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client = _client(db, user, client_id)
+    email = payload.email.lower()
+    existing = db.scalar(select(PortalUser).where(PortalUser.client_id == client.id, PortalUser.email == email))
+    if existing:
+        raise HTTPException(status_code=409, detail="A portal user with that email already exists")
+    portal_user = PortalUser(
+        client_id=client.id,
+        name=payload.name.strip(),
+        email=email,
+        password_hash=hash_password(payload.password) if payload.password else None,
+    )
+    db.add(portal_user)
+    db.commit()
+    db.refresh(portal_user)
+    return portal_user
+
+
+@router.post("/{client_id}/brand-logo", response_model=ClientOut)
+async def upload_brand_logo(
+    client_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client = _client(db, user, client_id)
+    data = await file.read()
+    if len(data) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Logo must be under 2MB")
+    mime = file.content_type or "image/png"
+    if mime not in {"image/png", "image/jpeg", "image/webp", "image/svg+xml"}:
+        raise HTTPException(status_code=400, detail="Unsupported logo format")
+    client.brand_logo_data = data
+    client.brand_logo_mime = mime
+    client.updated_at = now_utc()
+    db.commit()
+    return _client(db, user, client_id)
+
+
+@router.get("/{client_id}/brand-logo")
+def get_brand_logo(client_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    client = _client(db, user, client_id)
+    if not client.brand_logo_data or not client.brand_logo_mime:
+        raise HTTPException(status_code=404, detail="Brand logo not found")
+    return Response(content=client.brand_logo_data, media_type=client.brand_logo_mime, headers={"Cache-Control": "no-store"})
 
 
 @router.delete("/{client_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
-import { Bot, Building2, CreditCard, Inbox, LayoutDashboard, LogOut, Menu, MessageSquareText, Radio, Settings, Sparkles, Wallet, X } from "lucide-react";
+import { Bot, Building2, CreditCard, Inbox, Images, LayoutDashboard, LogOut, Menu, MessageSquareText, Radio, Settings, Sparkles, Wallet, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useT, type I18nKey } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -13,6 +13,7 @@ const navigation: { href: string; labelKey: I18nKey; icon: typeof LayoutDashboar
   { href: "/", labelKey: "nav.home", icon: LayoutDashboard },
   { href: "/clients", labelKey: "nav.clients", icon: Building2 },
   { href: "/agents", labelKey: "nav.agents", icon: Bot },
+  { href: "/carousels", labelKey: "nav.carousels", icon: Images },
   { href: "/inbox", labelKey: "nav.inbox", icon: Inbox },
   { href: "/playground", labelKey: "nav.playground", icon: MessageSquareText },
   { href: "/channels", labelKey: "nav.channels", icon: Radio },

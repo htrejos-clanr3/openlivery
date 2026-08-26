@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import os
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -31,14 +32,13 @@ def decode_access_token(token: str) -> str | None:
         return None
 
 
-def create_portal_token(client_id: str, portal_slug: str) -> str:
+def create_portal_token(client_id: str, portal_slug: str, portal_user_id: str | None = None) -> str:
     settings = get_settings()
     expires = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_minutes)
-    return jwt.encode(
-        {"sub": client_id, "portal_slug": portal_slug, "type": "portal", "exp": expires},
-        settings.secret_key,
-        algorithm="HS256",
-    )
+    payload = {"sub": client_id, "portal_slug": portal_slug, "type": "portal", "exp": expires}
+    if portal_user_id:
+        payload["portal_user_id"] = portal_user_id
+    return jwt.encode(payload, settings.secret_key, algorithm="HS256")
 
 
 def decode_portal_token(token: str) -> dict | None:
@@ -49,6 +49,14 @@ def decode_portal_token(token: str) -> dict | None:
         return payload
     except jwt.PyJWTError:
         return None
+
+
+def hash_reset_token(raw_token: str) -> str:
+    return hashlib.sha256(raw_token.encode()).hexdigest()
+
+
+def new_reset_token() -> str:
+    return base64.urlsafe_b64encode(hashlib.sha256(os.urandom(32)).digest()).decode().rstrip("=")
 
 
 def _fernet() -> Fernet:

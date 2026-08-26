@@ -41,6 +41,7 @@ class UserOut(ORMModel):
     name: str
     email: EmailStr
     role: str
+    password_configured: bool = True
     agency: AgencyOut
 
 
@@ -62,6 +63,10 @@ class ClientUpdate(BaseModel):
     description: str | None = None
     general_context: str | None = None
     is_active: bool | None = None
+    brand_primary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    brand_secondary_color: str | None = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    brand_font: str | None = Field(default=None, max_length=80)
+    brand_voice: str | None = None
 
 
 class ClientPortalUpdate(BaseModel):
@@ -93,6 +98,11 @@ class ClientOut(ORMModel):
     portal_password_configured: bool
     portal_domain: str | None
     portal_domain_verified: bool
+    brand_primary_color: str = "#075985"
+    brand_secondary_color: str = "#0f172a"
+    brand_font: str = ""
+    brand_voice: str = ""
+    brand_logo_url: str | None = None
     created_at: datetime
     updated_at: datetime
     agents: list[AgentSummary] = []
@@ -348,6 +358,10 @@ class PortalSessionOut(BaseModel):
     client_name: str
     portal_slug: str
     agency_name: str
+    portal_user_id: uuid.UUID | None = None
+    portal_user_name: str | None = None
+    portal_user_email: str | None = None
+    password_configured: bool | None = None
 
 
 class DashboardOut(BaseModel):
@@ -469,3 +483,107 @@ class WhatsAppInboundResult(BaseModel):
 class WhatsAppOutboundConfirm(BaseModel):
     message_id: uuid.UUID
     external_message_id: str = Field(min_length=1, max_length=255)
+
+
+class GoogleAuthRequest(BaseModel):
+    id_token: str = Field(min_length=20)
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    # agency | portal
+    audience: str = Field(default="agency", pattern=r"^(agency|portal)$")
+    portal_slug: str | None = None
+
+
+class ForgotPasswordResponse(BaseModel):
+    message: str
+    # Present only when AUTH_EXPOSE_RESET_TOKEN=true (dev/tests).
+    reset_token: str | None = None
+    # google_only | reset_sent | unknown (always generic message to client)
+    account_kind: str | None = None
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(min_length=10)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class SetPasswordRequest(BaseModel):
+    token: str = Field(min_length=10)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class AuthOptionsOut(BaseModel):
+    google_enabled: bool
+    google_client_id: str | None = None
+
+
+class PortalUserCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=160)
+    email: EmailStr
+    password: str | None = Field(default=None, min_length=8, max_length=128)
+
+
+class PortalUserOut(ORMModel):
+    id: uuid.UUID
+    name: str
+    email: EmailStr
+    is_active: bool
+    password_configured: bool
+    created_at: datetime
+
+
+class CarouselCreate(BaseModel):
+    client_id: uuid.UUID
+    title: str = Field(min_length=2, max_length=180)
+    brief: str = ""
+    language: str = Field(default="es", max_length=10)
+    slide_count: int = Field(default=8, ge=3, le=12)
+    generate: bool = True
+    with_images: bool = True
+
+
+class CarouselSlideUpdate(BaseModel):
+    headline: str | None = Field(default=None, max_length=240)
+    body: str | None = None
+    cta: str | None = Field(default=None, max_length=180)
+
+
+class CarouselSlideDecision(BaseModel):
+    comment: str | None = Field(default=None, max_length=2000)
+
+
+class CarouselScheduleRequest(BaseModel):
+    scheduled_at: datetime
+
+
+class CarouselSlideOut(ORMModel):
+    id: uuid.UUID
+    position: int
+    headline: str
+    body: str
+    cta: str
+    layout_json: dict
+    image_url: str | None = None
+    agency_status: str
+    client_status: str
+    client_comment: str | None = None
+
+
+class CarouselOut(ORMModel):
+    id: uuid.UUID
+    client_id: uuid.UUID
+    title: str
+    brief: str
+    caption: str
+    language: str
+    status: str
+    slide_count: int
+    scheduled_at: datetime | None = None
+    published_at: datetime | None = None
+    ig_media_id: str | None = None
+    publish_error: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    slides: list[CarouselSlideOut] = []

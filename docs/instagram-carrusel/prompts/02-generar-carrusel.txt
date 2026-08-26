@@ -1,0 +1,25 @@
+Contexto: tengo referencias en ~/carruseles-ig/referencias/
+
+Tarea: crear 1 carrusel ORIGINAL para Instagram.
+
+Especificaciones:
+- Formato: 1080×1350 px (4:5)
+- Slides: 8
+- Tema: [TEMA]
+- Audiencia: [AUDIENCIA]
+- Tono: [TONO]
+
+Estructura:
+1. Hook (detener scroll)
+2–6. Valor (1 idea por slide, texto corto)
+7. Resumen o lista
+8. CTA: [COMENTA X / DM / link en bio]
+
+Instrucciones:
+- Analiza mis referencias; NO copies texto literal
+- Mantén patrón visual similar (tipografía, contraste, espaciado)
+- Genera imágenes de alta calidad por slide
+- Exporta a ~/carruseles-ig/salida/[nombre-carrusel]/ como PNG numerados
+- Al final, entrega caption listo para Instagram + 5 hashtags
+
+Si usas multihilo, un hilo por slide para paralelizar.

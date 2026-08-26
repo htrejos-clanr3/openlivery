@@ -49,11 +49,16 @@ class User(Base):
     agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(160))
     email: Mapped[str] = mapped_column(String(320), index=True)
-    password_hash: Mapped[str] = mapped_column(String(255))
+    # Nullable when the user only signs in with Google (password OR Google).
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     role: Mapped[str] = mapped_column(String(30), default="admin")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     agency: Mapped[Agency] = relationship(back_populates="users")
+
+    @property
+    def password_configured(self) -> bool:
+        return bool(self.password_hash)
 
 
 class Client(Base):
@@ -76,10 +81,19 @@ class Client(Base):
     portal_domain: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     portal_domain_verified: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     portal_domain_token: Mapped[str] = mapped_column(String(64), default="", server_default="")
+    # Brand DNA for carousel generation (Pomelli-like).
+    brand_primary_color: Mapped[str] = mapped_column(String(20), default="#075985", server_default="#075985")
+    brand_secondary_color: Mapped[str] = mapped_column(String(20), default="#0f172a", server_default="#0f172a")
+    brand_font: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    brand_voice: Mapped[str] = mapped_column(Text, default="", server_default="")
+    brand_logo_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    brand_logo_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
 
     agents: Mapped[list["Agent"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    portal_users: Mapped[list["PortalUser"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    carousels: Mapped[list["Carousel"]] = relationship(back_populates="client", cascade="all, delete-orphan")
     whatsapp_channel: Mapped["WhatsAppChannel | None"] = relationship(
         back_populates="client", cascade="all, delete-orphan", uselist=False
     )
@@ -90,6 +104,12 @@ class Client(Base):
     @property
     def portal_password_configured(self) -> bool:
         return bool(self.portal_password_hash)
+
+    @property
+    def brand_logo_url(self) -> str | None:
+        if not self.brand_logo_data:
+            return None
+        return f"/api/clients/{self.id}/brand-logo?v={int(self.updated_at.timestamp())}"
 
 
 class ProviderCredential(Base):
@@ -368,3 +388,137 @@ class Message(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     conversation: Mapped[Conversation] = relationship(back_populates="messages")
+
+
+class PortalUser(Base):
+    """Registered portal user for a client. Auth: password OR Google (independent)."""
+
+    __tablename__ = "portal_users"
+    __table_args__ = (UniqueConstraint("client_id", "email", name="uq_portal_users_client_email"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="portal_users")
+
+    @property
+    def password_configured(self) -> bool:
+        return bool(self.password_hash)
+
+
+class OAuthAccount(Base):
+    """Google (or other) OAuth subject linked to an agency or portal user."""
+
+    __tablename__ = "oauth_accounts"
+    __table_args__ = (
+        UniqueConstraint("provider", "subject", name="uq_oauth_provider_subject"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    provider: Mapped[str] = mapped_column(String(30), default="google")
+    subject: Mapped[str] = mapped_column(String(255), index=True)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    # Exactly one of these is set.
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True)
+    portal_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("portal_users.id", ondelete="CASCADE"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    email: Mapped[str] = mapped_column(String(320), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # agency | portal
+    audience: Mapped[str] = mapped_column(String(20))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=True)
+    portal_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("portal_users.id", ondelete="CASCADE"), nullable=True
+    )
+    # reset = forgot password; set = create password for Google-only account
+    purpose: Mapped[str] = mapped_column(String(20), default="reset")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
+class Carousel(Base):
+    __tablename__ = "carousels"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    approved_by_portal_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("portal_users.id", ondelete="SET NULL"), nullable=True
+    )
+    title: Mapped[str] = mapped_column(String(180))
+    brief: Mapped[str] = mapped_column(Text, default="")
+    caption: Mapped[str] = mapped_column(Text, default="")
+    language: Mapped[str] = mapped_column(String(10), default="es")
+    # draft | in_review | approved | rejected | scheduled | published | failed
+    status: Mapped[str] = mapped_column(String(30), default="draft", index=True)
+    slide_count: Mapped[int] = mapped_column(Integer, default=8)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ig_media_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    publish_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="carousels")
+    slides: Mapped[list["CarouselSlide"]] = relationship(
+        back_populates="carousel", cascade="all, delete-orphan", order_by="CarouselSlide.position"
+    )
+    events: Mapped[list["CarouselEvent"]] = relationship(back_populates="carousel", cascade="all, delete-orphan")
+
+
+class CarouselSlide(Base):
+    __tablename__ = "carousel_slides"
+    __table_args__ = (UniqueConstraint("carousel_id", "position", name="uq_carousel_slides_position"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    carousel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("carousels.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer)
+    headline: Mapped[str] = mapped_column(String(240), default="")
+    body: Mapped[str] = mapped_column(Text, default="")
+    cta: Mapped[str] = mapped_column(String(180), default="")
+    layout_json: Mapped[dict] = mapped_column(JSON, default=dict)
+    image_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    image_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # pending | agency_ok | client_ok | rejected
+    agency_status: Mapped[str] = mapped_column(String(30), default="pending")
+    client_status: Mapped[str] = mapped_column(String(30), default="pending")
+    client_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    carousel: Mapped[Carousel] = relationship(back_populates="slides")
+
+    @property
+    def image_url(self) -> str | None:
+        if not self.image_data:
+            return None
+        return f"/api/carousels/{self.carousel_id}/slides/{self.id}/image?v={int(self.updated_at.timestamp())}"
+
+
+class CarouselEvent(Base):
+    __tablename__ = "carousel_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    carousel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("carousels.id", ondelete="CASCADE"), index=True)
+    actor_type: Mapped[str] = mapped_column(String(30))  # agency | portal | system
+    actor_id: Mapped[uuid.UUID | None] = mapped_column(nullable=True)
+    action: Mapped[str] = mapped_column(String(80))
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    carousel: Mapped[Carousel] = relationship(back_populates="events")

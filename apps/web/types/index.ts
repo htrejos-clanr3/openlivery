@@ -3,6 +3,7 @@ export type User = {
   name: string;
   email: string;
   role: string;
+  password_configured?: boolean;
   agency: Agency;
 };
 
@@ -24,9 +25,45 @@ export type Client = {
   portal_password_configured: boolean;
   portal_domain: string | null;
   portal_domain_verified: boolean;
+  brand_primary_color?: string;
+  brand_secondary_color?: string;
+  brand_font?: string;
+  brand_voice?: string;
+  brand_logo_url?: string | null;
   agents: AgentSummary[];
   created_at: string;
   updated_at: string;
+};
+
+export type CarouselSlide = {
+  id: string;
+  position: number;
+  headline: string;
+  body: string;
+  cta: string;
+  layout_json: Record<string, unknown>;
+  image_url: string | null;
+  agency_status: string;
+  client_status: string;
+  client_comment: string | null;
+};
+
+export type Carousel = {
+  id: string;
+  client_id: string;
+  title: string;
+  brief: string;
+  caption: string;
+  language: string;
+  status: string;
+  slide_count: number;
+  scheduled_at: string | null;
+  published_at: string | null;
+  ig_media_id: string | null;
+  publish_error: string | null;
+  created_at: string;
+  updated_at: string;
+  slides: CarouselSlide[];
 };
 
 export type ClientDomain = {

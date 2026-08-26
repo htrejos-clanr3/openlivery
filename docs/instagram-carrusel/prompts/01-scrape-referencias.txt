@@ -1,0 +1,13 @@
+Usa Chrome para entrar en el perfil de Instagram: @[USUARIO]
+
+Por cada carrusel que encuentres:
+1. Crea la carpeta: ~/carruseles-ig/referencias/[USUARIO]/[nombre-carrusel]/
+2. Captura cada slide como JPG numerado (01.jpg, 02.jpg, …)
+3. Incluye el caption del post si es visible
+
+Límite: primeros [30] carruseles.
+
+Al terminar, lista las rutas creadas y un resumen:
+- Hooks del slide 1 (texto exacto)
+- Número medio de slides por carrusel
+- 3 patrones visuales repetidos
