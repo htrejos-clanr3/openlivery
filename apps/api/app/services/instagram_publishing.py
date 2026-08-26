@@ -139,6 +139,9 @@ async def publish_content(
         publication.published_at = now_utc()
         publication.locked_at = None
         content.status = "PUBLISHED"
+        from .carousel_publish_bridge import sync_carousel_from_publication
+
+        sync_carousel_from_publication(db, publication)
         db.commit()
         logger.info(
             "instagram_publish_ok publication_id=%s media_id=%s",
@@ -150,12 +153,18 @@ async def publish_content(
         message = str(exc.detail if isinstance(exc, HTTPException) else exc)
         code = getattr(exc, "code", None) if isinstance(exc, InstagramGraphError) else None
         info = humanize_instagram_error(code=code, message=message)
+        if isinstance(exc, HTTPException) and isinstance(exc.detail, dict):
+            info = exc.detail
+            message = str(info.get("message") or message)
         publication.status = "FAILED"
-        publication.error_code = code
-        publication.error_message = info["message"]
-        publication.error_class = info["error_class"]
+        publication.error_code = code or (info.get("code") if isinstance(info, dict) else None)
+        publication.error_message = info["message"] if isinstance(info, dict) else message
+        publication.error_class = info.get("error_class") if isinstance(info, dict) else classify_instagram_error(code, message)
         publication.locked_at = None
         content.status = "FAILED"
+        from .carousel_publish_bridge import sync_carousel_from_publication
+
+        sync_carousel_from_publication(db, publication)
         db.commit()
         logger.warning(
             "instagram_publish_fail publication_id=%s class=%s code=%s",
@@ -163,7 +172,7 @@ async def publish_content(
             publication.error_class,
             code,
         )
-        raise HTTPException(status_code=400, detail=info) from exc
+        raise HTTPException(status_code=400, detail=info if isinstance(info, dict) else humanize_instagram_error(message=message)) from exc
     except Exception as exc:  # noqa: BLE001
         info = humanize_instagram_error(message=str(exc))
         publication.status = "FAILED"
@@ -171,6 +180,9 @@ async def publish_content(
         publication.error_class = "TRANSIENT"
         publication.locked_at = None
         content.status = "FAILED"
+        from .carousel_publish_bridge import sync_carousel_from_publication
+
+        sync_carousel_from_publication(db, publication)
         db.commit()
         raise HTTPException(status_code=500, detail=info) from exc
 

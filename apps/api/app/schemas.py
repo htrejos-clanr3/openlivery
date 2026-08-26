@@ -584,6 +584,8 @@ class CarouselOut(ORMModel):
     published_at: datetime | None = None
     ig_media_id: str | None = None
     publish_error: str | None = None
+    content_item_id: uuid.UUID | None = None
+    publication_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
     slides: list[CarouselSlideOut] = []

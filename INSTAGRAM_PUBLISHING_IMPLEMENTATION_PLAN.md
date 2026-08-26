@@ -45,7 +45,7 @@ Dominio existente relevante:
 
 **No duplicar:** editor de agentes, inbox, nuevo LLM provider, nuevo storage S3 si no hace falta, app paralela.
 
-**Relación con Carousels existentes:** se mantienen como flujo de **aprobación agency/portal**. El pipeline de publicación Instagram usa el modelo editorial nuevo (`content_items` + `publications`). En una fase posterior se puede publicar un `Carousel` aprobado creando un `ContentItem`/`Publication` (bridge). MVP no reescribe el portal de carousels.
+**Relación con Carousels existentes:** flujo de **aprobación agency/portal** en `/carousels`. Bridge implementado: carrusel `approved` → `ContentItem` + `Publication` vía `carousel_publish_bridge` (`POST /carousels/{id}/publish` o `/schedule`). Escribe `ig_media_id` / status de vuelta en `carousels`.
 
 ---
 

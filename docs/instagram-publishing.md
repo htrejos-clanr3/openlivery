@@ -83,4 +83,10 @@ UI can show usage from `GET /{ig-user-id}/content_publishing_limit` when Meta re
 
 ## Related carousels product
 
-`/carousels` remains the agency↔portal **approval** workflow. Instagram channel publishing uses `content_items` + `publications`. Bridging approved carousels into publications can be added later without redesigning either model.
+`/carousels` is the agency↔portal **approval** workflow (Pomelli). When a carousel is **approved**:
+
+1. Connect Instagram for that client.
+2. Ensure each slide has an image (`with_images` or equivalent).
+3. **Publish to Instagram now** (`POST /api/carousels/{id}/publish`) or **Schedule** (`POST /api/carousels/{id}/schedule`).
+
+The bridge materializes a `ContentItem` (CAROUSEL) + `Publication`, reuses `InstagramPublishingService`, and writes back `ig_media_id` / status on the carousel.

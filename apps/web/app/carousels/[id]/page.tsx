@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { LoaderCircle } from "lucide-react";
@@ -81,6 +82,9 @@ export default function CarouselDetailPage() {
         description={carousel.brief || t("carousels.page.description")}
         action={
           <div className="header-actions">
+            <Link className="button secondary" href={`/clients/${carousel.client_id}/channels/instagram`}>
+              {t("carousels.detail.openInstagram")}
+            </Link>
             <button className="button secondary" disabled={busy} onClick={() => run(`/carousels/${params.id}/generate`)}>
               {busy && <LoaderCircle className="spin" size={16} />}
               {t("carousels.detail.regenerate")}
@@ -96,6 +100,9 @@ export default function CarouselDetailPage() {
       {error && <Alert>{error}</Alert>}
       <p><strong>{t("carousels.list.status")}:</strong> {t(`carousels.status.${carousel.status}` as "carousels.status.draft")}</p>
       <p><strong>{t("carousels.detail.caption")}:</strong> {carousel.caption || "—"}</p>
+      {carousel.ig_media_id && (
+        <p><strong>{t("carousels.detail.igMediaId")}:</strong> {carousel.ig_media_id}</p>
+      )}
       {carousel.publish_error && <Alert type="info">{carousel.publish_error}</Alert>}
 
       <div className="card-list">
@@ -132,15 +139,28 @@ export default function CarouselDetailPage() {
         ))}
       </div>
 
-      {carousel.status === "approved" && (
-        <form className="access-form section-block" onSubmit={schedule}>
+      {(carousel.status === "approved" || carousel.status === "failed") && (
+        <div className="access-form section-block">
           <p>{t("carousels.detail.scheduleHint")}</p>
-          <label>
-            {t("carousels.detail.schedule")}
-            <input name="scheduled_at" type="datetime-local" required />
-          </label>
-          <button className="button primary" disabled={busy}>{t("carousels.detail.schedule")}</button>
-        </form>
+          <div className="header-actions" style={{ marginBottom: 16 }}>
+            <button
+              className="button primary"
+              type="button"
+              disabled={busy}
+              onClick={() => run(`/carousels/${params.id}/publish`)}
+            >
+              {busy && <LoaderCircle className="spin" size={16} />}
+              {t("carousels.detail.publishNow")}
+            </button>
+          </div>
+          <form onSubmit={schedule}>
+            <label>
+              {t("carousels.detail.schedule")}
+              <input name="scheduled_at" type="datetime-local" required />
+            </label>
+            <button className="button secondary" disabled={busy}>{t("carousels.detail.schedule")}</button>
+          </form>
+        </div>
       )}
     </div>
   );

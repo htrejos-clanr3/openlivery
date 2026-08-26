@@ -67,8 +67,9 @@ def test_carousel_agency_to_portal_approval(authenticated_client):
 
     when = (datetime.now(timezone.utc) + timedelta(days=1)).isoformat()
     scheduled = client.post(f"/api/carousels/{carousel['id']}/schedule", json={"scheduled_at": when})
-    assert scheduled.status_code == 200
-    assert scheduled.json()["status"] == "scheduled"
+    # Bridge requires Instagram connected + slide images.
+    assert scheduled.status_code == 400, scheduled.text
+    assert "Instagram" in scheduled.json()["detail"] or "image" in scheduled.json()["detail"].lower()
 
 
 def test_forgot_password_google_only_path(authenticated_client, monkeypatch):

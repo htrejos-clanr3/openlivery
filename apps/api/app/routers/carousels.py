@@ -60,6 +60,8 @@ def _carousel_out(carousel: Carousel) -> CarouselOut:
         published_at=carousel.published_at,
         ig_media_id=carousel.ig_media_id,
         publish_error=carousel.publish_error,
+        content_item_id=carousel.content_item_id,
+        publication_id=carousel.publication_id,
         created_at=carousel.created_at,
         updated_at=carousel.updated_at,
         slides=[_slide_out(s) for s in sorted(carousel.slides, key=lambda x: x.position)],
@@ -221,28 +223,33 @@ def schedule_carousel(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    from ..services.carousel_publish_bridge import queue_carousel_publication
+
     carousel = _carousel_for_agency(db, user, carousel_id)
     if carousel.status != "approved":
         raise HTTPException(status_code=400, detail="Carousel must be client-approved before scheduling")
-    when = payload.scheduled_at
-    if when.tzinfo is None:
-        when = when.replace(tzinfo=timezone.utc)
-    if when <= datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="scheduled_at must be in the future")
-    # Instagram channel is not live yet — accept the schedule and mark as scheduled
-    # with a clear note until Meta publishing is wired.
-    carousel.scheduled_at = when
-    carousel.status = "scheduled"
-    carousel.publish_error = "Instagram publishing pending: channel not connected yet"
-    _log(
+    queue_carousel_publication(
         db,
-        carousel,
-        actor_type="agency",
-        actor_id=user.id,
-        action="schedule",
-        payload={"scheduled_at": when.isoformat(), "ig": "pending"},
+        carousel=carousel,
+        user=user,
+        scheduled_at=payload.scheduled_at,
+        timezone_name="UTC",
     )
     db.commit()
+    return _carousel_out(_carousel_for_agency(db, user, carousel_id))
+
+
+@router.post("/{carousel_id}/publish", response_model=CarouselOut)
+async def publish_carousel(
+    carousel_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Publish an approved carousel to the client's connected Instagram now."""
+    from ..services.carousel_publish_bridge import publish_carousel_now
+
+    carousel = _carousel_for_agency(db, user, carousel_id)
+    await publish_carousel_now(db, carousel=carousel, user=user)
     return _carousel_out(_carousel_for_agency(db, user, carousel_id))
 
 

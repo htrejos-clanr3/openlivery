@@ -61,6 +61,8 @@ export type Carousel = {
   published_at: string | null;
   ig_media_id: string | null;
   publish_error: string | null;
+  content_item_id?: string | null;
+  publication_id?: string | null;
   created_at: string;
   updated_at: string;
   slides: CarouselSlide[];
