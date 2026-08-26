@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,6 +15,7 @@ from .routers import (
     conversations,
     dashboard,
     domains,
+    instagram,
     portal,
     providers,
     whatsapp,
@@ -20,13 +23,26 @@ from .routers import (
     whatsapp_cloud_webhook,
     widget,
 )
+from .services.scheduled_publications import start_scheduler, stop_scheduler
 
 
 settings = get_settings()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    start_scheduler()
+    try:
+        yield
+    finally:
+        await stop_scheduler()
+
+
 app = FastAPI(
     title="OpenLivery API",
     description="API to manage agencies, clients and AI agents.",
     version="0.3.0",
+    lifespan=lifespan,
 )
 app.add_middleware(
     CORSMiddleware,
@@ -60,5 +76,7 @@ app.include_router(whatsapp.router, prefix="/api")
 app.include_router(whatsapp.internal_router, prefix="/api")
 app.include_router(whatsapp_cloud.router, prefix="/api")
 app.include_router(whatsapp_cloud_webhook.public_router, prefix="/api")
+app.include_router(instagram.router, prefix="/api")
+app.include_router(instagram.public_router, prefix="/api")
 app.include_router(widget.router, prefix="/api")
 app.include_router(domains.public_router, prefix="/api")

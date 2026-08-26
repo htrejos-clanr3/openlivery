@@ -28,14 +28,19 @@ const en = {
     configure: "Configure WhatsApp QR",
     selectClient: "Select a client",
   },
+  instagram: {
+    status: "Available",
+    title: "Instagram",
+    description:
+      "Connect a professional Instagram account and publish images, carousels, and Reels.",
+    ownerPlaceholder: "Choose a client to configure Instagram",
+    configure: "Configure Instagram",
+    selectClient: "Select a client",
+  },
   future: {
     comingSoon: "Coming soon",
     ownerPlaceholder: "Configurable inside each client",
     connect: "Connect channel",
-    instagram: {
-      name: "Instagram",
-      description: "Reply to direct messages with the knowledge of your agents.",
-    },
     facebook: {
       name: "Facebook Messenger",
       description: "Connect your pages and keep consistent support.",
@@ -80,14 +85,19 @@ const es: typeof en = {
     configure: "Configurar WhatsApp QR",
     selectClient: "Selecciona un cliente",
   },
+  instagram: {
+    status: "Disponible",
+    title: "Instagram",
+    description:
+      "Conecta una cuenta profesional de Instagram y publica imágenes, carruseles y Reels.",
+    ownerPlaceholder: "Elige un cliente para configurar Instagram",
+    configure: "Configurar Instagram",
+    selectClient: "Selecciona un cliente",
+  },
   future: {
     comingSoon: "Próximamente",
     ownerPlaceholder: "Configurable dentro de cada cliente",
     connect: "Conectar canal",
-    instagram: {
-      name: "Instagram",
-      description: "Responde mensajes directos con el conocimiento de tus agentes.",
-    },
     facebook: {
       name: "Facebook Messenger",
       description: "Conecta tus páginas y mantén una atención consistente.",

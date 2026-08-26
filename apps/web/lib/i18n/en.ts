@@ -12,6 +12,7 @@ import { portal } from "./dicts/portal";
 import { inbox } from "./dicts/inbox";
 import { tools } from "./dicts/tools";
 import { carousels } from "./dicts/carousels";
+import { instagram } from "./dicts/instagram";
 
 export const en = {
   ...core.en,
@@ -25,6 +26,7 @@ export const en = {
   inbox: inbox.en,
   tools: tools.en,
   carousels: carousels.en,
+  instagram: instagram.en,
 };
 
 export type Dictionary = typeof en;

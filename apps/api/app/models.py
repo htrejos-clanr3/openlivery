@@ -100,6 +100,12 @@ class Client(Base):
     whatsapp_cloud_channel: Mapped["WhatsAppCloudChannel | None"] = relationship(
         back_populates="client", cascade="all, delete-orphan", uselist=False
     )
+    instagram_channel: Mapped["InstagramChannel | None"] = relationship(
+        back_populates="client", cascade="all, delete-orphan", uselist=False
+    )
+    media_assets: Mapped[list["MediaAsset"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    content_items: Mapped[list["ContentItem"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    publications: Mapped[list["Publication"]] = relationship(back_populates="client", cascade="all, delete-orphan")
 
     @property
     def portal_password_configured(self) -> bool:
@@ -522,3 +528,126 @@ class CarouselEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     carousel: Mapped[Carousel] = relationship(back_populates="events")
+
+
+class InstagramChannel(Base):
+    """Per-client Instagram professional account for Content Publishing (not DMs)."""
+
+    __tablename__ = "instagram_channels"
+    __table_args__ = (UniqueConstraint("client_id", name="uq_instagram_channels_client_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    status: Mapped[str] = mapped_column(String(30), default="disconnected")
+    instagram_user_id: Mapped[str] = mapped_column(String(80), default="", server_default="")
+    page_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    username: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    display_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
+    encrypted_access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    granted_scopes: Mapped[list] = mapped_column(JSON, default=list)
+    # oauth | manual | mock
+    connection_mode: Mapped[str] = mapped_column(String(20), default="manual", server_default="manual")
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    last_connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="instagram_channel")
+
+
+class MediaAsset(Base):
+    __tablename__ = "media_assets"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    file_name: Mapped[str] = mapped_column(String(255), default="")
+    mime_type: Mapped[str] = mapped_column(String(100), default="application/octet-stream")
+    file_size: Mapped[int] = mapped_column(Integer, default=0)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    duration: Mapped[float | None] = mapped_column(Float, nullable=True)
+    file_data: Mapped[bytes] = mapped_column(LargeBinary)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="media_assets")
+
+
+class ContentItem(Base):
+    """Channel-agnostic editorial unit (Instagram first; Facebook/LinkedIn later)."""
+
+    __tablename__ = "content_items"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
+    title: Mapped[str] = mapped_column(String(180), default="")
+    caption: Mapped[str] = mapped_column(Text, default="")
+    hashtags: Mapped[str] = mapped_column(Text, default="")
+    cta: Mapped[str] = mapped_column(String(240), default="")
+    # IMAGE | CAROUSEL | REEL
+    content_type: Mapped[str] = mapped_column(String(30), default="IMAGE", index=True)
+    # DRAFT | READY | SCHEDULED | PUBLISHED | FAILED | ARCHIVED
+    status: Mapped[str] = mapped_column(String(30), default="DRAFT", index=True)
+    timezone: Mapped[str] = mapped_column(String(80), default="UTC", server_default="UTC")
+    ai_meta: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="content_items")
+    media_links: Mapped[list["ContentMedia"]] = relationship(
+        back_populates="content", cascade="all, delete-orphan", order_by="ContentMedia.position"
+    )
+    publications: Mapped[list["Publication"]] = relationship(back_populates="content", cascade="all, delete-orphan")
+
+
+class ContentMedia(Base):
+    __tablename__ = "content_media"
+    __table_args__ = (UniqueConstraint("content_id", "position", name="uq_content_media_position"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    content_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("content_items.id", ondelete="CASCADE"), index=True)
+    media_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("media_assets.id", ondelete="CASCADE"), index=True)
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+    content: Mapped[ContentItem] = relationship(back_populates="media_links")
+    media: Mapped[MediaAsset] = relationship()
+
+
+class Publication(Base):
+    __tablename__ = "publications"
+    __table_args__ = (UniqueConstraint("idempotency_key", name="uq_publications_idempotency_key"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    content_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("content_items.id", ondelete="CASCADE"), index=True)
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # instagram | facebook | linkedin (future)
+    channel: Mapped[str] = mapped_column(String(40), default="instagram", index=True)
+    provider_account_id: Mapped[str] = mapped_column(String(80), default="")
+    # DRAFT | QUEUED | PROCESSING | PUBLISHED | FAILED | CANCELLED
+    status: Mapped[str] = mapped_column(String(30), default="DRAFT", index=True)
+    scheduled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    timezone: Mapped[str] = mapped_column(String(80), default="UTC", server_default="UTC")
+    provider_publication_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    provider_container_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    provider_permalink: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    idempotency_key: Mapped[str] = mapped_column(String(80), default=new_public_id)
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # TRANSIENT | PERMANENT | AUTH | VALIDATION | RATE_LIMIT
+    error_class: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0)
+    locked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="publications")
+    content: Mapped[ContentItem] = relationship(back_populates="publications")

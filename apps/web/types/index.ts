@@ -274,3 +274,138 @@ export type PortalPublic = {
   agency_brand_color: string;
   agency_logo_url: string | null;
 };
+
+export type InstagramChannel = {
+  id: string;
+  client_id: string;
+  status: "disconnected" | "connected" | "error" | string;
+  instagram_user_id: string;
+  page_id: string | null;
+  username: string | null;
+  display_name: string | null;
+  access_token_configured: boolean;
+  token_expires_at: string | null;
+  granted_scopes: string[];
+  connection_mode: "oauth" | "manual" | "mock" | string;
+  last_error: string | null;
+  is_enabled: boolean;
+  last_connected_at: string | null;
+  publish_permission: boolean;
+};
+
+export type InstagramOAuthOptions = {
+  oauth_available: boolean;
+  mock_mode: boolean;
+  meta_app_id: string | null;
+  graph_version: string;
+  scopes: string[];
+  redirect_path: string;
+  blocked_reason: string | null;
+};
+
+export type InstagramOAuthSession = {
+  state: string;
+  dialog_url: string | null;
+  mock_mode: boolean;
+};
+
+export type InstagramHealth = {
+  ui_status: string;
+  account_ok: boolean;
+  token_ok: boolean;
+  publish_permission_ok: boolean;
+  api_ok: boolean;
+  mock_mode: boolean;
+  details: Record<string, unknown>;
+};
+
+export type InstagramPublishingLimit = {
+  quota_usage: number | null;
+  quota_total: number | null;
+  quota_duration: number | null;
+  available: boolean;
+};
+
+export type InstagramMediaAsset = {
+  id: string;
+  client_id: string;
+  file_name: string;
+  mime_type: string;
+  file_size: number;
+  width: number | null;
+  height: number | null;
+  duration: number | null;
+  created_at: string;
+  preview_url: string | null;
+};
+
+export type InstagramContentMedia = {
+  media_id: string;
+  position: number;
+  file_name: string | null;
+  mime_type: string | null;
+  preview_url: string | null;
+};
+
+export type InstagramContentItem = {
+  id: string;
+  client_id: string;
+  title: string;
+  caption: string;
+  hashtags: string;
+  cta: string;
+  content_type: "IMAGE" | "CAROUSEL" | "REEL" | string;
+  status: string;
+  timezone: string;
+  ai_meta: Record<string, unknown>;
+  media: InstagramContentMedia[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type InstagramPublication = {
+  id: string;
+  client_id: string;
+  content_id: string;
+  channel: string;
+  provider_account_id: string;
+  status: string;
+  scheduled_at: string | null;
+  published_at: string | null;
+  timezone: string;
+  provider_publication_id: string | null;
+  provider_container_id: string | null;
+  provider_permalink: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  error_class: string | null;
+  attempt_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type InstagramDashboardStats = {
+  drafts: number;
+  scheduled: number;
+  published_month: number;
+  failed: number;
+};
+
+export type InstagramGenerateRequest = {
+  content_type: string;
+  objective: string;
+  audience?: string;
+  user_instruction?: string;
+  slide_count?: number;
+  language?: string;
+};
+
+export type InstagramGenerateResult = {
+  title: string;
+  caption: string;
+  cta: string;
+  hashtags: string[];
+  visualSuggestion?: string | null;
+  imagePrompt?: string | null;
+  slides?: { headline?: string; body?: string; cta?: string }[] | null;
+};

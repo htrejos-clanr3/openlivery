@@ -61,11 +61,24 @@ Full documentation lives at **[openlivery.com/docs](https://openlivery.com/docs)
 - ✅ **MCP servers** (Streamable HTTP or SSE) with test-before-save connection checks and cached tool discovery
 - ✅ Tool usage recorded per reply and surfaced in the playground, including failure details
 
-**Channels** — [WhatsApp](https://openlivery.com/docs/whatsapp) · [Web widget](https://openlivery.com/docs/web-widget)
+**Channels** — [WhatsApp](https://openlivery.com/docs/whatsapp) · [Web widget](https://openlivery.com/docs/web-widget) · [Instagram publishing](./docs/instagram-publishing.md)
 - ✅ **WhatsApp Cloud API** (official Meta API) — bring your own Meta app credentials, signed webhooks, per-client number
 - ✅ **WhatsApp QR** through Baileys — QR link, per-client number, encrypted persistent session
+- ✅ **Instagram Content Publishing** — connect professional accounts, drafts, schedule, image/carousel/Reel (DM messaging planned later)
 - ✅ Embeddable **web chat widget** for any website
 - 🚧 Instagram DM, Facebook Messenger *(planned)*
+
+### Instagram publishing (ops)
+
+```bash
+# Mock full UI without Meta
+INSTAGRAM_PUBLISHING_MOCK_MODE=true
+
+# Real Meta: set META_APP_ID + META_APP_SECRET, public BACKEND_URL + FRONTEND_URL
+# Then: Clients → Instagram → Connect with Meta → Nueva publicación
+```
+
+See [docs/instagram-publishing.md](./docs/instagram-publishing.md).
 
 **Operations** — [Inbox](https://openlivery.com/docs/inbox) · [Client portal](https://openlivery.com/docs/client-portal) · [Dashboard](https://openlivery.com/docs/dashboard)
 - ✅ Unified **Inbox** with server-side search, filter tabs, unread tracking, pagination and human takeover

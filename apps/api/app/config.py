@@ -41,6 +41,16 @@ class Settings(BaseSettings):
     # When true, signup/complete can finish without real Meta credentials.
     meta_mock_mode: bool = False
     meta_oauth_redirect_path: str = "/api/whatsapp-cloud/oauth/callback"
+    # Instagram Content Publishing (reuse META_APP_* for Facebook Login OAuth).
+    instagram_publishing_mock_mode: bool = False
+    instagram_oauth_redirect_path: str = "/api/instagram/oauth/callback"
+    instagram_container_poll_max_attempts: int = 30
+    instagram_container_poll_delay_seconds: float = 2.0
+    instagram_scheduler_interval_seconds: float = 20.0
+    instagram_scheduler_enabled: bool = True
+    instagram_max_image_bytes: int = 8 * 1024 * 1024
+    instagram_max_video_bytes: int = 100 * 1024 * 1024
+    instagram_media_url_ttl_seconds: int = 60 * 60
     # Google Identity (password OR Google). Leave empty to disable Google buttons.
     google_oauth_client_id: str = ""
     # When true, forgot-password responses include the raw token (local/tests only).

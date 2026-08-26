@@ -878,6 +878,38 @@ textarea { line-height: 1.55; }
   .wa-actions .button { width: 100%; }
 }
 
+/* Instagram publishing — reuse wa-* layout; small ig-* accents only */
+.ig-mark { background: linear-gradient(135deg, #f58529, #dd2a7b 50%, #8134af) !important; box-shadow: 0 7px 18px rgba(221, 42, 123, .22) !important; }
+.ig-muted { margin: 0; color: #737b8a; font-size: 13px; }
+.ig-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.ig-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid #eceef3; }
+.ig-list li:first-child { border-top: 0; padding-top: 0; }
+.ig-list strong { display: block; font-size: 14px; }
+.ig-list small { color: #737b8a; font-size: 12px; }
+.ig-stats-grid strong { font-size: 22px; }
+.ig-type-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.ig-dropzone { min-height: 120px; padding: 22px; display: grid; place-items: center; gap: 8px; text-align: center; color: #5a6373; border: 1px dashed #c9d0d8; border-radius: 10px; background: #fbfcfd; font-size: 13px; }
+.ig-media-list { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 10px; }
+.ig-media-list li { display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid #e6e9ed; border-radius: 8px; background: #fbfcfd; }
+.ig-media-list img, .ig-media-fallback { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; background: #eef1f4; flex: 0 0 auto; }
+.ig-media-fallback { display: grid; place-items: center; font-size: 10px; color: #737b8a; text-align: center; padding: 4px; overflow: hidden; }
+.ig-media-meta { flex: 1; min-width: 0; }
+.ig-media-meta strong { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ig-media-meta small { color: #8a919f; font-size: 11px; }
+.ig-media-actions { display: flex; gap: 4px; }
+.ig-ai-slides { margin-top: 16px; display: grid; gap: 10px; }
+.ig-ai-slide { padding: 12px; border: 1px solid #e6e9ed; border-radius: 8px; background: #fbfcfd; font-size: 13px; line-height: 1.5; color: #3c4454; }
+.ig-preview-card { margin-top: 12px; border: 1px solid #e6e9ed; border-radius: 10px; overflow: hidden; background: white; }
+.ig-preview-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid #eceef3; font-size: 13px; }
+.ig-avatar { width: 28px; height: 28px; border-radius: 50%; background: linear-gradient(135deg, #f58529, #dd2a7b); }
+.ig-preview-media { position: relative; aspect-ratio: 1; background: #f0f2f5; }
+.ig-preview-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ig-preview-empty { height: 100%; display: grid; place-items: center; color: #8a919f; font-size: 12px; }
+.ig-preview-count { position: absolute; top: 8px; right: 8px; min-width: 22px; height: 22px; padding: 0 6px; display: grid; place-items: center; color: white; border-radius: 999px; background: rgba(0,0,0,.55); font-size: 11px; font-weight: 650; }
+.ig-preview-caption, .ig-preview-tags, .ig-preview-cta { margin: 0; padding: 10px 12px 0; font-size: 12px; line-height: 1.5; color: #3c4454; }
+.ig-preview-tags { color: #075985; padding-bottom: 4px; }
+.ig-preview-cta { padding-bottom: 12px; color: #737b8a; }
+
 /* Identidad OpenLivery: azul institucional, verde como acento y superficies neutras. */
 :root {
   --ink: #102a43;
