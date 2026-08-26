@@ -400,6 +400,16 @@ function WhatsAppCloudChannelPageInner() {
                   {showTechnical && <pre className="wa-tech-error">{channel?.last_error || health?.error?.technical}</pre>}
                 </Alert>
               )}
+              {health?.meta_platform && (
+                <div className="meta-platform-note">
+                  <small>{t("meta.channelNoteTitle")}</small>
+                  <p>{health.meta_platform.label}</p>
+                  <p>{health.meta_platform.message}</p>
+                  {health.meta_platform.diagnostics_available && (
+                    <Link className="text-button" href="/settings/meta">{t("meta.channelNoteLink")}</Link>
+                  )}
+                </div>
+              )}
               <div className="wa-actions">
                 <button className="button primary" onClick={testConnection} disabled={busy}>
                   {busy ? <LoaderCircle className="spin" size={17} /> : <Plug size={17} />} {t("clients.whatsappCloud.testConnection")}

@@ -51,6 +51,17 @@ class Settings(BaseSettings):
     instagram_max_image_bytes: int = 8 * 1024 * 1024
     instagram_max_video_bytes: int = 100 * 1024 * 1024
     instagram_media_url_ttl_seconds: int = 60 * 60
+    # Meta Developer Tools / Social Technologies MCP (diagnostics only — not on message path).
+    meta_devtools_mcp_enabled: bool = False
+    meta_devtools_mcp_url: str = "https://mcp.facebook.com/devtools"
+    meta_devtools_mcp_timeout_seconds: float = 25.0
+    meta_devtools_mcp_access_token: str = ""
+    meta_devtools_mcp_mock_mode: bool = False
+    meta_devtools_mcp_manage_enabled: bool = False
+    meta_api_warning_threshold: int = 70
+    meta_api_critical_threshold: int = 90
+    meta_mcp_cache_ttl_seconds: int = 180
+    meta_mcp_slow_cache_ttl_seconds: int = 1800
     # Google Identity (password OR Google). Leave empty to disable Google buttons.
     google_oauth_client_id: str = ""
     # When true, forgot-password responses include the raw token (local/tests only).

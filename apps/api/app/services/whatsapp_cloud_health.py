@@ -75,6 +75,20 @@ async def build_health(db: Session, channel: WhatsAppCloudChannel) -> dict:
         and graph_ok
     )
 
+    from .meta_devtools_mcp import mcp_enabled, mock_mode
+
+    meta_platform = {
+        "scope": "platform",
+        "label": "Meta Platform (global — not this client's message quota)",
+        "diagnostics_available": mcp_enabled(),
+        "mock_mode": mock_mode(),
+        "message": (
+            "Open Settings → Meta Platform for API usage, rate limits, and webhook diagnostics."
+            if mcp_enabled()
+            else "Advanced Meta diagnostics are not configured."
+        ),
+    }
+
     if connected:
         ui_status = "connected"
     elif channel.status == "error" or error_info:
@@ -108,4 +122,5 @@ async def build_health(db: Session, channel: WhatsAppCloudChannel) -> dict:
         "last_connected_at": _iso(channel.last_connected_at),
         "last_error": channel.last_error,
         "error": error_info,
+        "meta_platform": meta_platform,
     }

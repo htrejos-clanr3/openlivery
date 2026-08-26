@@ -35,6 +35,8 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
       const data = await response.json();
       if (typeof data.detail === "string") {
         message = data.detail;
+      } else if (data.detail && typeof data.detail === "object" && typeof data.detail.message === "string") {
+        message = data.detail.message;
       } else if (Array.isArray(data.detail) && typeof data.detail[0]?.msg === "string") {
         message = `Revisa los campos del formulario: ${data.detail[0].msg}`;
       }

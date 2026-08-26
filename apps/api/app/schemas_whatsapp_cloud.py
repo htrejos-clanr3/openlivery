@@ -63,6 +63,7 @@ class WhatsAppCloudHealthOut(BaseModel):
     last_connected_at: str | None = None
     last_error: str | None = None
     error: dict | None = None
+    meta_platform: dict | None = None
 
 
 class WhatsAppSignupOptionsOut(BaseModel):

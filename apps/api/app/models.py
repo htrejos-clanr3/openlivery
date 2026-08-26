@@ -657,3 +657,23 @@ class Publication(Base):
 
     client: Mapped[Client] = relationship(back_populates="publications")
     content: Mapped[ContentItem] = relationship(back_populates="publications")
+
+
+class MetaWebhookTest(Base):
+    """History of Meta DevTools MCP webhook test probes (diagnostics only)."""
+
+    __tablename__ = "meta_webhook_tests"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    test_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    app_id: Mapped[str] = mapped_column(String(80), default="")
+    event_type: Mapped[str] = mapped_column(String(80), default="messages")
+    # requested | sent | received | processed | failed
+    status: Mapped[str] = mapped_column(String(30), default="requested")
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    received_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)

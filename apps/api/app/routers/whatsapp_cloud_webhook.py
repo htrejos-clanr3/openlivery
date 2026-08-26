@@ -97,6 +97,31 @@ async def receive_webhook(channel_id: uuid.UUID, request: Request, db: Session =
         payload = json.loads(raw)
     except ValueError:
         return {"status": "ok"}
+
+    # Diagnostics: if a Meta webhook test embeds our correlation id, mark it received.
+    try:
+        raw_text = raw.decode("utf-8", errors="ignore")
+        from ..models import MetaWebhookTest
+        from ..services.meta_platform_health import mark_webhook_test_received
+
+        for row in (
+            db.query(MetaWebhookTest)
+            .filter(MetaWebhookTest.status.in_(["requested", "sent"]))
+            .order_by(MetaWebhookTest.created_at.desc())
+            .limit(20)
+            .all()
+        ):
+            if row.test_id and row.test_id in raw_text:
+                mark_webhook_test_received(row.test_id, event_type="messages")
+                row.received_at = now_utc()
+                if row.requested_at:
+                    row.latency_ms = int((row.received_at - row.requested_at).total_seconds() * 1000)
+                row.status = "received"
+                db.commit()
+                break
+    except Exception:  # noqa: BLE001 — never break production webhook path
+        db.rollback()
+
     if not channel.is_enabled:
         return {"status": "ok"}
 

@@ -5,6 +5,7 @@ import { clients } from "./dicts/clients";
 import { agents } from "./dicts/agents";
 import { channels } from "./dicts/channels";
 import { settings } from "./dicts/settings";
+import { meta } from "./dicts/meta";
 import { playground } from "./dicts/playground";
 import { portal } from "./dicts/portal";
 import { inbox } from "./dicts/inbox";
@@ -21,6 +22,7 @@ export const es: Dictionary = {
   agents: agents.es,
   channels: channels.es,
   settings: settings.es,
+  meta: meta.es,
   playground: playground.es,
   portal: portal.es,
   inbox: inbox.es,

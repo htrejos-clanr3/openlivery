@@ -226,6 +226,14 @@ export type WhatsAppCloudChannel = {
   updated_at: string;
 };
 
+export type MetaPlatformNote = {
+  scope: string;
+  label: string;
+  diagnostics_available: boolean;
+  mock_mode: boolean;
+  message: string;
+};
+
 export type WhatsAppCloudHealth = {
   connected: boolean;
   ui_status: string;
@@ -248,6 +256,105 @@ export type WhatsAppCloudHealth = {
   last_connected_at: string | null;
   last_error: string | null;
   error: { message: string; code: string; technical: string } | null;
+  meta_platform?: MetaPlatformNote | null;
+};
+
+export type MetaMcpStatus = {
+  enabled: boolean;
+  mock_mode: boolean;
+  manage_enabled: boolean;
+  url_configured: boolean;
+  token_configured: boolean;
+  meta_app_id: string | null;
+  message: string | null;
+};
+
+export type MetaHealthSection = {
+  status?: string;
+  percentage?: number | null;
+  call_volume?: number | null;
+  limit?: number | null;
+  window?: string | null;
+  label?: string | null;
+  throttle_status?: string | null;
+  estimated_recovery_minutes?: number | null;
+  missing?: string[];
+  present?: string[];
+  extra?: string[];
+  items?: Array<Record<string, unknown>>;
+  actions?: unknown[];
+  count?: number;
+  detail?: unknown;
+  error?: string | null;
+};
+
+export type MetaHealth = {
+  overall_status: string;
+  enabled: boolean;
+  mock_mode: boolean;
+  app_id?: string | null;
+  fetched_at?: string | null;
+  time_range?: string | null;
+  message?: string | null;
+  app: MetaHealthSection;
+  api_usage: MetaHealthSection;
+  rate_limits: MetaHealthSection;
+  webhooks: MetaHealthSection;
+  app_review: MetaHealthSection;
+  compliance: MetaHealthSection;
+  deprecations: MetaHealthSection;
+  alerts: Array<{ level?: string; code?: string; message?: string }>;
+  manage_enabled?: boolean;
+};
+
+export type MetaDiagnostics = {
+  status: string;
+  checks: Array<{ name: string; status: string; message?: string | null }>;
+  summary: { total: number; healthy: number; attention: number };
+  health?: MetaHealth | null;
+};
+
+export type MetaWebhookInspect = {
+  app_id?: string | null;
+  fetched_at?: string | null;
+  manage_enabled: boolean;
+  expected: string[];
+  present: string[];
+  missing: string[];
+  extra: string[];
+  subscriptions: unknown[];
+  callback_url?: string | null;
+  raw_summary?: Record<string, unknown>;
+};
+
+export type MetaWebhookRepairPreview = {
+  manage_enabled: boolean;
+  changes: Array<{ op?: string; field?: string }>;
+  missing: string[];
+  extra_untouched: string[];
+  note: string;
+};
+
+export type MetaWebhookTestResult = {
+  test_id: string;
+  status: string;
+  meta_request_accepted: boolean;
+  openlivery_received: boolean;
+  latency_ms: number | null;
+  event_type: string;
+  error: string | null;
+  steps: Record<string, unknown>;
+};
+
+export type MetaWebhookTestHistory = {
+  id: string;
+  test_id: string;
+  event_type: string;
+  status: string;
+  requested_at: string;
+  received_at: string | null;
+  latency_ms: number | null;
+  error: string | null;
 };
 
 export type WhatsAppSignupOptions = {
