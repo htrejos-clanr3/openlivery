@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Bot, FileText, ImageIcon, LoaderCircle, MessageSquarePlus, Send, Sparkles, TriangleAlert, UserRound, Wrench } from "lucide-react";
+import { useFileDrop } from "@/components/file-dropzone";
 import { api, messageFrom } from "@/lib/api";
 import { Alert, EmptyState } from "@/components/ui";
 import { useToast } from "@/components/toast";
@@ -90,6 +91,12 @@ export function ChatPlayground({ lockedAgentId }: { lockedAgentId?: string }) {
     } catch (err) { toast.error(messageFrom(err)); } finally { setBusy(false); if (imageRef.current) imageRef.current.value = ""; }
   }
 
+  const imageDrop = useFileDrop({
+    onFile: sendImage,
+    accept: "image/png,image/jpeg,image/webp,image/gif",
+    disabled: !agentId || busy || !selectedAgent?.image_enabled,
+  });
+
   return <div className={`playground-layout ${lockedAgentId ? "embedded" : ""}`}>
     <aside className="conversation-sidebar">
       {!lockedAgentId && <div className="playground-selectors"><label>{t("playground.selectors.client")}<select value={clientId} onChange={(e) => { setClientId(e.target.value); const first = agents.find((a) => a.client_id === e.target.value); setAgentId(first?.id || ""); }}>{clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}</select></label><label>{t("playground.selectors.agent")}<select value={agentId} onChange={(e) => setAgentId(e.target.value)}><option value="">{t("playground.selectors.agentPlaceholder")}</option>{availableAgents.map((agent) => <option key={agent.id} value={agent.id}>{agent.name}</option>)}</select></label></div>}
@@ -103,7 +110,22 @@ export function ChatPlayground({ lockedAgentId }: { lockedAgentId?: string }) {
         {busy && <div className="message-row assistant"><span className="message-avatar"><Bot size={17} /></span><div className="thinking"><i /><i /><i /></div></div>}
         <div ref={endRef} />
       </div>
-      <div className="composer-wrap"><form className="composer" onSubmit={send}>{selectedAgent?.image_enabled && <><button type="button" className="composer-attach" disabled={!agentId || busy} title={t("playground.composer.attachImage")} aria-label={t("playground.composer.attachImage")} onClick={() => imageRef.current?.click()}><ImageIcon size={18} /></button><input ref={imageRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(e) => sendImage(e.target.files?.[0])} /></>}<textarea ref={composerRef} name="message" rows={1} placeholder={agentId ? t("playground.composer.placeholder") : t("playground.composer.placeholderNoAgent")} disabled={!agentId} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} /><button disabled={!agentId || busy} aria-label={t("playground.composer.send")}>{busy ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}</button></form><small>{t("playground.composer.disclaimer")}</small></div>
+      <div className={`composer-wrap ${imageDrop.dragging ? "dragging" : ""}`} {...imageDrop.handlers}>
+        {imageDrop.dragging && selectedAgent?.image_enabled && (
+          <div className="composer-drop-overlay"><ImageIcon size={22} /><span>{t("common.upload.dropActive")}</span></div>
+        )}
+        <form className="composer" onSubmit={send}>
+          {selectedAgent?.image_enabled && (
+            <>
+              <button type="button" className="composer-attach" disabled={!agentId || busy} title={t("playground.composer.attachImage")} aria-label={t("playground.composer.attachImage")} onClick={() => imageRef.current?.click()}><ImageIcon size={18} /></button>
+              <input ref={imageRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden onChange={(event) => sendImage(event.target.files?.[0])} />
+            </>
+          )}
+          <textarea ref={composerRef} name="message" rows={1} placeholder={agentId ? t("playground.composer.placeholder") : t("playground.composer.placeholderNoAgent")} disabled={!agentId} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
+          <button disabled={!agentId || busy} aria-label={t("playground.composer.send")}>{busy ? <LoaderCircle className="spin" size={18} /> : <Send size={18} />}</button>
+        </form>
+        <small>{selectedAgent?.image_enabled ? t("playground.composer.imageDropHint") : t("playground.composer.disclaimer")}</small>
+      </div>
     </section>
   </div>;
 }

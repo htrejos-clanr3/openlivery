@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, AudioLines, Bot, CheckCircle2, Code, Copy, ExternalLink, FileText, ImageIcon, LoaderCircle, MessageSquareText, Plus, Power, PowerOff, Save, Settings2, Sparkles, Trash2, UploadCloud, Wrench, XCircle } from "lucide-react";
@@ -9,6 +9,7 @@ import { useT } from "@/lib/i18n";
 import { Alert } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { ChatPlayground } from "@/components/chat-playground";
+import { FileDropzone } from "@/components/file-dropzone";
 import { AgentToolsTab } from "@/components/agent-tools/agent-tools-tab";
 import { Combobox } from "@/components/combobox";
 import { ProviderSetupPanel } from "@/components/provider-setup-panel";
@@ -51,7 +52,6 @@ export default function AgentDetailPage() {
   const [providerStates, setProviderStates] = useState<Provider[]>([]);
   const [tab, setTab] = useState<Tab>("details");
   const [busy, setBusy] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const load = async () => {
     const [a, c, d, q, tl, p] = await Promise.all([api<Agent>(`/agents/${id}`), api<Client[]>("/clients"), api<KnowledgeDocument[]>(`/agents/${id}/documents`), api<QAPair[]>(`/agents/${id}/qa`), api<AgentTool[]>(`/agents/${id}/tools`), api<Provider[]>("/providers")]);
@@ -145,7 +145,7 @@ export default function AgentDetailPage() {
     setBusy(true);
     const data = new FormData(); data.append("file", file);
     try { const doc = await api<KnowledgeDocument>(`/agents/${id}/documents`, { method: "POST", body: data }); setDocuments((items) => [doc, ...items]); toast.success(doc.status === "processed" ? t("agents.detail.pdfProcessed") : t("agents.detail.pdfSavedNotProcessed")); }
-    catch (err) { toast.error(messageFrom(err)); } finally { setBusy(false); if (fileRef.current) fileRef.current.value = ""; }
+    catch (err) { toast.error(messageFrom(err)); } finally { setBusy(false); }
   }
 
   async function removeDocument(doc: KnowledgeDocument) {
@@ -218,7 +218,11 @@ export default function AgentDetailPage() {
     {tab === "knowledge" && <><div className="knowledge-layout">
       <form className="panel knowledge-context" onSubmit={saveContext}><div className="panel-head"><div><h3>{t("agents.detail.manualContextHeading")}</h3><p>{t("agents.detail.manualContextCopy")}</p></div></div><textarea name="manual_context" rows={12} defaultValue={agent.manual_context} placeholder={t("agents.detail.manualContextPlaceholder")} /><div className="knowledge-actions"><small>{t("agents.detail.charsSaved", { count: agent.manual_context.length.toLocaleString("es") })}</small><button className="button secondary" disabled={busy}><Save size={16} /> {t("agents.detail.saveContextAndContinue")}</button></div></form>
       <section className="panel documents-panel"><div className="panel-head"><div><h3>{t("agents.detail.pdfHeading")}</h3><p>{t("agents.detail.pdfCopy")}</p></div></div>
-        <button className="dropzone" onClick={() => fileRef.current?.click()} disabled={busy}><span><UploadCloud size={24} /></span><strong>{busy ? t("agents.detail.processing") : t("agents.detail.uploadPdf")}</strong><small>{t("agents.detail.uploadHint")}</small></button><input ref={fileRef} type="file" accept="application/pdf,.pdf" hidden onChange={(e) => upload(e.target.files?.[0])} />
+        <FileDropzone className="dropzone" accept="application/pdf,.pdf" disabled={busy} onFile={upload}>
+          <span><UploadCloud size={24} /></span>
+          <strong>{busy ? t("agents.detail.processing") : t("agents.detail.uploadPdf")}</strong>
+          <small>{t("agents.detail.uploadHint")}</small>
+        </FileDropzone>
         <div className="documents-list">{documents.map((doc) => <div className="document-row" key={doc.id}><span className={`document-icon ${doc.status}`}><FileText size={19} /></span><div><strong>{doc.filename}</strong><small>{doc.status === "processed" ? t("agents.detail.charsExtracted", { count: doc.character_count.toLocaleString("es") }) : doc.error_message}</small></div><span className={`document-status ${doc.status}`}>{doc.status === "processed" ? <><CheckCircle2 size={14} /> {t("agents.detail.processed")}</> : <><XCircle size={14} /> {t("agents.detail.error")}</>}</span><button className="icon-button danger-icon" onClick={() => removeDocument(doc)} title={t("agents.detail.delete")}><Trash2 size={16} /></button></div>)}{!documents.length && <div className="inline-empty slim"><FileText size={22} /><div><strong>{t("agents.detail.noDocumentsTitle")}</strong><span>{t("agents.detail.noDocumentsHint")}</span></div></div>}</div>
       </section>
     </div>
