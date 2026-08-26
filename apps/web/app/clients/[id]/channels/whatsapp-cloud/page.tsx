@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useState } from "react";
 import {
-  ArrowLeft, BadgeCheck, Bot, CheckCircle2, ChevronDown, CircleAlert, ClipboardCopy, Inbox,
-  KeyRound, LoaderCircle, Plug, Power, RefreshCw, ShieldCheck, Smartphone, Sparkles, Webhook,
+  ArrowLeft, BadgeCheck, BookOpen, Bot, CheckCircle2, ChevronDown, CircleAlert, ClipboardCopy, Circle,
+  ExternalLink, Inbox, KeyRound, LoaderCircle, Plug, Power, RefreshCw, ShieldCheck, Smartphone, Sparkles, Webhook,
 } from "lucide-react";
 import { Alert } from "@/components/ui";
 import { api, ApiError, messageFrom } from "@/lib/api";
@@ -94,6 +94,7 @@ function WhatsAppCloudChannelPageInner() {
   const [accessToken, setAccessToken] = useState("");
   const [appSecret, setAppSecret] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(true);
   const [showSecrets, setShowSecrets] = useState(false);
   const [showTechnical, setShowTechnical] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -326,6 +327,17 @@ function WhatsAppCloudChannelPageInner() {
 
   const connected = channel?.status === "connected" && channel.is_enabled;
   const uiStatus = health?.ui_status || (connected ? "connected" : channel?.status === "error" ? "needs_attention" : "not_configured");
+  const oauthRedirectExample = typeof window !== "undefined"
+    ? `${window.location.origin}/api/whatsapp-cloud/oauth/callback`
+    : "/api/whatsapp-cloud/oauth/callback";
+  const setupChecks: { id: string; label: string; done: boolean }[] = [
+    { id: "agent", label: t("clients.whatsappCloud.guideCheckAgent"), done: Boolean(agentId) },
+    { id: "phone", label: t("clients.whatsappCloud.guideCheckPhone"), done: Boolean(health?.phone_number_id || phoneNumberId.trim()) },
+    { id: "token", label: t("clients.whatsappCloud.guideCheckToken"), done: Boolean(health?.token_configured || channel?.has_access_token) },
+    { id: "webhook", label: t("clients.whatsappCloud.guideCheckWebhook"), done: Boolean(channel?.webhook_url && channel?.webhook_verify_token) },
+    { id: "graph", label: t("clients.whatsappCloud.guideCheckGraph"), done: Boolean(health?.graph_reachable || health?.permissions_valid) },
+    { id: "connected", label: t("clients.whatsappCloud.guideCheckConnected"), done: Boolean(connected && health?.connected !== false) },
+  ];
 
   return (
     <div className="page wa-page">
@@ -432,6 +444,71 @@ function WhatsAppCloudChannelPageInner() {
               </div>
             </section>
           )}
+
+          <section className="wa-panel">
+            <button type="button" className="wa-accordion-trigger" onClick={() => setGuideOpen((v) => !v)}>
+              <span><BookOpen size={19} /></span>
+              <div>
+                <h2>{t("clients.whatsappCloud.guideTitle")}</h2>
+                <p>{t("clients.whatsappCloud.guideCopy")}</p>
+              </div>
+              <ChevronDown size={18} className={guideOpen ? "open" : ""} />
+            </button>
+            {guideOpen && (
+              <div className="wa-guide">
+                <a
+                  className="button secondary wa-guide-link"
+                  href="https://developers.facebook.com/apps/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink size={16} /> {t("clients.whatsappCloud.guideOpenMeta")}
+                </a>
+
+                <h3>{t("clients.whatsappCloud.guideChecklistTitle")}</h3>
+                <ul className="wa-guide-checklist">
+                  {setupChecks.map((item) => (
+                    <li key={item.id} className={item.done ? "done" : ""}>
+                      {item.done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                      <span>{item.label}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <h3>{t("clients.whatsappCloud.guideManagedTitle")}</h3>
+                <p>{t("clients.whatsappCloud.guideManagedIntro")}</p>
+                {!options?.managed_available && (
+                  <Alert type="info">{t("clients.whatsappCloud.managedUnavailable")}</Alert>
+                )}
+                <ol className="wa-guide-steps">
+                  <li>{t("clients.whatsappCloud.guideManaged1")}</li>
+                  <li>{t("clients.whatsappCloud.guideManaged2")}</li>
+                  <li>{t("clients.whatsappCloud.guideManaged3")}</li>
+                  <li>{t("clients.whatsappCloud.guideManaged4", { url: oauthRedirectExample })}</li>
+                  <li>{t("clients.whatsappCloud.guideManaged5")}</li>
+                  <li>{t("clients.whatsappCloud.guideManaged6")}</li>
+                </ol>
+
+                <h3>{t("clients.whatsappCloud.guideByoTitle")}</h3>
+                <p>{t("clients.whatsappCloud.guideByoIntro")}</p>
+                <ol className="wa-guide-steps">
+                  <li>{t("clients.whatsappCloud.guideByo1")}</li>
+                  <li>{t("clients.whatsappCloud.guideByo2")}</li>
+                  <li>{t("clients.whatsappCloud.guideByo3")}</li>
+                  <li>{t("clients.whatsappCloud.guideByo4")}</li>
+                  <li>
+                    {t("clients.whatsappCloud.guideByo5")}{" "}
+                    <button type="button" className="text-button" onClick={() => setAdvancedOpen(true)}>
+                      {t("clients.whatsappCloud.advancedTitle")}
+                    </button>
+                  </li>
+                  <li>{t("clients.whatsappCloud.guideByo6")}</li>
+                </ol>
+                <p className="wa-guide-note">{t("clients.whatsappCloud.guideWebhookNote")}</p>
+                <p className="wa-guide-note">{t("clients.whatsappCloud.guideDocsHint")}</p>
+              </div>
+            )}
+          </section>
 
           <section className="wa-panel">
             <div className="wa-panel-head"><span><Bot size={19} /></span><div><h2>{t("clients.whatsapp.assignedAgent")}</h2><p>{t("clients.whatsappCloud.agentAfterConnect")}</p></div></div>

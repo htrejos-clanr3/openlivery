@@ -828,6 +828,15 @@ textarea { line-height: 1.55; }
 .wa-accordion-trigger > svg:last-child.open { transform: rotate(180deg); }
 .wa-agent-help { margin-top: 16px; padding: 14px; border-radius: 10px; background: #f7f9fc; border: 1px solid #e6e9ed; }
 .wa-tech-error { margin-top: 10px; white-space: pre-wrap; font-size: 12px; color: #5a6373; }
+.wa-guide { margin-top: 16px; display: grid; gap: 12px; }
+.wa-guide h3 { margin: 8px 0 0; color: #242b38; font-size: 14px; }
+.wa-guide p { margin: 0; color: #5a6373; font-size: 13px; line-height: 1.55; }
+.wa-guide-link { justify-self: start; }
+.wa-guide-checklist { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wa-guide-checklist li { display: flex; align-items: center; gap: 10px; color: #737b8a; font-size: 13px; }
+.wa-guide-checklist li.done { color: #087b52; font-weight: 600; }
+.wa-guide-steps { margin: 0; padding-left: 20px; color: #545d6e; font-size: 13px; line-height: 1.75; }
+.wa-guide-note { color: #737b8a !important; font-size: 12px !important; }
 .wa-cloud-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .wa-cloud-form label { display: flex; flex-direction: column; gap: 7px; color: #3c4454; font-size: 13px; font-weight: 600; }
 .wa-copy-field { margin-top: 12px; display: flex; align-items: flex-end; gap: 10px; }

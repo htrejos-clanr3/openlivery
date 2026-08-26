@@ -112,7 +112,7 @@ export function ChatPlayground({ lockedAgentId }: { lockedAgentId?: string }) {
       </div>
       <div className={`composer-wrap ${imageDrop.dragging ? "dragging" : ""}`} {...imageDrop.handlers}>
         {imageDrop.dragging && selectedAgent?.image_enabled && (
-          <div className="composer-drop-overlay"><ImageIcon size={22} /><span>{t("common.upload.dropActive")}</span></div>
+          <div className="composer-drop-overlay"><ImageIcon size={22} /><span>{t("upload.dropActive")}</span></div>
         )}
         <form className="composer" onSubmit={send}>
           {selectedAgent?.image_enabled && (
