@@ -66,6 +66,22 @@ class Settings(BaseSettings):
     google_oauth_client_id: str = ""
     # When true, forgot-password responses include the raw token (local/tests only).
     auth_expose_reset_token: bool = False
+    # Carousel slide images. openai = gpt-image-* (paid). flux = local HTTP
+    # (scripts/flux_schnell_server.py, ComfyUI/A1111-compatible). ollama = experimental
+    # image models only (not llava). placeholder = free test PNGs, not real ads.
+    image_provider: str = "openai"
+    image_size: str = "1024x1536"
+    image_timeout_seconds: float = 45.0
+    image_local_timeout_seconds: float = 240.0
+    image_max_workers: int = 3
+    image_local_workers: int = 1
+    openai_image_model: str = "gpt-image-1-mini"
+    openai_image_model_fallback: str = "gpt-image-1"
+    flux_base_url: str = "http://127.0.0.1:7868"
+    flux_api_key: str = ""
+    flux_model: str = "flux-schnell"
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_image_model: str = "x/flux2-klein:4b"
 
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", APP_DIR / ".env"),

@@ -32,7 +32,7 @@ const en = {
     status: "Available",
     title: "Instagram",
     description:
-      "Connect a professional Instagram account and publish images, carousels, and Reels.",
+      "Connect a professional Instagram account per client. Guided Meta login when configured; otherwise a step-by-step guide to paste Graph credentials.",
     ownerPlaceholder: "Choose a client to configure Instagram",
     configure: "Configure Instagram",
     selectClient: "Select a client",
@@ -89,7 +89,7 @@ const es: typeof en = {
     status: "Disponible",
     title: "Instagram",
     description:
-      "Conecta una cuenta profesional de Instagram y publica imágenes, carruseles y Reels.",
+      "Conecta una cuenta profesional de Instagram por cliente. Login guiado de Meta si está configurado; si no, guía paso a paso para pegar credenciales Graph.",
     ownerPlaceholder: "Elige un cliente para configurar Instagram",
     configure: "Configurar Instagram",
     selectClient: "Selecciona un cliente",

@@ -470,6 +470,15 @@ class Carousel(Base):
     brief: Mapped[str] = mapped_column(Text, default="")
     caption: Mapped[str] = mapped_column(Text, default="")
     language: Mapped[str] = mapped_column(String(10), default="es")
+    # When True, AI expands title/brief using company DNA + RAG/embeddings.
+    # When False, treat title/brief as literal copy to format into slides.
+    interpret_prompt: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # once = single datetime (scheduled_at). weekly_window = weekdays + local time range.
+    schedule_mode: Mapped[str] = mapped_column(String(20), default="once", server_default="once")
+    schedule_weekdays: Mapped[list] = mapped_column(JSON, default=list)  # 0=Mon … 6=Sun
+    schedule_window_start: Mapped[str] = mapped_column(String(5), default="08:00", server_default="08:00")
+    schedule_window_end: Mapped[str] = mapped_column(String(5), default="10:00", server_default="10:00")
+    schedule_timezone: Mapped[str] = mapped_column(String(64), default="America/Bogota", server_default="America/Bogota")
     # draft | in_review | approved | rejected | scheduled | published | failed
     status: Mapped[str] = mapped_column(String(30), default="draft", index=True)
     slide_count: Mapped[int] = mapped_column(Integer, default=8)
@@ -485,6 +494,7 @@ class Carousel(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+    generating_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     client: Mapped[Client] = relationship(back_populates="carousels")
     slides: Mapped[list["CarouselSlide"]] = relationship(
@@ -506,6 +516,12 @@ class CarouselSlide(Base):
     layout_json: Mapped[dict] = mapped_column(JSON, default=dict)
     image_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     image_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Last prompt sent to the image model (agency-editable for retries).
+    image_prompt: Mapped[str | None] = mapped_column(Text, nullable=True)
+    image_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Optional source product photo; used with /images/edits to clean bg and restage.
+    product_image_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    product_image_mime: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # pending | agency_ok | client_ok | rejected
     agency_status: Mapped[str] = mapped_column(String(30), default="pending")
     client_status: Mapped[str] = mapped_column(String(30), default="pending")

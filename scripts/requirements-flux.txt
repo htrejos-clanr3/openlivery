@@ -1,0 +1,14 @@
+# Optional local Flux Schnell sidecar. Not used by the API image.
+# Install in a dedicated venv — torch/diffusers are large.
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.0
+diffusers>=0.32
+transformers>=4.44
+accelerate>=1.0
+safetensors>=0.4
+sentencepiece>=0.2
+protobuf>=5.0
+Pillow>=10.0
+# CPU wheel on Intel macOS; CUDA/MPS wheels if the machine supports them.
+torch>=2.4

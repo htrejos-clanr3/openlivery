@@ -5,10 +5,11 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import ProviderCredential, User
-from ..schemas import ProviderKeyUpdate, ProviderOut
+from ..schemas import ProviderKeyUpdate, ProviderOut, ImageGenerationStatusOut
 from ..security import decrypt_secret, encrypt_secret, mask_secret
 from ..services.ai import test_provider
 from ..services.providers import PROVIDERS, SUPPORTED, base_url_for
+from ..services.image_generation import probe_image_backend
 
 
 router = APIRouter(prefix="/providers", tags=["AI providers"])
@@ -43,6 +44,12 @@ def list_providers(db: Session = Depends(get_db), user: User = Depends(get_curre
         select(ProviderCredential).where(ProviderCredential.agency_id == user.agency_id)
     ).all()}
     return [_out(provider, by_provider.get(provider)) for provider in SUPPORTED]
+
+
+@router.get("/image-generation", response_model=ImageGenerationStatusOut)
+def image_generation_status(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Current carousel image backend (OpenAI / Flux / Ollama / placeholder). Env-only switch."""
+    return probe_image_backend(db, user.agency_id)
 
 
 @router.put("/{provider}", response_model=ProviderOut)

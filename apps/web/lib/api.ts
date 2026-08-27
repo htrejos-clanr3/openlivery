@@ -12,14 +12,26 @@ export class ApiError extends Error {
   }
 }
 
-export async function api<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const isForm = options.body instanceof FormData;
+export type ApiOptions = RequestInit & {
+  /** Abort the request after this many milliseconds (e.g. long carousel generation). */
+  timeoutMs?: number;
+};
+
+export async function api<T>(path: string, options: ApiOptions = {}): Promise<T> {
+  const { timeoutMs, ...fetchOptions } = options;
+  const isForm = fetchOptions.body instanceof FormData;
+  const signals: AbortSignal[] = [];
+  if (timeoutMs != null) signals.push(AbortSignal.timeout(timeoutMs));
+  if (fetchOptions.signal) signals.push(fetchOptions.signal);
+  const signal =
+    signals.length === 0 ? undefined : signals.length === 1 ? signals[0] : AbortSignal.any(signals);
   const response = await fetch(`${API_URL}/api${path}`, {
-    ...options,
+    ...fetchOptions,
+    signal,
     credentials: "include",
     headers: {
       ...(isForm ? {} : { "Content-Type": "application/json" }),
-      ...options.headers,
+      ...fetchOptions.headers,
     },
   });
   // A deployment can gate a request by returning this header (e.g. a lapsed

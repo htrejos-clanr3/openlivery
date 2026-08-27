@@ -37,6 +37,11 @@ bridge_token=$(openssl rand -hex 32)
   echo "DB_PORT=5432"
   echo "# Bind address: 127.0.0.1 (local only) or 0.0.0.0 (expose on a server)."
   echo "BIND_HOST=127.0.0.1"
+  echo
+  echo "# Carousel slide images: openai (default) | flux | ollama | placeholder"
+  echo "# IMAGE_PROVIDER=openai"
+  echo "# FLUX_BASE_URL=http://host.docker.internal:7868"
+  echo "# OLLAMA_BASE_URL=http://host.docker.internal:11434"
 } > "$target"
 
 echo "Created .env.docker with private permissions and random secrets."

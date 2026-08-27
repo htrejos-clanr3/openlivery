@@ -9,20 +9,25 @@ import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
 import { useT, type TranslateFn } from "@/lib/i18n";
 import { PROVIDERS } from "@/lib/providers";
-import type { Agency, Provider, ProviderTest } from "@/types";
+import type { Agency, ImageGenerationStatus, Provider, ProviderTest } from "@/types";
 
 export default function SettingsPage() {
   const t = useT();
   const toast = useToast();
   const [agency, setAgency] = useState<Agency | null>(null);
   const [providers, setProviders] = useState<Provider[]>([]);
+  const [imageStatus, setImageStatus] = useState<ImageGenerationStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [logoVersion, setLogoVersion] = useState(0);
   const logoDropRef = useRef<FileDropzoneHandle>(null);
 
   const load = async () => {
-    const [a, p] = await Promise.all([api<Agency>("/agency"), api<Provider[]>("/providers")]);
-    setAgency(a); setProviders(p);
+    const [a, p, img] = await Promise.all([
+      api<Agency>("/agency"),
+      api<Provider[]>("/providers"),
+      api<ImageGenerationStatus>("/providers/image-generation"),
+    ]);
+    setAgency(a); setProviders(p); setImageStatus(img);
   };
   useEffect(() => { load(); }, []);
 
@@ -80,6 +85,48 @@ export default function SettingsPage() {
       {PROVIDERS.map((preset) => (
         <ProviderKeyCard key={preset.id} preset={preset} state={providers.find((x) => x.provider === preset.id)} busy={busy} onSave={saveKey} onRemove={removeKey} t={t} />
       ))}
+    </section>
+
+    <section className="section-block">
+      <div className="section-heading"><div><h2>{t("settings.images.heading")}</h2><p>{t("settings.images.copy")}</p></div></div>
+      {imageStatus ? (
+        <section className="form-section">
+          <div className="section-copy">
+            <h2>{imageStatus.ready ? t("settings.images.ready") : t("settings.images.notReady")}</h2>
+            <p>{imageStatus.message}</p>
+          </div>
+          <div className="form-fields">
+            <p><strong>{t("settings.images.provider")}:</strong> {imageStatus.resolved_provider || imageStatus.provider}</p>
+            {imageStatus.model ? <p><strong>{t("settings.images.model")}:</strong> {imageStatus.model}</p> : null}
+            {imageStatus.base_url ? <p><strong>{t("settings.images.endpoint")}:</strong> {imageStatus.base_url}</p> : null}
+            <p><strong>{t("settings.images.size")}:</strong> {imageStatus.size}</p>
+            <p><strong>{t("settings.images.productEdit")}:</strong> {imageStatus.supports_product_edit ? t("settings.images.productEditYes") : t("settings.images.productEditNo")}</p>
+            <p><strong>{t("settings.images.ollamaNote")}:</strong> {t("settings.images.step4")}</p>
+            <details open className="provider-setup-panel">
+              <summary>{t("settings.images.howToSwitch")}</summary>
+              <ol>
+                <li>{t("settings.images.step1")}</li>
+                <li>{t("settings.images.step2")}</li>
+                <li>{t("settings.images.step3")}</li>
+              </ol>
+            </details>
+            <details className="provider-setup-panel">
+              <summary>{t("settings.images.fluxStepsTitle")}</summary>
+              <ol>
+                <li>{t("settings.images.fluxStep1")}</li>
+                <li>{t("settings.images.fluxStep2")}</li>
+                <li>{t("settings.images.fluxStep3")}</li>
+                <li>{t("settings.images.fluxStep4")}</li>
+                <li>{t("settings.images.fluxStep5")}</li>
+                <li>{t("settings.images.fluxStep6")}</li>
+              </ol>
+              {imageStatus.install_hint ? <pre className="provider-setup-hint">{imageStatus.install_hint}</pre> : null}
+            </details>
+          </div>
+        </section>
+      ) : (
+        <p className="page-loading"><LoaderCircle className="spin" /> {t("settings.images.loading")}</p>
+      )}
     </section>
   </div>;
 }

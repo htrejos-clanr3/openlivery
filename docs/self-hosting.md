@@ -228,6 +228,9 @@ that client's portal. The portal must be **published** for the domain to serve.
 | `WHATSAPP_LOG_LEVEL` | Bridge | Log level; `silent` avoids exposing sensitive data. |
 | `API_PORT`, `WEB_PORT`, `DB_PORT` | Host | Host ports (defaults `8000` / `3000` / `5432`). |
 | `BIND_HOST` | Host | Bind address: `127.0.0.1` (local) or `0.0.0.0` (expose directly). |
+| `IMAGE_PROVIDER` | Backend | Carousel slide images: `openai` (default, paid), `flux` (local Schnell HTTP sidecar), `ollama` (experimental image models only), `placeholder` (free test PNGs). Local choices never fall back to OpenAI. |
+| `FLUX_BASE_URL` | Backend | Flux sidecar, default `http://127.0.0.1:7868` locally or `http://host.docker.internal:7868` from Docker. |
+| `OLLAMA_BASE_URL` | Backend | Ollama HTTP, default `http://127.0.0.1:11434` (or `host.docker.internal` from Docker). |
 
 ## Manage your install
 

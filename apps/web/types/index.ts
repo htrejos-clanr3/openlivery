@@ -43,9 +43,46 @@ export type CarouselSlide = {
   cta: string;
   layout_json: Record<string, unknown>;
   image_url: string | null;
+  image_prompt?: string | null;
+  image_error?: string | null;
+  product_image_url?: string | null;
   agency_status: string;
   client_status: string;
   client_comment: string | null;
+};
+
+export type GenerationUsageItem = {
+  kind: "copy" | "image" | string;
+  provider: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  estimated_usd: number;
+  count?: number;
+  label?: string | null;
+};
+
+export type GenerationUsage = {
+  items: GenerationUsageItem[];
+  input_tokens: number;
+  output_tokens: number;
+  estimated_usd: number;
+};
+
+export type ImageCostQuote = {
+  available: boolean;
+  billable: boolean;
+  provider: string;
+  model: string;
+  fallback_model?: string | null;
+  size: string;
+  quality?: string | null;
+  usd_per_image: number | null;
+  usd_per_image_fallback?: number | null;
+  image_count: number;
+  usd_typical: number | null;
+  usd_if_fallback?: number | null;
+  note: string;
 };
 
 export type Carousel = {
@@ -57,6 +94,11 @@ export type Carousel = {
   language: string;
   status: string;
   slide_count: number;
+  interpret_prompt?: boolean;
+  generation_notes?: string[];
+  generation_usage?: GenerationUsage | null;
+  generating_at?: string | null;
+  is_generating?: boolean;
   scheduled_at: string | null;
   published_at: string | null;
   ig_media_id: string | null;
@@ -119,6 +161,20 @@ export type Provider = {
 };
 
 export type ProviderTest = { ok: boolean; message: string; models: string[] };
+
+export type ImageGenerationStatus = {
+  provider: string;
+  resolved_provider: string | null;
+  model: string | null;
+  base_url: string | null;
+  size: string;
+  ready: boolean;
+  reachable: boolean;
+  supports_product_edit: boolean;
+  ollama_can_generate_ads: boolean;
+  message: string;
+  install_hint: string;
+};
 
 export type KnowledgeDocument = {
   id: string;

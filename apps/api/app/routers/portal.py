@@ -11,6 +11,7 @@ from ..models import (
     Agent,
     Carousel,
     CarouselEvent,
+    CarouselSlide,
     Client,
     Conversation,
     Message,
@@ -148,6 +149,16 @@ def _detail(db: Session, client: Client, conversation_id: uuid.UUID) -> Conversa
 
 
 def _carousel_out(carousel: Carousel) -> CarouselOut:
+    def _portal_slide(s: CarouselSlide) -> CarouselSlideOut:
+        return CarouselSlideOut.model_validate(s).model_copy(
+            update={
+                "image_url": s.image_url,
+                "image_prompt": None,
+                "image_error": None,
+                "product_image_url": None,
+            }
+        )
+
     return CarouselOut(
         id=carousel.id,
         client_id=carousel.client_id,
@@ -163,7 +174,7 @@ def _carousel_out(carousel: Carousel) -> CarouselOut:
         publish_error=carousel.publish_error,
         created_at=carousel.created_at,
         updated_at=carousel.updated_at,
-        slides=[CarouselSlideOut.model_validate(s) for s in sorted(carousel.slides, key=lambda x: x.position)],
+        slides=[_portal_slide(s) for s in sorted(carousel.slides, key=lambda x: x.position)],
     )
 
 

@@ -137,6 +137,20 @@ class ProviderOut(BaseModel):
     api_key_masked: str = ""
 
 
+class ImageGenerationStatusOut(BaseModel):
+    provider: str
+    resolved_provider: str | None = None
+    model: str | None = None
+    base_url: str | None = None
+    size: str = "1024x1536"
+    ready: bool = False
+    reachable: bool = False
+    supports_product_edit: bool = False
+    ollama_can_generate_ads: bool = False
+    message: str = ""
+    install_hint: str = ""
+
+
 class AgentBase(BaseModel):
     client_id: uuid.UUID
     name: str = Field(min_length=1, max_length=180)
@@ -542,12 +556,31 @@ class CarouselCreate(BaseModel):
     slide_count: int = Field(default=8, ge=3, le=12)
     generate: bool = True
     with_images: bool = True
+    # True = AI interprets title/brief with company knowledge (RAG). False = use literal copy.
+    interpret_prompt: bool = True
+
+
+class CarouselGenerateRequest(BaseModel):
+    with_images: bool = True
+    interpret_prompt: bool | None = None
+    # Always generate at least one image related to the description when OpenAI is available.
+    ensure_min_image: bool = True
+
+
+class CarouselSlideGenerateRequest(BaseModel):
+    with_images: bool = True
+    # When set, use this exact image prompt instead of the auto-built one.
+    image_prompt: str | None = Field(default=None, max_length=3500)
+    # When False, keep existing headline/body/cta and only (re)generate the image.
+    regenerate_copy: bool = True
 
 
 class CarouselSlideUpdate(BaseModel):
     headline: str | None = Field(default=None, max_length=240)
     body: str | None = None
     cta: str | None = Field(default=None, max_length=180)
+    # Agency admin only: persist a custom image prompt for the next regenerate.
+    image_prompt: str | None = Field(default=None, max_length=3500)
 
 
 class CarouselSlideDecision(BaseModel):
@@ -566,9 +599,47 @@ class CarouselSlideOut(ORMModel):
     cta: str
     layout_json: dict
     image_url: str | None = None
+    # Present for agency sessions; portal responses omit these via router.
+    image_prompt: str | None = None
+    image_error: str | None = None
+    product_image_url: str | None = None
     agency_status: str
     client_status: str
     client_comment: str | None = None
+
+
+class GenerationUsageItem(BaseModel):
+    kind: str
+    provider: str
+    model: str
+    input_tokens: int = 0
+    output_tokens: int = 0
+    estimated_usd: float = 0
+    count: int = 1
+    label: str | None = None
+
+
+class GenerationUsageOut(BaseModel):
+    items: list[GenerationUsageItem] = []
+    input_tokens: int = 0
+    output_tokens: int = 0
+    estimated_usd: float = 0
+
+
+class ImageCostQuoteOut(BaseModel):
+    available: bool
+    billable: bool
+    provider: str
+    model: str
+    fallback_model: str | None = None
+    size: str
+    quality: str | None = None
+    usd_per_image: float | None = None
+    usd_per_image_fallback: float | None = None
+    image_count: int
+    usd_typical: float | None = None
+    usd_if_fallback: float | None = None
+    note: str = ""
 
 
 class CarouselOut(ORMModel):
@@ -580,6 +651,7 @@ class CarouselOut(ORMModel):
     language: str
     status: str
     slide_count: int
+    interpret_prompt: bool = True
     scheduled_at: datetime | None = None
     published_at: datetime | None = None
     ig_media_id: str | None = None
@@ -588,4 +660,8 @@ class CarouselOut(ORMModel):
     publication_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
+    generating_at: datetime | None = None
+    is_generating: bool = False
     slides: list[CarouselSlideOut] = []
+    generation_notes: list[str] = []
+    generation_usage: GenerationUsageOut | None = None

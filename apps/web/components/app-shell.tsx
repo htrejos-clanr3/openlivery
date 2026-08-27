@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { Bot, Building2, CreditCard, Inbox, Images, LayoutDashboard, LogOut, Menu, MessageSquareText, Radio, Settings, Sparkles, Wallet, X } from "lucide-react";
 import { api } from "@/lib/api";
+import { useCarouselGeneration } from "@/lib/carousel-generation-context";
 import { useT, type I18nKey } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import type { User } from "@/types";
+import type { Carousel, User } from "@/types";
 
 const navigation: { href: string; labelKey: I18nKey; icon: typeof LayoutDashboard }[] = [
   { href: "/", labelKey: "nav.home", icon: LayoutDashboard },
@@ -50,9 +51,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const t = useT();
+  const { activeCount: clientGeneratingCount } = useCarouselGeneration();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(pathname !== "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [serverGeneratingCount, setServerGeneratingCount] = useState(0);
   const isLogin = pathname === "/login";
   const isPortal = pathname.startsWith("/portal/");
   const isWidget = pathname.startsWith("/widget/");
@@ -69,6 +72,20 @@ export function AppShell({ children }: { children: ReactNode }) {
       .catch(() => router.replace("/login"))
       .finally(() => setLoading(false));
   }, [isBare, pathname, router]);
+
+  useEffect(() => {
+    if (isBare || !user) return;
+    const poll = () => {
+      api<Carousel[]>("/carousels")
+        .then((rows) => setServerGeneratingCount(rows.filter((row) => row.is_generating).length))
+        .catch(() => {});
+    };
+    poll();
+    const timer = window.setInterval(poll, 5000);
+    return () => window.clearInterval(timer);
+  }, [isBare, user]);
+
+  const generatingBadgeCount = Math.max(clientGeneratingCount, serverGeneratingCount);
 
   async function logout() {
     await api("/auth/logout", { method: "POST" });
@@ -93,7 +110,18 @@ export function AppShell({ children }: { children: ReactNode }) {
           <span className="nav-label">{t("nav.section")}</span>
           {navigation.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-            return <Link key={item.href} href={item.href} className={active ? "active" : ""} onClick={() => setMobileOpen(false)}><item.icon size={18} /><span>{t(item.labelKey)}</span></Link>;
+            const showGeneratingBadge = item.href === "/carousels" && generatingBadgeCount > 0;
+            return (
+              <Link key={item.href} href={item.href} className={active ? "active" : ""} onClick={() => setMobileOpen(false)}>
+                <item.icon size={18} />
+                <span>{t(item.labelKey)}</span>
+                {showGeneratingBadge && (
+                  <span className="nav-badge" title={t("carousels.generation.badgeTitle")}>
+                    {generatingBadgeCount}
+                  </span>
+                )}
+              </Link>
+            );
           })}
           {EXTRA_NAV.map((item) => {
             const Icon = item.icon;

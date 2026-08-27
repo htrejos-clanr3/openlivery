@@ -33,8 +33,13 @@ services:
       BACKEND_URL: http://api:8000
       WHATSAPP_BRIDGE_URL: http://whatsapp:3101
       STORAGE_DIR: /app/backend/storage
+      FLUX_BASE_URL: ${FLUX_BASE_URL:-http://host.docker.internal:7868}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     volumes:
       - backend_storage:/app/backend/storage
+    extra_hosts:
+      # Reach Flux / Ollama running on the host from the API container.
+      - "host.docker.internal:host-gateway"
     ports:
       - "${BIND_HOST:-127.0.0.1}:${API_PORT:-8000}:8000"
     depends_on:

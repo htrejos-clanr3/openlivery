@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 import { ToastProvider } from "@/components/toast";
+import { CarouselGenerationProvider } from "@/lib/carousel-generation-context";
 import { LanguageProvider } from "@/lib/i18n";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className={geist.variable}>
         <LanguageProvider>
           <ToastProvider>
-            <AppShell>{children}</AppShell>
+            <CarouselGenerationProvider>
+              <AppShell>{children}</AppShell>
+            </CarouselGenerationProvider>
           </ToastProvider>
         </LanguageProvider>
       </body>

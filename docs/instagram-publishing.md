@@ -39,10 +39,37 @@ Official guides:
 
 ## How to connect
 
-1. Clients → client → **Instagram**.
-2. Click **Connect with Meta** (or use mock when `INSTAGRAM_PUBLISHING_MOCK_MODE=true`).
-3. Select / authorize a Page with a linked Instagram professional account.
-4. Advanced settings allow BYO token + IG user id for diagnostics.
+Every entry point (Channels hub → Configure Instagram, Client → Channels → Instagram, Carousel → Connect / open Instagram) lands on the same client Instagram page with:
+
+1. **Connect actions** — Meta OAuth when `META_APP_ID` + `META_APP_SECRET` are set. If guided login is blocked, **Connect with Meta** stays visible but opens/scrolls the in-app guide (human-readable notice; the `BLOCKED_BY_EXTERNAL_CONFIGURATION` string is secondary).
+2. **Step-by-step guide** (accordion, open by default when disconnected) — prerequisites, what to copy (IG user ID, Page ID, username, token), where those values appear in Meta, numbered BYO steps ending in Advanced setup → Save. Optional OAuth / mock sections; no Instagram QR.
+3. **Advanced setup** — paste Instagram user ID, optional Page ID / username, and access token.
+
+### Recommended path (BYO — always works)
+
+1. Convert the client’s Instagram to **Professional** (Business or Creator).
+2. Link it to a **Facebook Page** the client controls.
+3. In [Meta for Developers](https://developers.facebook.com/apps/), create/open a Meta App and enable Instagram Content Publishing products / Facebook Login as needed.
+4. Issue a **Page access token** with `instagram_basic` + `instagram_content_publish` (or `instagram_business_basic` / `instagram_business_content_publish`).
+5. Copy the **Instagram user ID** (numeric IG Business Account id — not `@username`). Often: Graph `GET /{page-id}?fields=instagram_business_account`.
+6. In OpenLivery → that client → Instagram → **Advanced setup**, paste ID + token (and optional Page ID / username) → **Save credentials**.
+7. Status becomes **Connected**. Use **New publication** or publish an approved carousel to verify.
+
+### Guided Meta login (optional)
+
+Only when the OpenLivery server has `META_APP_ID` and `META_APP_SECRET`:
+
+1. Click **Connect with Meta**.
+2. Authorize permissions and choose the Page linked to the professional Instagram account.
+3. Return to OpenLivery; status becomes Connected when account + publish permission are valid.
+
+### Mock (local)
+
+```bash
+INSTAGRAM_PUBLISHING_MOCK_MODE=true
+```
+
+Use **Connect with mock account** to exercise the UI without Meta.
 
 Tokens are stored encrypted. API responses expose `access_token_configured` only.
 
