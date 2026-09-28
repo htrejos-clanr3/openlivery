@@ -111,6 +111,15 @@ export default function SettingsPage() {
               </ol>
             </details>
             <details className="provider-setup-panel">
+              <summary>{t("settings.images.hfStepsTitle")}</summary>
+              <ol>
+                <li>{t("settings.images.hfStep1")}</li>
+                <li>{t("settings.images.hfStep2")}</li>
+                <li>{t("settings.images.hfStep3")}</li>
+                <li>{t("settings.images.hfStep4")}</li>
+              </ol>
+            </details>
+            <details className="provider-setup-panel">
               <summary>{t("settings.images.fluxStepsTitle")}</summary>
               <ol>
                 <li>{t("settings.images.fluxStep1")}</li>
@@ -120,8 +129,8 @@ export default function SettingsPage() {
                 <li>{t("settings.images.fluxStep5")}</li>
                 <li>{t("settings.images.fluxStep6")}</li>
               </ol>
-              {imageStatus.install_hint ? <pre className="provider-setup-hint">{imageStatus.install_hint}</pre> : null}
             </details>
+            {imageStatus.install_hint ? <pre className="provider-setup-hint">{imageStatus.install_hint}</pre> : null}
           </div>
         </section>
       ) : (

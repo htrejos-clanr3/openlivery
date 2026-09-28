@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { AuthenticatedImage } from "@/components/authenticated-image";
 
 type CarouselSlidePreviewProps = {
@@ -9,11 +9,13 @@ type CarouselSlidePreviewProps = {
   headline: string;
   body: string;
   cta?: string;
+  caption?: string;
   imageUrl?: string | null;
   layout?: Record<string, unknown> | null;
   username?: string;
   emptyLabel?: string;
   compact?: boolean;
+  actions?: ReactNode;
 };
 
 function colorOf(layout: Record<string, unknown> | null | undefined, key: string, fallback: string) {
@@ -27,16 +29,19 @@ export function CarouselSlidePreview({
   headline,
   body,
   cta,
+  caption,
   imageUrl,
   layout,
   username = "brand",
   emptyLabel = "No image yet — preview uses brand colors",
   compact = false,
+  actions,
 }: CarouselSlidePreviewProps) {
   const primary = colorOf(layout, "primary", "#075985");
   const secondary = colorOf(layout, "secondary", "#0f172a");
   const font = typeof layout?.font === "string" && layout.font ? layout.font : "inherit";
   const [imageFailed, setImageFailed] = useState(false);
+  const handle = username.replace(/^@/, "") || "brand";
 
   useEffect(() => {
     setImageFailed(false);
@@ -50,7 +55,7 @@ export function CarouselSlidePreview({
       <div className="carousel-preview-phone">
         <div className="carousel-preview-head">
           <span className="ig-avatar" aria-hidden />
-          <strong>@{username.replace(/^@/, "")}</strong>
+          <strong>@{handle}</strong>
           <span className="carousel-preview-dots" aria-hidden>···</span>
         </div>
         <div
@@ -70,29 +75,21 @@ export function CarouselSlidePreview({
               onError={() => setImageFailed(true)}
             />
           ) : null}
-          {hasCopy ? (
-            <div
-              className={[
-                "carousel-preview-overlay",
-                compact ? "compact-overlay" : "",
-                showImage ? "on-image" : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-            >
-              {compact ? (
-                headline ? <h3>{headline}</h3> : null
-              ) : (
-                <>
-                  {headline ? <h3>{headline}</h3> : null}
-                  {body ? <p>{body}</p> : null}
-                  {cta ? <span className="carousel-preview-cta-chip">{cta}</span> : null}
-                </>
-              )}
-            </div>
-          ) : !showImage ? (
+          {!showImage ? (
             <div className="carousel-preview-overlay">
-              <p className="carousel-preview-empty">{emptyLabel}</p>
+              {hasCopy ? (
+                compact ? (
+                  headline ? <h3>{headline}</h3> : null
+                ) : (
+                  <>
+                    {headline ? <h3>{headline}</h3> : null}
+                    {body ? <p>{body}</p> : null}
+                    {cta ? <span className="carousel-preview-cta-chip">{cta}</span> : null}
+                  </>
+                )
+              ) : (
+                <p className="carousel-preview-empty">{emptyLabel}</p>
+              )}
             </div>
           ) : null}
           <span className="carousel-preview-count">
@@ -105,7 +102,20 @@ export function CarouselSlidePreview({
               <i key={i} className={i + 1 === position ? "active" : ""} />
             ))}
           </div>
+          {hasCopy && (showImage || compact) ? (
+            <div className="carousel-preview-copy">
+              {headline ? <strong>{headline}</strong> : null}
+              {body ? <p>{body}</p> : null}
+              {cta ? <span className="carousel-preview-cta-line">{cta}</span> : null}
+            </div>
+          ) : null}
+          {caption && !compact ? (
+            <p className="carousel-preview-caption-line">
+              <strong>@{handle}</strong> {caption}
+            </p>
+          ) : null}
         </div>
+        {actions ? <div className="carousel-preview-under-image">{actions}</div> : null}
       </div>
     </div>
   );

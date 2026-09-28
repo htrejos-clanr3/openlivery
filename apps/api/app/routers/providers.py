@@ -48,7 +48,7 @@ def list_providers(db: Session = Depends(get_db), user: User = Depends(get_curre
 
 @router.get("/image-generation", response_model=ImageGenerationStatusOut)
 def image_generation_status(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    """Current carousel image backend (OpenAI / Flux / Ollama / placeholder). Env-only switch."""
+    """Current carousel image backend (OpenAI / Hugging Face / Flux / Ollama / placeholder). Env-only switch."""
     return probe_image_backend(db, user.agency_id)
 
 

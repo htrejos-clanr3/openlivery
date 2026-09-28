@@ -34,6 +34,7 @@ const en = {
     inbox: "Inbox",
     channels: "Channels",
     carousels: "Carousels",
+    automations: "Automations",
     settings: "Settings",
   },
   shell: {
@@ -42,6 +43,10 @@ const en = {
     closeMenu: "Close menu",
     logout: "Log out",
     language: "Language",
+    notifications: "Notifications",
+    noNotifications: "No notifications.",
+    newLead: "New lead",
+    markRead: "Mark read",
   },
   auth: {
     signInTitle: "Sign in to OpenLivery",
@@ -141,6 +146,7 @@ const es: typeof en = {
     inbox: "Inbox",
     channels: "Canales",
     carousels: "Carruseles",
+    automations: "Automatizaciones",
     settings: "Configuración",
   },
   shell: {
@@ -149,6 +155,10 @@ const es: typeof en = {
     closeMenu: "Cerrar menú",
     logout: "Cerrar sesión",
     language: "Idioma",
+    notifications: "Notificaciones",
+    noNotifications: "No hay notificaciones.",
+    newLead: "Lead nuevo",
+    markRead: "Marcar leída",
   },
   auth: {
     signInTitle: "Entra a OpenLivery",

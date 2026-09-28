@@ -95,6 +95,9 @@ export type Carousel = {
   status: string;
   slide_count: number;
   interpret_prompt?: boolean;
+  content_goal?: "loyalty" | "reach" | "convert" | string;
+  cta_instruction?: string;
+  hook_structure?: boolean;
   generation_notes?: string[];
   generation_usage?: GenerationUsage | null;
   generating_at?: string | null;
@@ -223,6 +226,9 @@ export type ConversationInbox = {
   contact_name: string | null;
   channel: string;
   mode: "ai" | "human";
+  assigned_user_id: string | null;
+  assigned_user_name: string | null;
+  labels: string[];
   preview: string;
   unread: boolean;
   unread_count: number;
@@ -237,11 +243,17 @@ export type Conversation = {
   channel: string;
   external_chat_id: string | null;
   contact_name: string | null;
+  assigned_user_id: string | null;
+  assigned_user_name: string | null;
+  labels: string[];
   created_at: string;
   updated_at: string;
   preview?: string;
   messages?: Message[];
 };
+
+export type AgencyMember = { id: string; name: string; email: string };
+export type CannedReply = { id: string; shortcode: string; title: string; body: string; updated_at: string };
 
 export type WhatsAppChannel = {
   id: string;
@@ -440,6 +452,89 @@ export type PortalPublic = {
   agency_logo_url: string | null;
 };
 
+export type LinkedInChannel = {
+  id: string;
+  client_id: string;
+  profile_url: string;
+  display_name: string;
+  voice_notes: string;
+  status: "disconnected" | "connected" | "error" | string;
+  member_id: string;
+  access_token_configured: boolean;
+  granted_scopes: string[];
+  token_expires_at: string | null;
+  last_error: string | null;
+  last_connected_at: string | null;
+  is_enabled: boolean;
+  publishes: boolean;
+  connection_mode: string;
+  updated_at: string;
+};
+
+export type LinkedInDraft = {
+  id: string;
+  kind: string;
+  idea: string;
+  body: string;
+  hook_id: number | null;
+  human_score: number | null;
+  verdict: string;
+  status: "draft" | "published" | string;
+  provider_post_id: string | null;
+  published_at: string | null;
+  created_at: string;
+};
+
+export type LinkedInOAuthOptions = {
+  oauth_available: boolean;
+  mock_mode: boolean;
+  client_id: string | null;
+  scopes: string[];
+  redirect_path: string;
+  api_version: string;
+  blocked_reason: string | null;
+};
+
+export type LinkedInOAuthSession = {
+  state: string;
+  dialog_url: string | null;
+  mock_mode: boolean;
+};
+
+export type LinkedInPublication = {
+  draft_id: string;
+  status: string;
+  provider_post_id: string;
+  published_at: string;
+  text: string;
+};
+
+export type LinkedInHookOption = { id: number; name: string; line: string; why?: string };
+
+export type LinkedInPostResult = {
+  hooks: LinkedInHookOption[];
+  chosen_hook_id: number;
+  draft: string;
+  copy_ready: string;
+  post_at_hint: string;
+  source: string;
+  draft_id?: string;
+  humanize: {
+    stripped: number;
+    structures: { name: string; count: number; fix: string }[];
+    panel: { human_score: number; verdict: string; checks: Record<string, { score: number; detail: string }> };
+  };
+};
+
+export type LinkedInProfileResult = {
+  headline: string;
+  about: string;
+  featured?: string[];
+  audit?: { total: number; max: number; items: { id: string; points: number; score: number; full_marks: string }[] };
+  copy_note?: string;
+  humanize?: { panel: { human_score: number; verdict: string } };
+};
+
 export type InstagramChannel = {
   id: string;
   client_id: string;
@@ -573,4 +668,96 @@ export type InstagramGenerateResult = {
   visualSuggestion?: string | null;
   imagePrompt?: string | null;
   slides?: { headline?: string; body?: string; cta?: string }[] | null;
+};
+
+export type LeadContact = {
+  id: string;
+  client_id: string;
+  name: string;
+  company?: string;
+  email: string | null;
+  phone: string | null;
+  channel_identifier: string | null;
+  source: string;
+};
+
+export type LeadActivity = {
+  id: string;
+  kind: string;
+  message: string;
+  created_at: string;
+};
+
+export type LeadRecord = {
+  id: string;
+  client_id: string;
+  source: string;
+  tags: string[];
+  contact: LeadContact;
+  conversation_id: string | null;
+  pipeline_id: string | null;
+  stage_id: string | null;
+  stage_name: string | null;
+  stage_slug?: string | null;
+  assigned_user_id: string | null;
+  assignee_name: string | null;
+  notes?: string;
+  next_action?: string;
+  score?: number | null;
+  last_activity_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  activities?: LeadActivity[];
+};
+
+export type LeadStats = {
+  new_count: number;
+  qualified_count: number;
+  unassigned_count: number;
+  stale_count: number;
+  total_count: number;
+};
+
+export type LeadCaptureSettings = {
+  id: string;
+  client_id: string;
+  enabled: boolean;
+  sources: string[];
+  default_pipeline_id: string | null;
+  default_stage_id: string | null;
+  default_assignee_user_id: string | null;
+  auto_tags: string[];
+  notify_on_new_lead: boolean;
+  ingest_token: string;
+  last_ingest_at?: string | null;
+  last_ingest_status?: string | null;
+  leads_created_count?: number;
+  automation_config?: { triggers?: string[]; require_commercial_intent?: boolean };
+  pipeline: { id: string; name: string; is_default: boolean; stages: { id: string; name: string; slug: string; position: number }[] } | null;
+  assignees: { id: string; name: string; email: string }[];
+};
+
+export type LeadCaptureEvent = {
+  id: string;
+  client_id: string;
+  source: string;
+  status: string;
+  error_message: string | null;
+  lead_id: string | null;
+  contact_id: string | null;
+  conversation_id: string | null;
+  attempt_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LeadNotification = {
+  id: string;
+  client_id: string;
+  lead_id: string;
+  kind: string;
+  read_at: string | null;
+  created_at: string;
+  contact_name: string;
+  source: string;
 };

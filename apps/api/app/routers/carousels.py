@@ -22,6 +22,7 @@ from ..schemas import (
     ImageCostQuoteOut,
 )
 from ..services.carousels import generate_carousel_content, regenerate_carousel_slide
+from ..services.format_playbook import apply_playbook_to_carousel
 from ..services.image_generation import quote_image_generation
 
 
@@ -147,6 +148,9 @@ def _carousel_out(carousel: Carousel, *, generation_notes: list[str] | None = No
         status=carousel.status,
         slide_count=carousel.slide_count,
         interpret_prompt=bool(getattr(carousel, "interpret_prompt", True)),
+        content_goal=getattr(carousel, "content_goal", None) or "loyalty",
+        cta_instruction=getattr(carousel, "cta_instruction", None) or "",
+        hook_structure=bool(getattr(carousel, "hook_structure", True)),
         scheduled_at=carousel.scheduled_at,
         published_at=carousel.published_at,
         ig_media_id=carousel.ig_media_id,
@@ -208,6 +212,9 @@ def create_carousel(payload: CarouselCreate, db: Session = Depends(get_db), user
         language=payload.language,
         slide_count=payload.slide_count,
         interpret_prompt=payload.interpret_prompt,
+        content_goal=payload.content_goal,
+        cta_instruction=payload.cta_instruction.strip(),
+        hook_structure=payload.hook_structure,
         status="draft",
         caption="",
     )
@@ -254,6 +261,12 @@ def regenerate(
     body = payload or CarouselGenerateRequest()
     mode = body.interpret_prompt if body.interpret_prompt is not None else carousel.interpret_prompt
     carousel.interpret_prompt = bool(mode)
+    apply_playbook_to_carousel(
+        carousel,
+        content_goal=body.content_goal,
+        cta_instruction=body.cta_instruction,
+        hook_structure=body.hook_structure,
+    )
     db.add(carousel)
     db.commit()
     _assert_client_not_generating(db, carousel.client_id, exclude_carousel_id=carousel.id)
@@ -266,6 +279,7 @@ def regenerate(
         with_images=body.with_images,
         interpret_prompt=carousel.interpret_prompt,
         ensure_min_image=body.ensure_min_image,
+        include_approved=body.include_approved,
     )
     return _carousel_out(carousel, db=db)
 
@@ -361,6 +375,24 @@ def agency_reject_slide(
     db.commit()
     db.refresh(slide)
     return _slide_out(slide)
+
+
+@router.post("/{carousel_id}/agency-approve-set", response_model=CarouselOut)
+def agency_approve_set(
+    carousel_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    carousel = _carousel_for_agency(db, user, carousel_id)
+    if carousel.status != "draft":
+        raise HTTPException(status_code=400, detail="Only draft carousels can be agency-approved as a set")
+    if not carousel.slides:
+        raise HTTPException(status_code=400, detail="Generate slides before approving the set")
+    for slide in carousel.slides:
+        slide.agency_status = "agency_ok"
+    _log(db, carousel, actor_type="agency", actor_id=user.id, action="agency_approve_set")
+    db.commit()
+    return _carousel_out(_carousel_for_agency(db, user, carousel_id))
 
 
 @router.post("/{carousel_id}/submit-review", response_model=CarouselOut)

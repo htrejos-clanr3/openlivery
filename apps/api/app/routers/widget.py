@@ -29,7 +29,7 @@ def _agent(db: Session, public_id: str) -> Agent:
     return agent
 
 
-def _conversation(db: Session, agent: Agent, session_id: str) -> Conversation:
+def _conversation(db: Session, agent: Agent, session_id: str) -> tuple[Conversation, bool]:
     external_chat_id = f"widget:{session_id}"
     conversation = db.scalar(
         select(Conversation).where(
@@ -49,7 +49,8 @@ def _conversation(db: Session, agent: Agent, session_id: str) -> Conversation:
         )
         db.add(conversation)
         db.flush()
-    return conversation
+        return conversation, True
+    return conversation, False
 
 
 @router.get("/{public_id}", response_model=WidgetConfigOut)
@@ -94,7 +95,7 @@ def widget_history(public_id: str, session_id: str, db: Session = Depends(get_db
 @router.post("/{public_id}/messages", response_model=WidgetReply, dependencies=[Depends(widget_rate_limit)])
 async def widget_message(public_id: str, payload: WidgetMessageIn, db: Session = Depends(get_db)):
     agent = _agent(db, public_id)
-    conversation = _conversation(db, agent, payload.session_id)
+    conversation, created = _conversation(db, agent, payload.session_id)
 
     content = payload.content.strip()
     if conversation.title == "Web chat":
@@ -102,6 +103,31 @@ async def widget_message(public_id: str, payload: WidgetMessageIn, db: Session =
     conversation.updated_at = now_utc()
     db.add(Message(conversation_id=conversation.id, role="user", content=content, sender_type="visitor", sender_name="Visitor"))
     db.commit()
+    from ..services.lead_capture import safe_capture, safe_touch_open_lead
+
+    if created:
+        safe_capture(
+            db,
+            agency_id=agent.agency_id,
+            client_id=agent.client_id,
+            source="widget",
+            name=None,
+            channel_identifier=conversation.external_chat_id,
+            conversation_id=conversation.id,
+            text=content[:500],
+            trigger="new_contact",
+            extra={"preview": content[:240]},
+            payload={"channel_identifier": conversation.external_chat_id, "preview": content[:240]},
+        )
+    else:
+        safe_touch_open_lead(
+            db,
+            agency_id=agent.agency_id,
+            client_id=agent.client_id,
+            source="widget",
+            channel_identifier=conversation.external_chat_id,
+            conversation_id=conversation.id,
+        )
 
     if conversation.mode == "human":
         return {"mode": "human", "reply": None, "messages": []}

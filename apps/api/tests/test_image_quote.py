@@ -1,6 +1,6 @@
 """Pre-generation image cost quotes (OpenAI list prices)."""
 
-from app.services.image_generation import openai_image_list_usd, quote_image_generation
+from app.services.image_generation import IMAGE_PROVIDERS, openai_image_list_usd, quote_image_generation
 
 
 def test_openai_image_list_usd_known_sizes():
@@ -14,7 +14,7 @@ def test_image_quote_endpoint(authenticated_client):
     assert res.status_code == 200, res.text
     body = res.json()
     assert body["image_count"] == 8
-    assert body["provider"] in {"openai", "flux", "ollama", "placeholder"}
+    assert body["provider"] in IMAGE_PROVIDERS
     assert "usd_typical" in body
     if body["billable"] and body["usd_per_image"] is not None:
         assert body["usd_typical"] == round(body["usd_per_image"] * 8, 4)

@@ -61,10 +61,11 @@ Full documentation lives at **[openlivery.com/docs](https://openlivery.com/docs)
 - ✅ **MCP servers** (Streamable HTTP or SSE) with test-before-save connection checks and cached tool discovery
 - ✅ Tool usage recorded per reply and surfaced in the playground, including failure details
 
-**Channels** — [WhatsApp](https://openlivery.com/docs/whatsapp) · [Web widget](https://openlivery.com/docs/web-widget) · [Instagram publishing](./docs/instagram-publishing.md)
+**Channels** — [WhatsApp](https://openlivery.com/docs/whatsapp) · [Web widget](https://openlivery.com/docs/web-widget) · [Instagram publishing](./docs/instagram-publishing.md) · [LinkedIn desk](./docs/linkedin.md)
 - ✅ **WhatsApp Cloud API** (official Meta API) — bring your own Meta app credentials, signed webhooks, per-client number
 - ✅ **WhatsApp QR** through Baileys — QR link, per-client number, encrypted persistent session
 - ✅ **Instagram Content Publishing** — connect professional accounts, drafts, schedule, image/carousel/Reel (DM messaging planned later)
+- ✅ **LinkedIn personal publishing** — OAuth `w_member_social`, human approval gate, official text Posts API, 21 hooks and local humanizer
 - ✅ Embeddable **web chat widget** for any website
 - 🚧 Instagram DM, Facebook Messenger *(planned)*
 

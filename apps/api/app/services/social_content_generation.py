@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from ..models import Client
+from .format_playbook import assign_slide_cta, playbook_prompt
 from .providers import resolve_provider_credentials
 
 
@@ -43,12 +44,23 @@ async def generate_social_content(
     objective: str,
     audience: str = "",
     user_instruction: str = "",
-    slide_count: int = 5,
+    slide_count: int = 7,
     language: str = "es",
+    content_goal: str = "loyalty",
+    cta_instruction: str = "",
+    hook_structure: bool = True,
 ) -> dict:
     """Return structured editable content. Never publishes."""
     brand = _brand_context(client)
     instruction = user_instruction or objective
+    count = max(3, min(slide_count, 10))
+    playbook = playbook_prompt(
+        content_type=content_type,
+        content_goal=content_goal,
+        cta_instruction=cta_instruction,
+        hook_structure=hook_structure,
+        slide_count=count,
+    )
     prompt = f"""You are the content assistant for {client.name}.
 
 Brand:
@@ -67,6 +79,8 @@ Instruction:
 {instruction}
 
 Language: {language}
+
+{playbook}
 
 Rules:
 - Do NOT invent prices, statistics, phone numbers, URLs, certifications, or promotions.
@@ -90,36 +104,40 @@ For CAROUSEL return:
   "cta": "...",
   "hashtags": ["#tag1"],
   "slides": [
-    {{"order": 1, "headline": "...", "body": "...", "visualSuggestion": "..."}}
+    {{"order": 1, "headline": "...", "body": "...", "cta": "...", "visualSuggestion": "..."}}
   ]
 }}
-Use exactly {slide_count} slides for CAROUSEL.
+Use exactly {count} slides for CAROUSEL. Empty cta on every slide except the last.
 """
+
+    forced_cta = (cta_instruction or "").strip()[:180]
 
     creds = resolve_provider_credentials(db, client.agency_id, "openai")
     if not creds:
         # Deterministic fallback without LLM (keeps UI usable).
         if content_type == "CAROUSEL":
-            slides = [
-                {
+            slides = []
+            for i in range(count):
+                item = {
                     "order": i + 1,
                     "headline": f"{i + 1}. {objective[:80] or 'Idea'}",
                     "body": instruction[:280] or objective[:280] or "Edit this slide.",
+                    "cta": "",
                     "visualSuggestion": "Clean branded illustration matching brand colors.",
                 }
-                for i in range(max(2, min(slide_count, 10)))
-            ]
+                assign_slide_cta(item, position=i + 1, total=count, cta_instruction=forced_cta)
+                slides.append(item)
             return {
                 "title": objective[:120] or "Carousel",
                 "caption": objective or instruction,
-                "cta": "",
+                "cta": forced_cta or slides[-1]["cta"],
                 "hashtags": [],
                 "slides": slides,
             }
         return {
             "title": objective[:120] or "Post",
             "caption": instruction or objective,
-            "cta": "",
+            "cta": forced_cta,
             "hashtags": [],
             "visualSuggestion": "Product or service visual aligned with brand voice.",
             "imagePrompt": f"Brand visual for: {objective}",
@@ -156,22 +174,32 @@ Use exactly {slide_count} slides for CAROUSEL.
         for i, slide in enumerate(slides[:10]):
             if not isinstance(slide, dict):
                 continue
-            normalized.append(
-                {
-                    "order": int(slide.get("order") or i + 1),
-                    "headline": str(slide.get("headline") or "")[:240],
-                    "body": str(slide.get("body") or "")[:2000],
-                    "visualSuggestion": str(slide.get("visualSuggestion") or slide.get("imagePrompt") or "")[:500],
-                }
-            )
-        while len(normalized) < max(2, min(slide_count, 10)):
+            item = {
+                "order": int(slide.get("order") or i + 1),
+                "headline": str(slide.get("headline") or "")[:240],
+                "body": str(slide.get("body") or "")[:2000],
+                "cta": str(slide.get("cta") or "")[:180],
+                "visualSuggestion": str(slide.get("visualSuggestion") or slide.get("imagePrompt") or "")[:500],
+            }
+            normalized.append(item)
+        while len(normalized) < count:
             n = len(normalized) + 1
             normalized.append(
-                {"order": n, "headline": f"Slide {n}", "body": "", "visualSuggestion": ""}
+                {"order": n, "headline": f"Slide {n}", "body": "", "cta": "", "visualSuggestion": ""}
             )
-        data["slides"] = normalized
+        total = len(normalized)
+        data["slides"] = [
+            assign_slide_cta(slide, position=i + 1, total=total, cta_instruction=forced_cta)
+            for i, slide in enumerate(normalized)
+        ]
+        if forced_cta:
+            data["cta"] = forced_cta
+        elif data["slides"]:
+            data["cta"] = data["slides"][-1].get("cta") or data.get("cta") or ""
+    if forced_cta:
+        data["cta"] = forced_cta
     data.setdefault("caption", "")
-    data.setdefault("cta", "")
+    data.setdefault("cta", forced_cta)
     data.setdefault("title", "")
     return data
 

@@ -181,8 +181,11 @@ class GenerateContentRequest(BaseModel):
     objective: str
     audience: str = ""
     user_instruction: str = ""
-    slide_count: int = 5
+    slide_count: int = 7
     language: str = "es"
+    content_goal: str = Field(default="loyalty", pattern=r"^(loyalty|reach|convert)$")
+    cta_instruction: str = Field(default="", max_length=180)
+    hook_structure: bool = True
 
 
 class GenerateContentOut(BaseModel):

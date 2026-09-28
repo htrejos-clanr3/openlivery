@@ -3,18 +3,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
-import { Bot, Building2, CreditCard, Inbox, Images, LayoutDashboard, LogOut, Menu, MessageSquareText, Radio, Settings, Sparkles, Wallet, X } from "lucide-react";
+import { Bell, Bot, Building2, CreditCard, Inbox, Images, LayoutDashboard, LogOut, Menu, MessageSquareText, Radio, Settings, Sparkles, Wallet, Workflow, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCarouselGeneration } from "@/lib/carousel-generation-context";
 import { useT, type I18nKey } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/language-switcher";
-import type { Carousel, User } from "@/types";
+import type { Carousel, LeadNotification, User } from "@/types";
 
 const navigation: { href: string; labelKey: I18nKey; icon: typeof LayoutDashboard }[] = [
   { href: "/", labelKey: "nav.home", icon: LayoutDashboard },
   { href: "/clients", labelKey: "nav.clients", icon: Building2 },
   { href: "/agents", labelKey: "nav.agents", icon: Bot },
   { href: "/carousels", labelKey: "nav.carousels", icon: Images },
+  { href: "/automations", labelKey: "nav.automations", icon: Workflow },
   { href: "/inbox", labelKey: "nav.inbox", icon: Inbox },
   { href: "/playground", labelKey: "nav.playground", icon: MessageSquareText },
   { href: "/channels", labelKey: "nav.channels", icon: Radio },
@@ -56,6 +57,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(pathname !== "/login");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [serverGeneratingCount, setServerGeneratingCount] = useState(0);
+  const [notes, setNotes] = useState<LeadNotification[]>([]);
+  const [notesOpen, setNotesOpen] = useState(false);
   const isLogin = pathname === "/login";
   const isPortal = pathname.startsWith("/portal/");
   const isWidget = pathname.startsWith("/widget/");
@@ -82,6 +85,18 @@ export function AppShell({ children }: { children: ReactNode }) {
     };
     poll();
     const timer = window.setInterval(poll, 5000);
+    return () => window.clearInterval(timer);
+  }, [isBare, user]);
+
+  useEffect(() => {
+    if (isBare || !user) return;
+    const poll = () => {
+      api<LeadNotification[]>("/leads/notifications")
+        .then(setNotes)
+        .catch(() => {});
+    };
+    poll();
+    const timer = window.setInterval(poll, 15000);
     return () => window.clearInterval(timer);
   }, [isBare, user]);
 
@@ -130,6 +145,39 @@ export function AppShell({ children }: { children: ReactNode }) {
           })}
         </nav>
         <div className="sidebar-foot">
+          <div className="notice-wrap">
+            <button type="button" className="icon-button inverse" onClick={() => setNotesOpen((open) => !open)} title={t("shell.notifications")}>
+              <Bell size={17} />
+              {notes.filter((item) => !item.read_at).length > 0 && (
+                <span className="notice-badge">{notes.filter((item) => !item.read_at).length}</span>
+              )}
+            </button>
+            {notesOpen && (
+              <div className="notice-dropdown">
+                <strong>{t("shell.notifications")}</strong>
+                {notes.length === 0 && <p>{t("shell.noNotifications")}</p>}
+                {notes.slice(0, 12).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={item.read_at ? "" : "unread"}
+                    onClick={async () => {
+                      if (!item.read_at) {
+                        await api(`/leads/notifications/${item.id}/read`, { method: "POST" }).catch(() => {});
+                        setNotes((current) => current.map((row) => (row.id === item.id ? { ...row, read_at: new Date().toISOString() } : row)));
+                      }
+                      setNotesOpen(false);
+                      setMobileOpen(false);
+                      router.push(`/clients/${item.client_id}?tab=leads`);
+                    }}
+                  >
+                    <span>{item.contact_name || t("shell.newLead")}</span>
+                    <small>{item.source}</small>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="user-avatar">{user.name.slice(0, 1).toUpperCase()}</div>
           <div className="user-meta"><strong>{user.name}</strong><span>{user.email}</span></div>
           <button className="icon-button inverse" onClick={logout} title={t("shell.logout")}><LogOut size={17} /></button>

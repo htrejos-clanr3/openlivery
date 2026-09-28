@@ -7,6 +7,7 @@ import {
   ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, LoaderCircle, Sparkles, Trash2, Upload,
 } from "lucide-react";
 import { FileDropzone } from "@/components/file-dropzone";
+import { FormatPlaybookFields, type FormatPlaybookValue } from "@/components/format-playbook-fields";
 import { Alert } from "@/components/ui";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -45,7 +46,12 @@ function ComposePageInner() {
   const [aiObjective, setAiObjective] = useState("");
   const [aiAudience, setAiAudience] = useState("");
   const [aiInstruction, setAiInstruction] = useState("");
-  const [slideCount, setSlideCount] = useState(5);
+  const [slideCount, setSlideCount] = useState(7);
+  const [playbook, setPlaybook] = useState<FormatPlaybookValue>({
+    contentGoal: "loyalty",
+    ctaInstruction: "",
+    hookStructure: true,
+  });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -80,6 +86,15 @@ function ComposePageInner() {
           );
           const slides = (item.ai_meta?.slides as AiSlide[] | undefined) || [];
           setAiSlides(slides);
+          const metaGoal = item.ai_meta?.content_goal;
+          setPlaybook({
+            contentGoal: metaGoal === "reach" || metaGoal === "convert" ? metaGoal : "loyalty",
+            ctaInstruction: typeof item.ai_meta?.cta_instruction === "string" ? item.ai_meta.cta_instruction : "",
+            hookStructure: item.ai_meta?.hook_structure !== false,
+          });
+          if (typeof item.ai_meta?.slide_count === "number") {
+            setSlideCount(item.ai_meta.slide_count);
+          }
         }
       } catch (err) {
         setError(messageFrom(err));
@@ -153,7 +168,13 @@ function ComposePageInner() {
           cta,
           timezone,
           media_ids: media.map((m) => m.id),
-          ai_meta: aiSlides.length ? { slides: aiSlides } : {},
+          ai_meta: {
+            slides: aiSlides,
+            content_goal: playbook.contentGoal,
+            cta_instruction: playbook.ctaInstruction.trim(),
+            hook_structure: playbook.hookStructure,
+            slide_count: slideCount,
+          },
         }),
       });
     }
@@ -172,7 +193,15 @@ function ComposePageInner() {
     if (aiSlides.length) {
       return api<InstagramContentItem>(`/instagram/channels/${id}/content/${created.id}`, {
         method: "PUT",
-        body: JSON.stringify({ ai_meta: { slides: aiSlides } }),
+        body: JSON.stringify({
+          ai_meta: {
+            slides: aiSlides,
+            content_goal: playbook.contentGoal,
+            cta_instruction: playbook.ctaInstruction.trim(),
+            hook_structure: playbook.hookStructure,
+            slide_count: slideCount,
+          },
+        }),
       });
     }
     return created;
@@ -272,6 +301,9 @@ function ComposePageInner() {
           user_instruction: aiInstruction.trim(),
           slide_count: slideCount,
           language: "es",
+          content_goal: playbook.contentGoal,
+          cta_instruction: playbook.ctaInstruction.trim(),
+          hook_structure: playbook.hookStructure,
         }),
       });
       if (result.title) setTitle(result.title);
@@ -514,13 +546,21 @@ function ComposePageInner() {
                 {t("instagram.compose.aiSlides")}
                 <input
                   type="number"
-                  min={2}
+                  min={3}
                   max={10}
                   value={slideCount}
-                  onChange={(e) => setSlideCount(Number(e.target.value) || 5)}
+                  onChange={(e) => setSlideCount(Number(e.target.value) || 7)}
                   disabled={contentType !== "CAROUSEL"}
                 />
               </label>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <FormatPlaybookFields
+                  variant="campaign"
+                  value={playbook}
+                  onChange={setPlaybook}
+                  showSlidesHint={contentType === "CAROUSEL"}
+                />
+              </div>
               <label style={{ gridColumn: "1 / -1" }}>
                 {t("instagram.compose.aiInstruction")}
                 <textarea rows={3} value={aiInstruction} onChange={(e) => setAiInstruction(e.target.value)} />
@@ -539,6 +579,12 @@ function ComposePageInner() {
                     <strong>{t("instagram.compose.aiSlideHeadline")}:</strong> {slide.headline || "—"}
                     <br />
                     <strong>{t("instagram.compose.aiSlideBody")}:</strong> {slide.body || "—"}
+                    {slide.cta ? (
+                      <>
+                        <br />
+                        <strong>{t("instagram.compose.cta")}:</strong> {slide.cta}
+                      </>
+                    ) : null}
                   </div>
                 ))}
               </div>

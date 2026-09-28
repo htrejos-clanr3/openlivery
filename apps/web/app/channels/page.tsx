@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, Facebook, Globe2, Instagram, Lock, MessageCircle, QrCode, Radio, type LucideIcon } from "lucide-react";
+import { ArrowRight, Facebook, Globe2, Instagram, Linkedin, Lock, MessageCircle, QrCode, Radio, type LucideIcon } from "lucide-react";
 import { PageHead } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -60,6 +60,16 @@ export default function ChannelsPage() {
           {selected
             ? <Link className="button primary" href={`/clients/${selected.id}/channels/instagram`}>{t("channels.instagram.configure")} <ArrowRight size={16} /></Link>
             : <button className="button disabled" disabled>{t("channels.instagram.selectClient")}</button>}
+        </article>
+        <article className="channel-card channel-card-live">
+          <div className="channel-icon linkedin"><Linkedin size={24} /></div>
+          <span className="coming live">{t("channels.linkedin.status")}</span>
+          <h3>{t("channels.linkedin.title")}</h3>
+          <p>{t("channels.linkedin.description")}</p>
+          <small className="channel-owner">{selected?.name || t("channels.linkedin.ownerPlaceholder")}</small>
+          {selected
+            ? <Link className="button primary" href={`/clients/${selected.id}/channels/linkedin`}>{t("channels.linkedin.configure")} <ArrowRight size={16} /></Link>
+            : <button className="button disabled" disabled>{t("channels.linkedin.selectClient")}</button>}
         </article>
         {futureChannels.map((channel) => (
           <article className="channel-card" key={channel.key}>
