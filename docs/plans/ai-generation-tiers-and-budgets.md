@@ -3,7 +3,8 @@
 **Repo:** `htrejos-clanr3/fast-livery` (privado, independiente)  
 **Rama:** `connect-study`  
 **Fecha:** 2026-10-04  
-**Alcance:** estudio y verificación. No cambia seguridad, OAuth, diseño ni UI/UX de conexión existentes.
+**Alcance:** estudio y verificación. No cambia seguridad, OAuth, diseño ni UI/UX de conexión existentes.  
+**Conexiones de plataforma + legal:** ver [`transparent-platform-connections-legal.md`](./transparent-platform-connections-legal.md).
 
 ## 1. Principio de no alteración
 
