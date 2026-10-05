@@ -24,7 +24,12 @@ def estimate_cost_usd(model: str, input_tokens: int, output_tokens: int) -> floa
     rates = TOKEN_RATES_USD_PER_MILLION.get(model) or TOKEN_RATES_USD_PER_MILLION.get(model.split("/")[-1])
     if not rates:
         lowered = (model or "").lower()
-        if lowered.startswith("flux") or lowered.startswith("x/") or lowered == "placeholder":
+        if (
+            lowered.startswith("flux")
+            or lowered.startswith("x/")
+            or lowered.startswith("black-forest-labs")
+            or lowered in {"placeholder", "huggingface"}
+        ):
             rates = (0.0, 0.0)
         else:
             rates = (5.00, 40.00) if "image" in lowered else (0.50, 1.50)

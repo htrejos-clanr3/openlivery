@@ -9,6 +9,7 @@ from .routers import (
     agent_tools,
     agents,
     auth,
+    automations,
     carousels,
     catalog,
     clients,
@@ -16,6 +17,8 @@ from .routers import (
     dashboard,
     domains,
     instagram,
+    leads,
+    linkedin,
     meta,
     portal,
     providers,
@@ -65,8 +68,13 @@ def health():
 app.include_router(auth.router, prefix="/api")
 app.include_router(agency.router, prefix="/api")
 app.include_router(clients.router, prefix="/api")
+app.include_router(leads.router, prefix="/api")
+app.include_router(leads.leads_router, prefix="/api")
+app.include_router(leads.notifications_router, prefix="/api")
+app.include_router(leads.public_router, prefix="/api")
 app.include_router(carousels.router, prefix="/api")
 app.include_router(agents.router, prefix="/api")
+app.include_router(automations.router, prefix="/api")
 app.include_router(agent_tools.router, prefix="/api")
 app.include_router(providers.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
@@ -79,6 +87,7 @@ app.include_router(whatsapp_cloud.router, prefix="/api")
 app.include_router(whatsapp_cloud_webhook.public_router, prefix="/api")
 app.include_router(instagram.router, prefix="/api")
 app.include_router(instagram.public_router, prefix="/api")
+app.include_router(linkedin.router, prefix="/api")
 app.include_router(meta.router, prefix="/api")
 app.include_router(widget.router, prefix="/api")
 app.include_router(domains.public_router, prefix="/api")

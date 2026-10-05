@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from .services.providers import PROVIDER_PATTERN
 
@@ -294,6 +294,42 @@ class ConversationCreate(BaseModel):
     agent_id: uuid.UUID
 
 
+class AgencyMemberOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    email: EmailStr
+
+    model_config = {"from_attributes": True}
+
+
+class CannedReplyCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=120)
+    body: str = Field(min_length=1, max_length=4000)
+    shortcode: str | None = Field(default=None, max_length=40)
+
+
+class CannedReplyUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    body: str | None = Field(default=None, min_length=1, max_length=4000)
+    shortcode: str | None = Field(default=None, max_length=40)
+
+
+class CannedReplyOut(ORMModel):
+    id: uuid.UUID
+    shortcode: str
+    title: str
+    body: str
+    updated_at: datetime
+
+
+class ConversationAssign(BaseModel):
+    assigned_user_id: uuid.UUID | None = None
+
+
+class ConversationLabelsUpdate(BaseModel):
+    labels: list[str] = Field(default_factory=list, max_length=8)
+
+
 class ConversationOut(ORMModel):
     id: uuid.UUID
     client_id: uuid.UUID
@@ -303,9 +339,17 @@ class ConversationOut(ORMModel):
     channel: str
     external_chat_id: str | None = None
     contact_name: str | None = None
+    assigned_user_id: uuid.UUID | None = None
+    assigned_user_name: str | None = None
+    labels: list[str] = []
     created_at: datetime
     updated_at: datetime
     preview: str = ""
+
+    @field_validator("labels", mode="before")
+    @classmethod
+    def coerce_labels(cls, value: object) -> list[str]:
+        return list(value or [])
 
 
 class SourceOut(BaseModel):
@@ -339,10 +383,18 @@ class ConversationInboxOut(BaseModel):
     contact_name: str | None = None
     channel: str
     mode: str
+    assigned_user_id: uuid.UUID | None = None
+    assigned_user_name: str | None = None
+    labels: list[str] = []
     preview: str = ""
     unread: bool = False
     unread_count: int = 0
     updated_at: datetime
+
+    @field_validator("labels", mode="before")
+    @classmethod
+    def coerce_labels(cls, value: object) -> list[str]:
+        return list(value or [])
 
 
 class SendMessageRequest(BaseModel):
@@ -553,11 +605,14 @@ class CarouselCreate(BaseModel):
     title: str = Field(min_length=2, max_length=180)
     brief: str = ""
     language: str = Field(default="es", max_length=10)
-    slide_count: int = Field(default=8, ge=3, le=12)
+    slide_count: int = Field(default=7, ge=3, le=12)
     generate: bool = True
     with_images: bool = True
     # True = AI interprets title/brief with company knowledge (RAG). False = use literal copy.
     interpret_prompt: bool = True
+    content_goal: str = Field(default="loyalty", pattern=r"^(loyalty|reach|convert)$")
+    cta_instruction: str = Field(default="", max_length=180)
+    hook_structure: bool = True
 
 
 class CarouselGenerateRequest(BaseModel):
@@ -565,6 +620,11 @@ class CarouselGenerateRequest(BaseModel):
     interpret_prompt: bool | None = None
     # Always generate at least one image related to the description when OpenAI is available.
     ensure_min_image: bool = True
+    # When False (default), approved slides are kept and only pending/rejected ones are recreated.
+    include_approved: bool = False
+    content_goal: str | None = Field(default=None, pattern=r"^(loyalty|reach|convert)$")
+    cta_instruction: str | None = Field(default=None, max_length=180)
+    hook_structure: bool | None = None
 
 
 class CarouselSlideGenerateRequest(BaseModel):
@@ -652,6 +712,9 @@ class CarouselOut(ORMModel):
     status: str
     slide_count: int
     interpret_prompt: bool = True
+    content_goal: str = "loyalty"
+    cta_instruction: str = ""
+    hook_structure: bool = True
     scheduled_at: datetime | None = None
     published_at: datetime | None = None
     ig_media_id: str | None = None

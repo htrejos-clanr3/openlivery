@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     instagram_max_image_bytes: int = 8 * 1024 * 1024
     instagram_max_video_bytes: int = 100 * 1024 * 1024
     instagram_media_url_ttl_seconds: int = 60 * 60
+    # LinkedIn personal-profile publishing (Share on LinkedIn).
+    linkedin_client_id: str = ""
+    linkedin_client_secret: str = ""
+    linkedin_oauth_redirect_path: str = "/api/linkedin/oauth/callback"
+    linkedin_api_version: str = "202601"
+    linkedin_mock_mode: bool = False
     # Meta Developer Tools / Social Technologies MCP (diagnostics only — not on message path).
     meta_devtools_mcp_enabled: bool = False
     meta_devtools_mcp_url: str = "https://mcp.facebook.com/devtools"
@@ -66,9 +72,11 @@ class Settings(BaseSettings):
     google_oauth_client_id: str = ""
     # When true, forgot-password responses include the raw token (local/tests only).
     auth_expose_reset_token: bool = False
-    # Carousel slide images. openai = gpt-image-* (paid). flux = local HTTP
-    # (scripts/flux_schnell_server.py, ComfyUI/A1111-compatible). ollama = experimental
-    # image models only (not llava). placeholder = free test PNGs, not real ads.
+    # Carousel slide images. openai = gpt-image-* (paid). huggingface = FLUX via
+    # Hugging Face Inference Providers (HF_TOKEN). flux = local HTTP sidecar
+    # (scripts/flux_schnell_server.py). ollama = experimental image models only
+    # (not llava). placeholder = free test PNGs, not real ads. Non-openai choices
+    # never fall back to OpenAI.
     image_provider: str = "openai"
     image_size: str = "1024x1536"
     image_timeout_seconds: float = 45.0
@@ -82,6 +90,9 @@ class Settings(BaseSettings):
     flux_model: str = "flux-schnell"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_image_model: str = "x/flux2-klein:4b"
+    hf_token: str = ""
+    hf_image_model: str = "black-forest-labs/FLUX.1-schnell"
+    hf_image_provider: str = ""
 
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", APP_DIR / ".env"),

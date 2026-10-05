@@ -764,5 +764,8 @@ async def generate_copy(
         user_instruction=payload.user_instruction,
         slide_count=payload.slide_count,
         language=payload.language,
+        content_goal=payload.content_goal,
+        cta_instruction=payload.cta_instruction,
+        hook_structure=payload.hook_structure,
     )
     return GenerateContentOut(**data)

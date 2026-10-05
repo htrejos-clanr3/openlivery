@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { ArrowRight, Images, LoaderCircle, Plus, Search } from "lucide-react";
 import { AuthenticatedImage } from "@/components/authenticated-image";
 import { CarouselImageCostAlert } from "@/components/carousel-image-cost-alert";
+import { FormatPlaybookFields, type FormatPlaybookValue } from "@/components/format-playbook-fields";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { Alert, EmptyState, PageHead } from "@/components/ui";
@@ -44,7 +45,12 @@ export default function CarouselsPage() {
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState("");
   const [withImages, setWithImages] = useState(true);
-  const [slideCount, setSlideCount] = useState(8);
+  const [slideCount, setSlideCount] = useState(7);
+  const [playbook, setPlaybook] = useState<FormatPlaybookValue>({
+    contentGoal: "loyalty",
+    ctaInstruction: "",
+    hookStructure: true,
+  });
 
   async function load() {
     const [carousels, clientRows] = await Promise.all([
@@ -86,9 +92,12 @@ export default function CarouselsPage() {
           title: data.get("title"),
           brief: data.get("brief"),
           language: data.get("language") || "es",
-          slide_count: Number(data.get("slide_count") || 8),
+          slide_count: Number(data.get("slide_count") || 7),
           with_images: withImages,
           interpret_prompt: data.get("interpret_prompt") === "on",
+          content_goal: playbook.contentGoal,
+          cta_instruction: playbook.ctaInstruction.trim(),
+          hook_structure: playbook.hookStructure,
           generate: true,
         }),
       });
@@ -151,9 +160,10 @@ export default function CarouselsPage() {
               min={3}
               max={12}
               value={slideCount}
-              onChange={(event) => setSlideCount(Number(event.target.value) || 8)}
+              onChange={(event) => setSlideCount(Number(event.target.value) || 7)}
             />
           </label>
+          <FormatPlaybookFields value={playbook} onChange={setPlaybook} showSlidesHint />
           <label className="switch-row">
             <span>
               <strong>{t("carousels.form.interpretPrompt")}</strong>

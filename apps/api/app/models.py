@@ -55,6 +55,16 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 
     agency: Mapped[Agency] = relationship(back_populates="users")
+    automation_runs: Mapped[list["UserAutomationRun"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    assigned_leads: Mapped[list["Lead"]] = relationship(back_populates="assignee", foreign_keys="Lead.assigned_user_id")
+    assigned_conversations: Mapped[list["Conversation"]] = relationship(
+        back_populates="assigned_user", foreign_keys="Conversation.assigned_user_id"
+    )
+    lead_notifications: Mapped[list["LeadNotification"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
 
     @property
     def password_configured(self) -> bool:
@@ -103,9 +113,18 @@ class Client(Base):
     instagram_channel: Mapped["InstagramChannel | None"] = relationship(
         back_populates="client", cascade="all, delete-orphan", uselist=False
     )
+    linkedin_channel: Mapped["LinkedInChannel | None"] = relationship(
+        back_populates="client", cascade="all, delete-orphan", uselist=False
+    )
     media_assets: Mapped[list["MediaAsset"]] = relationship(back_populates="client", cascade="all, delete-orphan")
     content_items: Mapped[list["ContentItem"]] = relationship(back_populates="client", cascade="all, delete-orphan")
     publications: Mapped[list["Publication"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    lead_capture_settings: Mapped["LeadCaptureSettings | None"] = relationship(
+        back_populates="client", cascade="all, delete-orphan", uselist=False
+    )
+    lead_pipelines: Mapped[list["LeadPipeline"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    contacts: Mapped[list["Contact"]] = relationship(back_populates="client", cascade="all, delete-orphan")
+    leads: Mapped[list["Lead"]] = relationship(back_populates="client", cascade="all, delete-orphan")
 
     @property
     def portal_password_configured(self) -> bool:
@@ -364,15 +383,46 @@ class Conversation(Base):
         ForeignKey("whatsapp_cloud_channels.id", ondelete="CASCADE"), nullable=True, index=True
     )
     external_chat_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("contacts.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     contact_name: Mapped[str | None] = mapped_column(String(180), nullable=True)
     operator_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    assigned_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    labels: Mapped[list] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
 
     agent: Mapped[Agent] = relationship(back_populates="conversations")
+    assigned_user: Mapped[User | None] = relationship(
+        back_populates="assigned_conversations", foreign_keys=[assigned_user_id]
+    )
     whatsapp_channel: Mapped[WhatsAppChannel | None] = relationship(back_populates="conversations")
     whatsapp_cloud_channel: Mapped[WhatsAppCloudChannel | None] = relationship(back_populates="conversations")
+    contact: Mapped["Contact | None"] = relationship(back_populates="conversations")
     messages: Mapped[list["Message"]] = relationship(back_populates="conversation", cascade="all, delete-orphan", order_by="Message.created_at")
+    lead: Mapped["Lead | None"] = relationship(
+        back_populates="conversation", uselist=False, foreign_keys="Lead.conversation_id"
+    )
+
+    @property
+    def assigned_user_name(self) -> str | None:
+        return self.assigned_user.name if self.assigned_user else None
+
+
+class CannedReply(Base):
+    __tablename__ = "canned_replies"
+    __table_args__ = (UniqueConstraint("agency_id", "shortcode", name="uq_canned_replies_agency_shortcode"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    shortcode: Mapped[str] = mapped_column(String(40))
+    title: Mapped[str] = mapped_column(String(120))
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
 
 
 class Message(Base):
@@ -473,6 +523,10 @@ class Carousel(Base):
     # When True, AI expands title/brief using company DNA + RAG/embeddings.
     # When False, treat title/brief as literal copy to format into slides.
     interpret_prompt: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    # Instagram format playbook: loyalty | reach | convert.
+    content_goal: Mapped[str] = mapped_column(String(20), default="loyalty", server_default="loyalty")
+    cta_instruction: Mapped[str] = mapped_column(String(180), default="", server_default="")
+    hook_structure: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     # once = single datetime (scheduled_at). weekly_window = weekdays + local time range.
     schedule_mode: Mapped[str] = mapped_column(String(20), default="once", server_default="once")
     schedule_weekdays: Mapped[list] = mapped_column(JSON, default=list)  # 0=Mon … 6=Sun
@@ -580,6 +634,57 @@ class InstagramChannel(Base):
     client: Mapped[Client] = relationship(back_populates="instagram_channel")
 
 
+class LinkedInChannel(Base):
+    """Per-client LinkedIn copy desk and personal-profile OAuth connection."""
+
+    __tablename__ = "linkedin_channels"
+    __table_args__ = (UniqueConstraint("client_id", name="uq_linkedin_channels_client_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    profile_url: Mapped[str] = mapped_column(String(400), default="", server_default="")
+    display_name: Mapped[str] = mapped_column(String(180), default="", server_default="")
+    voice_notes: Mapped[str] = mapped_column(Text, default="", server_default="")
+    status: Mapped[str] = mapped_column(String(30), default="disconnected", server_default="disconnected")
+    member_id: Mapped[str] = mapped_column(String(180), default="", server_default="")
+    encrypted_access_token: Mapped[str | None] = mapped_column(Text, nullable=True)
+    granted_scopes: Mapped[list] = mapped_column(JSON, default=list, server_default="[]")
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    connection_mode: Mapped[str] = mapped_column(String(30), default="copy_paste", server_default="copy_paste")
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="linkedin_channel")
+    drafts: Mapped[list["LinkedInDraft"]] = relationship(
+        back_populates="channel", cascade="all, delete-orphan"
+    )
+
+
+class LinkedInDraft(Base):
+    __tablename__ = "linkedin_drafts"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    channel_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("linkedin_channels.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(30), default="post")
+    idea: Mapped[str] = mapped_column(Text, default="")
+    body: Mapped[str] = mapped_column(Text, default="")
+    hook_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    human_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    verdict: Mapped[str] = mapped_column(String(20), default="")
+    status: Mapped[str] = mapped_column(String(30), default="draft", server_default="draft")
+    provider_post_id: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    channel: Mapped[LinkedInChannel] = relationship(back_populates="drafts")
+
+
 class MediaAsset(Base):
     __tablename__ = "media_assets"
 
@@ -673,6 +778,207 @@ class Publication(Base):
 
     client: Mapped[Client] = relationship(back_populates="publications")
     content: Mapped[ContentItem] = relationship(back_populates="publications")
+
+
+class UserAutomationRun(Base):
+    """One DeepSeek automation execution, visible only to the user who ran it."""
+
+    __tablename__ = "user_automation_runs"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(30), index=True)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    result: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    user: Mapped[User] = relationship(back_populates="automation_runs")
+
+
+class LeadPipeline(Base):
+    """Per-client pipeline. tenant = client_id (plus agency_id)."""
+
+    __tablename__ = "lead_pipelines"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120), default="Principal")
+    is_default: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="lead_pipelines")
+    stages: Mapped[list["LeadStage"]] = relationship(
+        back_populates="pipeline", cascade="all, delete-orphan", order_by="LeadStage.position"
+    )
+
+
+class LeadStage(Base):
+    __tablename__ = "lead_stages"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    pipeline_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("lead_pipelines.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    slug: Mapped[str] = mapped_column(String(40))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+
+    pipeline: Mapped[LeadPipeline] = relationship(back_populates="stages")
+
+
+class LeadCaptureSettings(Base):
+    """Automatic lead capture switchboard for one client tenant."""
+
+    __tablename__ = "lead_capture_settings"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), unique=True, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    sources: Mapped[list] = mapped_column(JSON, default=list)
+    default_pipeline_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("lead_pipelines.id", ondelete="SET NULL"), nullable=True
+    )
+    default_stage_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("lead_stages.id", ondelete="SET NULL"), nullable=True
+    )
+    default_assignee_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    auto_tags: Mapped[list] = mapped_column(JSON, default=list)
+    notify_on_new_lead: Mapped[bool] = mapped_column(Boolean, default=True)
+    ingest_token: Mapped[str] = mapped_column(String(64), unique=True, index=True, default=new_public_id)
+    last_ingest_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    automation_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="lead_capture_settings")
+    default_pipeline: Mapped[LeadPipeline | None] = relationship(foreign_keys=[default_pipeline_id])
+    default_stage: Mapped[LeadStage | None] = relationship(foreign_keys=[default_stage_id])
+    default_assignee: Mapped[User | None] = relationship(foreign_keys=[default_assignee_user_id])
+
+
+class Contact(Base):
+    """Person belonging to one client tenant. Deduped by phone, email, or channel id."""
+
+    __tablename__ = "contacts"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(180), default="")
+    company: Mapped[str] = mapped_column(String(180), default="")
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True, index=True)
+    phone: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
+    channel_identifier: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    source: Mapped[str] = mapped_column(String(40), default="")
+    extra: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="contacts")
+    conversations: Mapped[list["Conversation"]] = relationship(back_populates="contact")
+    leads: Mapped[list["Lead"]] = relationship(back_populates="contact", cascade="all, delete-orphan")
+
+
+class Lead(Base):
+    """Opportunity for one contact inside one client tenant. A contact may have many leads."""
+
+    __tablename__ = "leads"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    contact_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("contacts.id", ondelete="CASCADE"), index=True)
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    pipeline_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("lead_pipelines.id", ondelete="SET NULL"), nullable=True
+    )
+    stage_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("lead_stages.id", ondelete="SET NULL"), nullable=True)
+    assigned_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    source: Mapped[str] = mapped_column(String(40), default="")
+    tags: Mapped[list] = mapped_column(JSON, default=list)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    next_action: Mapped[str] = mapped_column(String(240), default="")
+    score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_activity_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="leads")
+    contact: Mapped[Contact] = relationship(back_populates="leads")
+    conversation: Mapped[Conversation | None] = relationship(
+        back_populates="lead", foreign_keys=[conversation_id]
+    )
+    pipeline: Mapped[LeadPipeline | None] = relationship()
+    stage: Mapped[LeadStage | None] = relationship()
+    assignee: Mapped[User | None] = relationship(back_populates="assigned_leads", foreign_keys=[assigned_user_id])
+    notifications: Mapped[list["LeadNotification"]] = relationship(back_populates="lead", cascade="all, delete-orphan")
+    activities: Mapped[list["LeadActivity"]] = relationship(
+        back_populates="lead", cascade="all, delete-orphan", order_by="LeadActivity.created_at.desc()"
+    )
+
+
+class LeadNotification(Base):
+    __tablename__ = "lead_notifications"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    lead_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("leads.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(40), default="new_lead")
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    user: Mapped[User] = relationship(back_populates="lead_notifications")
+    lead: Mapped[Lead] = relationship(back_populates="notifications")
+
+
+class LeadActivity(Base):
+    """Commercial history on a lead (capture, notes, stage changes)."""
+
+    __tablename__ = "lead_activities"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    lead_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("leads.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    kind: Mapped[str] = mapped_column(String(40), default="note")
+    message: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    lead: Mapped[Lead] = relationship(back_populates="activities")
+
+
+class LeadCaptureEvent(Base):
+    """Audit row for each capture attempt. Failed rows can be retried."""
+
+    __tablename__ = "lead_capture_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str] = mapped_column(String(40), default="")
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(20), default="success", index=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    lead_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("leads.id", ondelete="SET NULL"), nullable=True)
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("contacts.id", ondelete="SET NULL"), nullable=True)
+    conversation_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("conversations.id", ondelete="SET NULL"), nullable=True
+    )
+    attempt_count: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
 
 
 class MetaWebhookTest(Base):

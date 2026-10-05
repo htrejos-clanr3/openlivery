@@ -15,14 +15,30 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..models import Agent, Carousel, CarouselEvent, CarouselSlide, Client, User, now_utc
 from .image_generation import backend_label, generate_slide_image, resolve_image_backend
+from .slide_branding import apply_brand_mark
 from .knowledge import retrieve_knowledge
 from .providers import PROVIDERS, resolve_provider_credentials
+from .format_playbook import assign_slide_cta, playbook_prompt, slide_role_hint
 from .usage import persist_usage_rows, usage_entry
 
 
 logger = logging.getLogger(__name__)
 
-# Prefer Kimi (Moonshot) for high-value copy; DeepSeek is a strong cheap fallback.
+IMAGE_SCENE_SPEC = (
+    "image_scene: 40–90 words in ENGLISH describing the visual for THAT slide. "
+    "First choose the medium from the PRODUCT or SERVICE (never default to people or photorealism): "
+    "environment/set, object or still-life, people only if the offer is human/service-in-person, "
+    "documentary photo, 3D, animation still, cartoon, illustration, or mixed. "
+    "Food → plated product or kitchen; kids brand → cartoon; luxury object → still-life; "
+    "software → the system in the real workplace OR symbolic objects of that job, not generic office portraits. "
+    "No letters, numbers, headlines, slogans, CTAs, logos, watermarks, or fake phone UI. "
+    "Do not describe a logo; the real brand mark is composited later. "
+    "Each slide a different visual. Vertical 4:5."
+)
+SLIDE_JSON_SHAPE = (
+    '{"caption":"...","slides":[{"headline":"...","body":"...","cta":"...","image_scene":"..."}]}'
+)
+ONE_SLIDE_JSON_SHAPE = '{"headline":"...","body":"...","cta":"...","image_scene":"..."}'
 CHAT_PROVIDER_ORDER = ("moonshot", "deepseek", "openai", "dashscope")
 CHAT_MODELS = {
     "moonshot": "kimi-k2.5",
@@ -121,6 +137,17 @@ def gather_company_context(db: Session, client: Client, query: str) -> str:
     return "\n\n".join(p for p in parts if p.strip())
 
 
+def _slide_fields(item: dict, *, index: int = 1) -> dict[str, str]:
+    return {
+        "headline": str(item.get("headline") or item.get("title") or f"Slide {index}")[:240],
+        "body": str(item.get("body") or item.get("text") or "")[:2000],
+        "cta": str(item.get("cta") or "")[:180],
+        "image_scene": str(
+            item.get("image_scene") or item.get("image_prompt") or item.get("visual") or ""
+        ).strip()[:800],
+    }
+
+
 def _parse_slides_json(text: str, slide_count: int) -> tuple[list[dict[str, str]], str]:
     match = re.search(r"\{[\s\S]*\}|\[[\s\S]*\]", text)
     raw = match.group(0) if match else text
@@ -140,13 +167,7 @@ def _parse_slides_json(text: str, slide_count: int) -> tuple[list[dict[str, str]
     for i, item in enumerate(items[:slide_count]):
         if not isinstance(item, dict):
             continue
-        slides.append(
-            {
-                "headline": str(item.get("headline") or item.get("title") or f"Slide {i + 1}")[:240],
-                "body": str(item.get("body") or item.get("text") or "")[:2000],
-                "cta": str(item.get("cta") or "")[:180],
-            }
-        )
+        slides.append(_slide_fields(item, index=i + 1))
     while len(slides) < slide_count:
         n = len(slides) + 1
         slides.append({"headline": f"Punto {n}", "body": "Completa este slide con tu mensaje.", "cta": ""})
@@ -162,18 +183,112 @@ def _parse_single_slide_json(text: str) -> dict[str, str]:
         raise HTTPException(status_code=400, detail="Could not parse slide JSON from provider") from exc
     if not isinstance(data, dict):
         raise HTTPException(status_code=400, detail="Provider returned invalid slide JSON")
-    return {
-        "headline": str(data.get("headline") or data.get("title") or "Slide")[:240],
-        "body": str(data.get("body") or data.get("text") or "")[:2000],
-        "cta": str(data.get("cta") or "")[:180],
-    }
+    return _slide_fields(data)
 
 
-def _fallback_slides(brief: str, slide_count: int, language: str, *, title: str = "") -> tuple[list[dict[str, str]], str]:
+def _parse_scenes_json(text: str, count: int) -> dict[int, str]:
+    match = re.search(r"\{[\s\S]*\}", text)
+    raw = match.group(0) if match else text
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    items = []
+    if isinstance(data, dict):
+        items = data.get("scenes") or data.get("slides") or []
+        if isinstance(data.get("image_scene"), str) and count == 1:
+            return {1: data["image_scene"].strip()[:800]}
+    elif isinstance(data, list):
+        items = data
+    out: dict[int, str] = {}
+    for i, item in enumerate(items):
+        if not isinstance(item, dict):
+            continue
+        idx = int(item.get("i") or item.get("index") or (i + 1))
+        scene = str(item.get("image_scene") or item.get("visual") or "").strip()[:800]
+        if scene:
+            out[idx] = scene
+    return {k: v for k, v in out.items() if 1 <= k <= count}
+
+
+def _ensure_image_scenes(
+    slides: list[dict[str, str]],
+    *,
+    base_url: str,
+    api_key: str,
+    model: str,
+    company: str,
+) -> tuple[list[dict[str, str]], dict | None]:
+    if all((item.get("image_scene") or "").strip() for item in slides):
+        return slides, None
+    payload = [
+        {"i": i + 1, "headline": item.get("headline") or "", "body": (item.get("body") or "")[:240]}
+        for i, item in enumerate(slides)
+    ]
+    system = (
+        "You assign a visual to each Instagram carousel slide from the product/service, not from a people-photo default. "
+        'Reply ONLY with JSON: {"scenes":[{"i":1,"image_scene":"..."}]}. '
+        f"{IMAGE_SCENE_SPEC}"
+    )
+    user = f"{company}\n\nSlides:\n{json.dumps(payload, ensure_ascii=False)}"
+    raw, usage = _openai_chat_json(
+        base_url=base_url, api_key=api_key, model=model, system=system, user=user
+    )
+    scenes = _parse_scenes_json(raw, len(slides))
+    for i, item in enumerate(slides):
+        if not (item.get("image_scene") or "").strip() and scenes.get(i + 1):
+            item["image_scene"] = scenes[i + 1]
+    return slides, usage
+
+
+def _chat_one_image_scene(
+    *,
+    base_url: str,
+    api_key: str,
+    model: str,
+    company: str,
+    headline: str,
+    body: str,
+) -> tuple[str, dict]:
+    system = (
+        "You pick one visual for an Instagram slide from the product/service. "
+        f'Reply ONLY with JSON: {{"image_scene":"..."}}. {IMAGE_SCENE_SPEC}'
+    )
+    user = (
+        f"{company}\n\n"
+        f"Slide headline (do not paint as text): {headline}\n"
+        f"Slide message (do not paint as text): {body}\n"
+        "Write image_scene."
+    )
+    raw, usage = _openai_chat_json(
+        base_url=base_url, api_key=api_key, model=model, system=system, user=user
+    )
+    scenes = _parse_scenes_json(raw, 1)
+    scene = scenes.get(1) or ""
+    if not scene:
+        try:
+            data = json.loads(raw)
+            if isinstance(data, dict):
+                scene = str(data.get("image_scene") or "")[:800]
+        except json.JSONDecodeError:
+            scene = ""
+    return scene.strip(), usage
+
+
+def _fallback_slides(
+    brief: str,
+    slide_count: int,
+    language: str,
+    *,
+    title: str = "",
+    cta_instruction: str = "",
+    hook_structure: bool = True,
+) -> tuple[list[dict[str, str]], str]:
     idea = (brief or title or "").strip()
     es = not language.startswith("en")
     hook = "Gancho" if es else "Hook"
-    cta = "Escríbenos hoy" if es else "Message us today"
+    enganche = "Enganche" if es else "Stay with this"
+    cta = (cta_instruction or "").strip()[:180] or ("Escríbenos hoy" if es else "Message us today")
     parts = [p.strip() for p in re.split(r"[.\n;•]+", idea) if p.strip()]
     while len(parts) < max(1, slide_count - 2):
         parts.append(idea or ("Beneficio clave" if es else "Key benefit"))
@@ -187,9 +302,12 @@ def _fallback_slides(brief: str, slide_count: int, language: str, *, title: str 
     ]
     for i in range(1, slide_count - 1):
         chunk = parts[min(i, len(parts) - 1)]
+        is_enganche = hook_structure and i == 1
         slides.append(
             {
-                "headline": (chunk[:60] if chunk else (f"Punto {i + 1}" if es else f"Point {i + 1}")),
+                "headline": (
+                    f"{enganche}: {chunk[:50]}" if is_enganche and chunk else (chunk[:60] if chunk else (f"Punto {i + 1}" if es else f"Point {i + 1}"))
+                ),
                 "body": (chunk[:320] if chunk else idea[:320])
                 or (f"Desarrolla el beneficio {i + 1}." if es else f"Expand benefit {i + 1}."),
                 "cta": "",
@@ -281,17 +399,22 @@ def _generate_one_slide_image(
     company: str = "",
     product_image: bytes | None = None,
     product_mime: str | None = None,
+    brand_logo: bytes | None = None,
+    brand_logo_mime: str | None = None,
+    brand_name: str = "",
 ) -> tuple[bytes | None, str | None, str | None, str, dict]:
     """Return (bytes, mime, error, prompt_used, usage)."""
-    prompt = (custom_prompt or "").strip() or _slide_image_prompt(
-        item=item,
-        primary=primary,
-        secondary=secondary,
-        description=description,
-        related_only=related_only,
-        company=company,
-        has_product=bool(product_image),
-    )
+    prompt = (custom_prompt or "").strip()
+    if not prompt or _is_legacy_generic_style_prompt(prompt):
+        prompt = _slide_image_prompt(
+            item=item,
+            primary=primary,
+            secondary=secondary,
+            description=description,
+            related_only=related_only,
+            company=company,
+            has_product=bool(product_image),
+        )
     prompt = prompt[:3500]
     if product_image and "product photo" not in prompt.lower() and "foto de producto" not in prompt.lower():
         prompt = (
@@ -305,7 +428,31 @@ def _generate_one_slide_image(
         product_image=product_image,
         product_mime=product_mime,
     )
+    if data:
+        try:
+            data, mime = apply_brand_mark(
+                data,
+                logo_bytes=brand_logo,
+                logo_mime=brand_logo_mime,
+                brand_name=brand_name,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("brand mark composite failed: %s", exc)
     return data, mime, err, prompt, usage
+
+
+def _is_legacy_generic_style_prompt(prompt: str) -> bool:
+    """Old auto prompts forced glass cubes on every slide; rebuild those."""
+    lowered = (prompt or "").lower()
+    return (
+        "frosted cubes" in lowered
+        or "glassmorphism 3d" in lowered
+        or "headline:" in lowered
+        or "illustrate this slide" in lowered
+        or "message:" in lowered
+        or "photorealistic vertical 4:5 photograph" in lowered
+        or "photograph a concrete real-world scene" in lowered
+    )
 
 
 def _slide_image_prompt(
@@ -318,33 +465,39 @@ def _slide_image_prompt(
     company: str = "",
     has_product: bool = False,
 ) -> str:
-    headline = (item.get("headline") or "").strip()[:180]
-    body = (item.get("body") or "").strip()[:500]
-    cta = (item.get("cta") or "").strip()[:120]
-    desc = (description or body or headline).strip()[:400]
-    company_snip = (company or "").strip()[:1600]
+    scene = (item.get("image_scene") or "").strip()[:800]
+    desc = (description or "").strip()[:400]
+    company_snip = (company or "").strip()[:700]
     style = (
-        "Finished Instagram carousel advertisement, vertical 4:5. "
-        "Interpret the headline and body as the creative brief for a complete ad — not a generic wallpaper. "
-        "Premium digital photography mixed with glassmorphism 3D (frosted cubes, cyan neon, white/light-gray). "
-        "Cinematic lighting, bright and airy. Leave empty copy space in the upper third. "
-        "Do NOT render headline, body or CTA as text in the image. No watermarks, no fake phone UI. "
+        "Vertical 4:5 Instagram carousel visual. "
+        "Pick the medium from the product or service — environment, objects/still-life, people, "
+        "photo, 3D, animation still, cartoon, or illustration. "
+        "Do not default to people or photorealism if another medium fits the offer better. "
+        "Only the picture — no headline, no caption, no CTA, no slogan, no watermark, no fake phone UI. "
+        "Zero text in the pixels: no letters, numbers, posters, signs, or invented logos "
+        "(the real brand mark is added later). "
+        "Forbidden: generic glass cubes, neon grids, empty gradients unrelated to the offer. "
         f"Brand accents {primary} and {secondary} as small highlights only."
     )
-    meaning = (
-        f"HEADLINE: {headline or '(none)'}\n"
-        f"MESSAGE: {body or desc}\n"
-        f"CTA: {cta or '(none)'}\n"
-        f"Company knowledge:\n{company_snip or desc}"
-    )
     if related_only:
-        meaning = f"Visual metaphor for this business: {desc}\nCompany:\n{company_snip or desc}"
+        meaning = (
+            "One visual of this product or service. Choose medium from the offer "
+            f"(not automatically people): {desc or company_snip or 'the offer'}."
+        )
+    elif scene:
+        meaning = f"Visual (chosen from the product/service):\n{scene}"
+    else:
+        meaning = (
+            "Invent one visual that expresses this product or service. "
+            "Choose the medium that fits (objects, place, people, cartoon, animation, photo, etc.). "
+            f"Offer/context: {company_snip or desc or 'the offer'}."
+        )
     product = ""
     if has_product:
         product = (
             " A real product photo is attached. Isolate the product (remove the original background), "
-            "clean, color-correct and sharpen it, then composite it as the hero of this ad on a new scene "
-            "that matches the interpreted message. Keep the product recognizable."
+            "clean, color-correct and sharpen it, then composite it as the hero of this visual. "
+            "Keep the product recognizable. Still no text or invented logos."
         )
     return f"{style}\n{meaning}{product}"
 
@@ -359,6 +512,7 @@ def generate_carousel_content(
     with_images: bool = True,
     interpret_prompt: bool | None = None,
     ensure_min_image: bool = True,
+    include_approved: bool = False,
 ) -> Carousel:
     carousel.generating_at = now_utc()
     db.add(carousel)
@@ -375,6 +529,7 @@ def generate_carousel_content(
             with_images=with_images,
             interpret_prompt=interpret_prompt,
             ensure_min_image=ensure_min_image,
+            include_approved=include_approved,
             notes=notes,
         )
     finally:
@@ -391,6 +546,20 @@ def generate_carousel_content(
     return result
 
 
+def _approved_continuity_prompt(slides: list[CarouselSlide], replace_positions: list[int]) -> str:
+    kept = "\n".join(
+        f"#{s.position} HEADLINE: {s.headline} | BODY: {s.body} | CTA: {s.cta or '—'}"
+        for s in sorted(slides, key=lambda row: row.position)
+    )
+    positions = ", ".join(str(p) for p in replace_positions)
+    return (
+        "Approved slides that MUST stay unchanged (do not rewrite or duplicate them):\n"
+        f"{kept}\n"
+        f"Generate ONLY {len(replace_positions)} new slides for positions {positions}, in that order. "
+        "They must fit the same carousel story."
+    )
+
+
 def _generate_carousel_content_impl(
     db: Session,
     carousel: Carousel,
@@ -401,16 +570,46 @@ def _generate_carousel_content_impl(
     with_images: bool,
     interpret_prompt: bool | None,
     ensure_min_image: bool,
+    include_approved: bool,
     notes: list[str],
 ) -> Carousel:
     language = carousel.language or "es"
-    slide_count = max(3, min(carousel.slide_count or 8, 12))
+    full_count = max(3, min(carousel.slide_count or 7, 12))
     interpret = carousel.interpret_prompt if interpret_prompt is None else interpret_prompt
     carousel.interpret_prompt = bool(interpret)
+    hook_structure = bool(getattr(carousel, "hook_structure", True))
+    content_goal = getattr(carousel, "content_goal", None) or "loyalty"
+    cta_instruction = (getattr(carousel, "cta_instruction", None) or "").strip()
+    playbook = playbook_prompt(
+        content_type="CAROUSEL",
+        content_goal=content_goal,
+        cta_instruction=cta_instruction,
+        hook_structure=hook_structure,
+        slide_count=full_count,
+    )
 
     idea = (carousel.title or "").strip()
     brief = (carousel.brief or "").strip() or idea
     company = gather_company_context(db, client, f"{idea}\n{brief}") if interpret else _brand_context(client)
+
+    existing_slides = list(carousel.slides)
+    keep_approved = bool(regenerate and existing_slides and not include_approved)
+    kept_slides = [s for s in existing_slides if s.agency_status == "agency_ok"] if keep_approved else []
+    kept_positions = {s.position for s in kept_slides}
+    target_count = max(full_count, max((s.position for s in kept_slides), default=0))
+    replace_positions = [p for p in range(1, target_count + 1) if p not in kept_positions]
+    generate_count = len(replace_positions) if keep_approved else full_count
+
+    if keep_approved and not replace_positions:
+        notes.append("All slides are already approved; none were regenerated.")
+        return carousel
+
+    continuity = _approved_continuity_prompt(kept_slides, replace_positions) if keep_approved else ""
+    count_rule = (
+        f"Language: {language}. Exactly {generate_count} slides"
+        + (f" for positions {', '.join(str(p) for p in replace_positions)}" if keep_approved else "")
+        + "."
+    )
 
     if interpret:
         system = (
@@ -419,17 +618,19 @@ def _generate_carousel_content_impl(
             "Example intent: «Toma las principales funcionalidades de lo que hace la empresa» → extract real features from company context. "
             "Example intent: «Promoción del día» → invent a concrete promo grounded in products/services from context. "
             "Reply ONLY with JSON: "
-            '{"caption":"...","slides":[{"headline":"...","body":"...","cta":"..."}]} . '
-            f"Language: {language}. Exactly {slide_count} slides. "
+            f"{SLIDE_JSON_SHAPE} . "
+            f"{count_rule} "
             "Rules: (1) Do NOT paste the intent verbatim on every slide. "
-            "(2) Slide 1 = hook. (3) Middle = distinct real points from company knowledge. "
-            "(4) Last = CTA. (5) Headlines ≤ 8 words. (6) caption with 3–6 hashtags."
+            f"(2) {playbook} "
+            "(3) Headlines ≤ 8 words. (4) caption with 3–6 hashtags. "
+            f"(5) Every slide MUST include image_scene. {IMAGE_SCENE_SPEC}"
         )
         user_prompt = (
             f"{company}\n\n"
             f"Intent / title: {idea}\n"
             f"Intent / brief: {brief}\n"
-            "Interpret the intent with the company knowledge above and generate the carousel."
+            + (f"{continuity}\n" if continuity else "")
+            + "Interpret the intent with the company knowledge above and generate the carousel."
         )
     else:
         system = (
@@ -437,15 +638,18 @@ def _generate_carousel_content_impl(
             "Do not invent products or features beyond what the user wrote. "
             "You may split/shorten for slide fit, but keep the wording faithful. "
             "Reply ONLY with JSON: "
-            '{"caption":"...","slides":[{"headline":"...","body":"...","cta":"..."}]} . '
-            f"Language: {language}. Exactly {slide_count} slides. "
-            "Slide 1 uses the title/hook; last slide may add a short CTA if missing."
+            f"{SLIDE_JSON_SHAPE} . "
+            f"{count_rule} "
+            f"{playbook} "
+            "Slide 1 uses the title/hook; last slide may add a short CTA if missing. "
+            f"Every slide MUST include image_scene. {IMAGE_SCENE_SPEC}"
         )
         user_prompt = (
             f"{_brand_context(client)}\n"
             f"EXACT title: {idea}\n"
             f"EXACT brief/body: {brief}\n"
-            "Format into slides without changing meaning."
+            + (f"{continuity}\n" if continuity else "")
+            + "Format into slides without changing meaning."
         )
 
     slides_data: list[dict[str, str]]
@@ -467,8 +671,8 @@ def _generate_carousel_content_impl(
                 system=system,
                 user=user_prompt,
             )
-            slides_data, new_caption = _parse_slides_json(raw, slide_count)
-            if new_caption:
+            slides_data, new_caption = _parse_slides_json(raw, generate_count)
+            if new_caption and not keep_approved:
                 caption = new_caption
             notes.append(f"Copy generated with {PROVIDERS[provider]['label']} ({model}).")
             usage_rows.append(
@@ -481,25 +685,78 @@ def _generate_carousel_content_impl(
                     label="copy",
                 )
             )
+            try:
+                slides_data, scene_usage = _ensure_image_scenes(
+                    slides_data,
+                    base_url=base_url,
+                    api_key=chat_key,
+                    model=model,
+                    company=company,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("image_scene fill failed: %s", exc)
+                scene_usage = None
+            if scene_usage:
+                usage_rows.append(
+                    usage_entry(
+                        kind="copy",
+                        provider=provider,
+                        model=model,
+                        input_tokens=scene_usage.get("input_tokens", 0),
+                        output_tokens=scene_usage.get("output_tokens", 0),
+                        label="image scenes",
+                    )
+                )
+                notes.append("Slide visuals chosen from product/service (not a people-photo default).")
         except HTTPException as exc:
-            slides_data, caption = _fallback_slides(brief, slide_count, language, title=idea)
+            slides_data, new_caption = _fallback_slides(
+                brief, generate_count, language, title=idea, cta_instruction=cta_instruction, hook_structure=hook_structure
+            )
+            if not keep_approved:
+                caption = new_caption
             used_fallback = True
             notes.append(f"Chat provider failed ({exc.detail}); used template fallback.")
     else:
-        slides_data, caption = _fallback_slides(brief, slide_count, language, title=idea)
+        slides_data, new_caption = _fallback_slides(
+            brief, generate_count, language, title=idea, cta_instruction=cta_instruction, hook_structure=hook_structure
+        )
+        if not keep_approved:
+            caption = new_caption
         used_fallback = True
         notes.append(
             "No chat provider key found. Configure Kimi (Moonshot), DeepSeek, or OpenAI in Settings → Providers. "
             "Used template fallback (looks unchanged)."
         )
 
-    if regenerate or carousel.slides:
-        kept_products = {
-            s.position: (s.product_image_data, s.product_image_mime)
-            for s in carousel.slides
-            if s.product_image_data and s.product_image_mime
-        }
-        for slide in list(carousel.slides):
+    if keep_approved:
+        slides_data = slides_data[: len(replace_positions)]
+        while len(slides_data) < len(replace_positions):
+            n = len(slides_data) + 1
+            slides_data.append({"headline": f"Punto {n}", "body": "Completa este slide con tu mensaje.", "cta": ""})
+        position_items = list(zip(replace_positions, slides_data))
+    else:
+        position_items = [(i + 1, item) for i, item in enumerate(slides_data)]
+
+    position_items = [
+        (
+            pos,
+            assign_slide_cta(
+                dict(item),
+                position=pos,
+                total=target_count,
+                cta_instruction=cta_instruction,
+            ),
+        )
+        for pos, item in position_items
+    ]
+
+    if regenerate or existing_slides:
+        kept_products: dict[int, tuple[bytes, str]] = {}
+        for slide in existing_slides:
+            if keep_approved and slide.agency_status == "agency_ok":
+                continue
+            if slide.product_image_data and slide.product_image_mime:
+                kept_products[slide.position] = (slide.product_image_data, slide.product_image_mime)
             db.delete(slide)
         db.flush()
     else:
@@ -509,34 +766,36 @@ def _generate_carousel_content_impl(
     secondary = client.brand_secondary_color or "#0f172a"
     description_for_image = brief or idea or client.description or client.name
     company_for_image = (company if interpret else _brand_context(client))[:1600]
-    want_images = with_images or ensure_min_image
+    kept_has_image = any(s.image_mime for s in kept_slides)
+    want_images = with_images or (ensure_min_image and not kept_has_image)
     image_slots = 0
     skipped_product_edit = False
     if want_images and image_backend:
-        image_slots = len(slides_data) if with_images else 1
-        image_slots = max(image_slots, 1 if ensure_min_image else 0)
+        image_slots = len(position_items) if with_images else 1
+        image_slots = max(image_slots, 1 if (ensure_min_image and not kept_has_image) else 0)
     elif want_images and not image_backend:
         notes.append(
-            "No image backend is ready. Set IMAGE_PROVIDER=flux (local Flux Schnell sidecar), "
-            "IMAGE_PROVIDER=placeholder (free test PNGs), or add an OpenAI key in Settings → Providers. "
+            "No image backend is ready. Set IMAGE_PROVIDER=huggingface with HF_TOKEN, "
+            "IMAGE_PROVIDER=flux (local Flux Schnell sidecar), IMAGE_PROVIDER=placeholder "
+            "(free test PNGs), or add an OpenAI key in Settings → Providers. "
             "Kimi/DeepSeek only generate text. Video is not used for Instagram carousels."
         )
 
     images_ok = 0
     image_errors: list[str] = []
-    generated_by_index: dict[int, tuple[bytes | None, str | None, str | None, str, dict]] = {}
+    generated_by_position: dict[int, tuple[bytes | None, str | None, str | None, str, dict]] = {}
 
     if image_backend and image_slots > 0:
         jobs = []
-        for i, item in enumerate(slides_data):
-            if i >= image_slots:
+        for job_i, (position, item) in enumerate(position_items):
+            if job_i >= image_slots:
                 break
-            product = kept_products.get(i + 1)
+            product = kept_products.get(position)
             jobs.append(
                 (
-                    i,
+                    position,
                     item,
-                    not with_images and i == 0,
+                    not with_images and job_i == 0,
                     product[0] if product else None,
                     product[1] if product else None,
                 )
@@ -555,17 +814,20 @@ def _generate_carousel_content_impl(
                     company=company_for_image,
                     product_image=product_bytes,
                     product_mime=product_mime,
-                ): idx
-                for idx, item, related_only, product_bytes, product_mime in jobs
+                    brand_logo=client.brand_logo_data,
+                    brand_logo_mime=client.brand_logo_mime,
+                    brand_name=client.name,
+                ): position
+                for position, item, related_only, product_bytes, product_mime in jobs
             }
             for fut in as_completed(futures):
-                idx = futures[fut]
+                position = futures[fut]
                 try:
                     data, mime, err, prompt_used, img_usage = fut.result()
                 except Exception as exc:  # noqa: BLE001
-                    image_errors.append(f"slide {idx + 1}: {exc!s}"[:160])
+                    image_errors.append(f"slide {position}: {exc!s}"[:160])
                     continue
-                generated_by_index[idx] = (data, mime, err, prompt_used, img_usage)
+                generated_by_position[position] = (data, mime, err, prompt_used, img_usage)
                 if img_usage.get("skipped_product_edit"):
                     skipped_product_edit = True
                 if data:
@@ -576,14 +838,14 @@ def _generate_carousel_content_impl(
                             model=img_usage.get("model") or image_backend.model,
                             input_tokens=img_usage.get("input_tokens", 0),
                             output_tokens=img_usage.get("output_tokens", 0),
-                            label=f"slide {idx + 1}",
+                            label=f"slide {position}",
                         )
                     )
                 elif err:
-                    image_errors.append(f"slide {idx + 1}: {err}")
-                    logger.warning("carousel_image_failed index=%s err=%s", idx, err)
+                    image_errors.append(f"slide {position}: {err}")
+                    logger.warning("carousel_image_failed position=%s err=%s", position, err)
 
-    for i, item in enumerate(slides_data):
+    for position, item in position_items:
         layout = {
             "format": "1080x1350",
             "primary": primary,
@@ -596,9 +858,9 @@ def _generate_carousel_content_impl(
         image_mime = None
         image_prompt = None
         image_error = None
-        product = kept_products.get(i + 1)
-        if i in generated_by_index:
-            image_data, image_mime, image_error, image_prompt, _img_usage = generated_by_index[i]
+        product = kept_products.get(position)
+        if position in generated_by_position:
+            image_data, image_mime, image_error, image_prompt, _img_usage = generated_by_position[position]
             if image_data:
                 images_ok += 1
                 image_error = None
@@ -608,13 +870,13 @@ def _generate_carousel_content_impl(
                 primary=primary,
                 secondary=secondary,
                 description=description_for_image,
-                related_only=not with_images and i == 0,
+                related_only=not with_images and position == position_items[0][0],
                 company=company_for_image,
                 has_product=bool(product),
             )
         slide = CarouselSlide(
             carousel_id=carousel.id,
-            position=i + 1,
+            position=position,
             headline=item["headline"],
             body=item["body"],
             cta=item.get("cta") or "",
@@ -630,6 +892,9 @@ def _generate_carousel_content_impl(
         )
         db.add(slide)
 
+    if keep_approved:
+        notes.append(f"Kept {len(kept_slides)} approved slide(s); regenerated {len(position_items)}.")
+
     if image_slots and images_ok == 0:
         tip = image_errors[0] if image_errors else f"Check image backend ({backend_label(image_backend) if image_backend else 'none'})."
         notes.append(f"No slide images generated. {tip}")
@@ -643,7 +908,7 @@ def _generate_carousel_content_impl(
             notes.append(f"{len(image_errors)} image(s) failed (first: {image_errors[0]})")
 
     carousel.caption = caption
-    carousel.slide_count = len(slides_data)
+    carousel.slide_count = target_count if keep_approved else len(slides_data)
     carousel.status = "draft"
     carousel.updated_at = now_utc()
     usage = persist_usage_rows(db, user.agency_id, usage_rows)
@@ -659,7 +924,9 @@ def _generate_carousel_content_impl(
         actor_id=user.id,
         action="generate",
         payload={
-            "slides": len(slides_data),
+            "slides": len(position_items),
+            "kept_approved": len(kept_slides),
+            "include_approved": include_approved,
             "interpret_prompt": interpret,
             "images": images_ok,
             "with_images": with_images,
@@ -670,6 +937,7 @@ def _generate_carousel_content_impl(
         },
     )
     db.commit()
+    db.expire(carousel, ["slides"])
     db.refresh(carousel)
     setattr(carousel, "_generation_notes", notes)
     setattr(carousel, "_generation_usage", usage)
@@ -740,6 +1008,16 @@ def _regenerate_carousel_slide_impl(
     total = max(len(carousel.slides), carousel.slide_count or 1)
     position = slide.position
     company = gather_company_context(db, client, f"{idea}\n{brief}") if interpret else _brand_context(client)
+    hook_structure = bool(getattr(carousel, "hook_structure", True))
+    content_goal = getattr(carousel, "content_goal", None) or "loyalty"
+    cta_instruction = (getattr(carousel, "cta_instruction", None) or "").strip()
+    playbook = playbook_prompt(
+        content_type="CAROUSEL",
+        content_goal=content_goal,
+        cta_instruction=cta_instruction,
+        hook_structure=hook_structure,
+        slide_count=total,
+    )
 
     siblings = "\n".join(
         f"- Slide {s.position}: {s.headline} — {(s.body or '')[:120]}"
@@ -747,12 +1025,9 @@ def _regenerate_carousel_slide_impl(
         if s.id != slide.id
     )
 
-    if position <= 1:
-        role_hint = "This is slide 1 (hook)."
-    elif position >= total:
-        role_hint = f"This is the last slide ({position}/{total}) with a strong CTA."
-    else:
-        role_hint = f"This is middle slide {position}/{total} — one distinct point, not a repeat."
+    role_hint = slide_role_hint(
+        position, total, hook_structure=hook_structure, cta_instruction=cta_instruction
+    )
 
     slide_data: dict[str, str] = {
         "headline": slide.headline or "",
@@ -764,8 +1039,11 @@ def _regenerate_carousel_slide_impl(
         if interpret:
             system = (
                 "You rewrite ONE Instagram carousel slide. The carousel brief is an INTENT. "
-                "Reply ONLY with JSON: {\"headline\":\"...\",\"body\":\"...\",\"cta\":\"...\"} . "
-                f"Language: {language}. Headline ≤ 8 words. Do not copy other slides verbatim."
+                "Reply ONLY with JSON: "
+                f"{ONE_SLIDE_JSON_SHAPE} . "
+                f"Language: {language}. Headline ≤ 8 words. Do not copy other slides verbatim. "
+                f"{playbook} "
+                f"Include image_scene. {IMAGE_SCENE_SPEC}"
             )
             user_prompt = (
                 f"{company}\n\n"
@@ -776,8 +1054,11 @@ def _regenerate_carousel_slide_impl(
         else:
             system = (
                 "You rewrite ONE Instagram carousel slide using the exact carousel title/brief. "
-                "Reply ONLY with JSON: {\"headline\":\"...\",\"body\":\"...\",\"cta\":\"...\"} . "
-                f"Language: {language}. Keep meaning faithful; you may shorten for slide fit."
+                "Reply ONLY with JSON: "
+                f"{ONE_SLIDE_JSON_SHAPE} . "
+                f"Language: {language}. Keep meaning faithful; you may shorten for slide fit. "
+                f"{playbook} "
+                f"Include image_scene. {IMAGE_SCENE_SPEC}"
             )
             user_prompt = (
                 f"{_brand_context(client)}\n"
@@ -815,12 +1096,20 @@ def _regenerate_carousel_slide_impl(
             except Exception as exc:  # noqa: BLE001
                 raise HTTPException(status_code=400, detail=f"Slide copy generation failed: {exc!s}") from exc
         else:
-            fallback_slides, _ = _fallback_slides(brief, total, language, title=idea)
+            fallback_slides, _ = _fallback_slides(
+                brief, total, language, title=idea, cta_instruction=cta_instruction, hook_structure=hook_structure
+            )
             slide_data = fallback_slides[min(position - 1, len(fallback_slides) - 1)]
             notes.append("No chat provider — used template fallback for this slide.")
 
         slide.headline = slide_data["headline"]
         slide.body = slide_data["body"]
+        assign_slide_cta(
+            slide_data,
+            position=position,
+            total=total,
+            cta_instruction=cta_instruction,
+        )
         slide.cta = slide_data.get("cta") or ""
         slide.agency_status = "pending"
         slide.client_status = "pending"
@@ -845,6 +1134,38 @@ def _regenerate_carousel_slide_impl(
     custom = (custom or "").strip() or None
     company_for_image = gather_company_context(db, client, f"{idea}\n{brief}\n{slide_data.get('headline','')}\n{slide_data.get('body','')}") if interpret else _brand_context(client)
 
+    if with_images and (not custom or _is_legacy_generic_style_prompt(custom)):
+        chat = resolve_chat_credentials(db, user.agency_id)
+        if chat and not (slide_data.get("image_scene") or "").strip():
+            provider, base_url, chat_key = chat
+            model = CHAT_MODELS.get(provider, "deepseek-chat")
+            try:
+                scene, scene_usage = _chat_one_image_scene(
+                    base_url=base_url,
+                    api_key=chat_key,
+                    model=model,
+                    company=company_for_image[:1600],
+                    headline=slide_data.get("headline") or "",
+                    body=slide_data.get("body") or "",
+                )
+                if scene:
+                    slide_data["image_scene"] = scene
+                    custom = None
+                    usage_rows.append(
+                        usage_entry(
+                            kind="copy",
+                            provider=provider,
+                            model=model,
+                            input_tokens=scene_usage.get("input_tokens", 0),
+                            output_tokens=scene_usage.get("output_tokens", 0),
+                            label=f"slide {position} scene",
+                        )
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("single-slide image_scene failed: %s", exc)
+        elif _is_legacy_generic_style_prompt(custom or ""):
+            custom = None
+
     image_backend = resolve_image_backend(db, user.agency_id)
     if with_images and image_backend:
         data, mime, err, prompt_used, img_usage = _generate_one_slide_image(
@@ -858,6 +1179,9 @@ def _regenerate_carousel_slide_impl(
             company=company_for_image[:1600],
             product_image=slide.product_image_data,
             product_mime=slide.product_image_mime,
+            brand_logo=client.brand_logo_data,
+            brand_logo_mime=client.brand_logo_mime,
+            brand_name=client.name,
         )
         slide.image_prompt = prompt_used
         if data:
@@ -894,7 +1218,8 @@ def _regenerate_carousel_slide_impl(
             has_product=bool(slide.product_image_data),
         )
         notes.append(
-            "No image backend is ready. Set IMAGE_PROVIDER=flux or add an OpenAI key. Text/prompt was updated."
+            "No image backend is ready. Set IMAGE_PROVIDER=huggingface with HF_TOKEN, "
+            "IMAGE_PROVIDER=flux, or add an OpenAI key. Text/prompt was updated."
         )
     elif custom is not None:
         slide.image_prompt = custom

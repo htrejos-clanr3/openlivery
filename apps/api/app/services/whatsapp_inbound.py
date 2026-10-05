@@ -105,6 +105,7 @@ async def process_inbound(
     if existing:
         return InboundResult(accepted=False, conversation_id=existing.conversation_id)
 
+    created = False
     conversation = db.scalar(
         select(Conversation)
         .options(selectinload(Conversation.messages))
@@ -127,6 +128,7 @@ async def process_inbound(
         )
         db.add(conversation)
         db.flush()
+        created = True
     elif inbound.sender_name:
         conversation.contact_name = inbound.sender_name
 
@@ -142,6 +144,40 @@ async def process_inbound(
     conversation.updated_at = now_utc()
     db.add(visitor_message)
     db.commit()
+    from .lead_capture import phone_from_chat_id, safe_capture, safe_touch_open_lead, source_from_channel
+
+    source = source_from_channel(conversation_channel)
+    phone = phone_from_chat_id(inbound.external_chat_id)
+    if created:
+        safe_capture(
+            db,
+            agency_id=channel.agency_id,
+            client_id=channel.client_id,
+            source=source,
+            name=inbound.sender_name,
+            phone=phone,
+            channel_identifier=inbound.external_chat_id,
+            conversation_id=conversation.id,
+            text=content[:500],
+            trigger="new_contact",
+            extra={"text": content[:500]},
+            payload={
+                "name": inbound.sender_name,
+                "phone": phone,
+                "channel_identifier": inbound.external_chat_id,
+            },
+        )
+    else:
+        safe_touch_open_lead(
+            db,
+            agency_id=channel.agency_id,
+            client_id=channel.client_id,
+            source=source,
+            name=inbound.sender_name,
+            phone=phone,
+            channel_identifier=inbound.external_chat_id,
+            conversation_id=conversation.id,
+        )
     if conversation.mode == "human":
         return InboundResult(accepted=True, conversation_id=conversation.id, mode="human")
 

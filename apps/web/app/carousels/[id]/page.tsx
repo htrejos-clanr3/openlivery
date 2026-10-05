@@ -3,15 +3,16 @@
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { LoaderCircle } from "lucide-react";
+import { Check, LoaderCircle, X } from "lucide-react";
 import { api, messageFrom } from "@/lib/api";
 import { useCarouselGeneration } from "@/lib/carousel-generation-context";
 import { useT } from "@/lib/i18n";
-import { Alert, PageHead } from "@/components/ui";
+import { Alert, Modal, PageHead } from "@/components/ui";
 import { CarouselSlidePreview } from "@/components/carousel-slide-preview";
 import { CarouselImageCostAlert } from "@/components/carousel-image-cost-alert";
 import { FileDropzone } from "@/components/file-dropzone";
 import { AuthenticatedImage } from "@/components/authenticated-image";
+import { FormatPlaybookFields, type FormatPlaybookValue } from "@/components/format-playbook-fields";
 import type { Carousel, CarouselSlide } from "@/types";
 
 export default function CarouselDetailPage() {
@@ -27,14 +28,25 @@ export default function CarouselDetailPage() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ headline: "", body: "", cta: "", imagePrompt: "" });
   const [interpretPrompt, setInterpretPrompt] = useState(true);
+  const [playbook, setPlaybook] = useState<FormatPlaybookValue>({
+    contentGoal: "loyalty",
+    ctaInstruction: "",
+    hookStructure: true,
+  });
   const [withImages, setWithImages] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [generatingSeconds, setGeneratingSeconds] = useState(0);
+  const [regenAsk, setRegenAsk] = useState(false);
 
   async function load() {
     const data = await api<Carousel>(`/carousels/${params.id}`);
     setCarousel(data);
     setInterpretPrompt(data.interpret_prompt !== false);
+    setPlaybook({
+      contentGoal: data.content_goal === "reach" || data.content_goal === "convert" ? data.content_goal : "loyalty",
+      ctaInstruction: data.cta_instruction || "",
+      hookStructure: data.hook_structure !== false,
+    });
     setSelectedId((current) => {
       if (current && data.slides.some((s) => s.id === current)) return current;
       return data.slides[0]?.id ?? null;
@@ -219,12 +231,27 @@ export default function CarouselDetailPage() {
     await run(`/carousels/${params.id}/schedule`, { scheduled_at: when.toISOString() });
   }
 
+  function generateBody(includeApproved: boolean) {
+    return {
+      with_images: withImages,
+      interpret_prompt: interpretPrompt,
+      ensure_min_image: true,
+      include_approved: includeApproved,
+      content_goal: playbook.contentGoal,
+      cta_instruction: playbook.ctaInstruction.trim(),
+      hook_structure: playbook.hookStructure,
+    };
+  }
+
   if (!carousel) return <div className="page"><p>{t("common.loading")}</p></div>;
 
   const previewHeadline = editing ? draft.headline : selected?.headline || "";
   const previewBody = editing ? draft.body : selected?.body || "";
   const previewCta = editing ? draft.cta : selected?.cta || "";
   const total = carousel.slides.length || carousel.slide_count || 1;
+  const approvedCount = carousel.slides.filter((slide) => slide.agency_status === "agency_ok").length;
+  const allApproved = total > 0 && approvedCount === carousel.slides.length;
+  const isDraft = carousel.status === "draft";
 
   return (
     <div className="page">
@@ -240,22 +267,37 @@ export default function CarouselDetailPage() {
             <button
               className="button secondary"
               disabled={busy}
-              onClick={() =>
-                run(`/carousels/${params.id}/generate`, {
-                  with_images: withImages,
-                  interpret_prompt: interpretPrompt,
-                  ensure_min_image: true,
-                })
-              }
+              onClick={() => {
+                if (approvedCount > 0) {
+                  setRegenAsk(true);
+                  return;
+                }
+                run(`/carousels/${params.id}/generate`, generateBody(false));
+              }}
             >
               {busy && <LoaderCircle className="spin" size={16} />}
               {t("carousels.detail.regenerate")}
             </button>
-            {carousel.status === "draft" && (
-              <button className="button primary" disabled={busy} onClick={() => run(`/carousels/${params.id}/submit-review`)}>
-                {t("carousels.detail.submitReview")}
-              </button>
-            )}
+            {isDraft && carousel.slides.length > 0 ? (
+              <>
+                <button
+                  className="button secondary"
+                  type="button"
+                  disabled={busy || allApproved}
+                  onClick={() => run(`/carousels/${params.id}/agency-approve-set`)}
+                >
+                  {t("carousels.detail.agencyApproveAll")}
+                </button>
+                <button
+                  className="button primary"
+                  type="button"
+                  disabled={busy || !allApproved}
+                  onClick={() => run(`/carousels/${params.id}/submit-review`)}
+                >
+                  {t("carousels.detail.submitReview")}
+                </button>
+              </>
+            ) : null}
           </div>
         }
       />
@@ -298,6 +340,8 @@ export default function CarouselDetailPage() {
         </label>
         <CarouselImageCostAlert imageCount={withImages ? total : 1} />
         {!withImages && <small>{t("carousels.cost.minImage")}</small>}
+        <strong className="carousel-options-title">{t("carousels.detail.formatPlaybook")}</strong>
+        <FormatPlaybookFields value={playbook} onChange={setPlaybook} showSlidesHint />
       </div>
       {carousel.ig_media_id && (
         <p><strong>{t("carousels.detail.igMediaId")}:</strong> {carousel.ig_media_id}</p>
@@ -349,28 +393,61 @@ export default function CarouselDetailPage() {
 
       {carousel.slides.length > 0 && (
         <div className="carousel-strip" role="list">
-          {carousel.slides.map((slide) => (
-            <button
-              key={slide.id}
-              type="button"
-              className={`carousel-strip-item ${slide.id === selected?.id ? "active" : ""}`}
-              onClick={() => setSelectedId(slide.id)}
-              role="listitem"
-              aria-label={`Slide ${slide.position}`}
-            >
-              <CarouselSlidePreview
-                compact
-                position={slide.position}
-                total={total}
-                headline={slide.headline}
-                body={slide.body}
-                cta={slide.cta}
-                imageUrl={slide.image_url}
-                layout={slide.layout_json}
-                emptyLabel={t("carousels.detail.previewEmpty")}
-              />
-            </button>
-          ))}
+          {carousel.slides.map((slide) => {
+            const ok = slide.agency_status === "agency_ok";
+            const rejected = slide.agency_status === "rejected";
+            return (
+              <article
+                key={slide.id}
+                className={`carousel-strip-item ${slide.id === selected?.id ? "active" : ""} ${ok ? "is-ok" : ""} ${rejected ? "is-rejected" : ""}`}
+                role="listitem"
+                onClick={() => setSelectedId(slide.id)}
+              >
+                <small>
+                  #{slide.position} · {t(`carousels.slideStatus.${slide.agency_status}` as "carousels.slideStatus.pending")}
+                </small>
+                <CarouselSlidePreview
+                  compact
+                  position={slide.position}
+                  total={total}
+                  headline={slide.headline}
+                  body={slide.body}
+                  cta={slide.cta}
+                  imageUrl={slide.image_url}
+                  layout={slide.layout_json}
+                  emptyLabel={t("carousels.detail.previewEmpty")}
+                  actions={
+                    isDraft ? (
+                      <div className="carousel-strip-actions">
+                        <button
+                          className="button secondary small"
+                          type="button"
+                          disabled={busy || ok}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            run(`/carousels/${params.id}/slides/${slide.id}/agency-approve`);
+                          }}
+                        >
+                          <Check size={14} /> {t("carousels.detail.agencyApprove")}
+                        </button>
+                        <button
+                          className="button danger small"
+                          type="button"
+                          disabled={busy}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            run(`/carousels/${params.id}/slides/${slide.id}/agency-reject`);
+                          }}
+                        >
+                          <X size={14} /> {t("carousels.detail.agencyReject")}
+                        </button>
+                      </div>
+                    ) : null
+                  }
+                />
+              </article>
+            );
+          })}
         </div>
       )}
 
@@ -381,16 +458,41 @@ export default function CarouselDetailPage() {
             {selected.image_url ? "" : ` · ${t("carousels.detail.noImageHint")}`}
           </small>
           <div className="carousel-slide-layout">
-            <CarouselSlidePreview
-              position={selected.position}
-              total={total}
-              headline={previewHeadline}
-              body={previewBody}
-              cta={previewCta}
-              imageUrl={selected.image_url}
-              layout={selected.layout_json}
-              emptyLabel={t("carousels.detail.previewEmpty")}
-            />
+            <div className="carousel-slide-preview-col">
+              <CarouselSlidePreview
+                position={selected.position}
+                total={total}
+                headline={previewHeadline}
+                body={previewBody}
+                cta={previewCta}
+                caption={carousel.caption}
+                imageUrl={selected.image_url}
+                layout={selected.layout_json}
+                emptyLabel={t("carousels.detail.previewEmpty")}
+                actions={
+                  isDraft ? (
+                    <div className="carousel-preview-actions">
+                      <button
+                        className="button secondary"
+                        type="button"
+                        disabled={busy || selected.agency_status === "agency_ok"}
+                        onClick={() => run(`/carousels/${params.id}/slides/${selected.id}/agency-approve`)}
+                      >
+                        <Check size={15} /> {t("carousels.detail.agencyApprove")}
+                      </button>
+                      <button
+                        className="button danger"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => run(`/carousels/${params.id}/slides/${selected.id}/agency-reject`)}
+                      >
+                        <X size={15} /> {t("carousels.detail.agencyReject")}
+                      </button>
+                    </div>
+                  ) : null
+                }
+              />
+            </div>
             <div className="carousel-slide-editor">
               <p className="field-help">{t("carousels.detail.previewHint")}</p>
               <p className={`carousel-image-status ${selected.image_url ? "ok" : "missing"}`}>
@@ -553,22 +655,6 @@ export default function CarouselDetailPage() {
                   >
                     {t("carousels.detail.regenerateImageOnly")}
                   </button>
-                  <button
-                    className="button secondary"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => run(`/carousels/${params.id}/slides/${selected.id}/agency-approve`)}
-                  >
-                    {t("carousels.detail.agencyApprove")}
-                  </button>
-                  <button
-                    className="button danger"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => run(`/carousels/${params.id}/slides/${selected.id}/agency-reject`)}
-                  >
-                    {t("carousels.detail.agencyReject")}
-                  </button>
                 </div>
               )}
             </div>
@@ -599,6 +685,38 @@ export default function CarouselDetailPage() {
           </form>
         </div>
       )}
+      <Modal
+        open={regenAsk}
+        title={t("carousels.detail.regenerateApprovedTitle")}
+        description={t("carousels.detail.regenerateApprovedCopy", { count: approvedCount })}
+        onClose={() => setRegenAsk(false)}
+      >
+        <div className="modal-actions">
+          <button className="button ghost" type="button" onClick={() => setRegenAsk(false)}>
+            {t("carousels.detail.regenerateApprovedCancel")}
+          </button>
+          <button
+            className="button secondary"
+            type="button"
+            onClick={() => {
+              setRegenAsk(false);
+              run(`/carousels/${params.id}/generate`, generateBody(false));
+            }}
+          >
+            {t("carousels.detail.regenerateApprovedKeep")}
+          </button>
+          <button
+            className="button primary"
+            type="button"
+            onClick={() => {
+              setRegenAsk(false);
+              run(`/carousels/${params.id}/generate`, generateBody(true));
+            }}
+          >
+            {t("carousels.detail.regenerateApprovedAll")}
+          </button>
+        </div>
+      </Modal>
     </div>
   );
 }

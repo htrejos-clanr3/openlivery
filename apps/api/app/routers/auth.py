@@ -30,6 +30,7 @@ from ..services.auth_identity import (
     link_or_get_oauth,
     verify_google_id_token,
 )
+from ..services.inbox_desk import seed_default_canned
 from ..slugs import unique_slug
 
 
@@ -75,6 +76,8 @@ def register(payload: RegisterRequest, response: Response, db: Session = Depends
         password_hash=hash_password(payload.password),
     )
     db.add(user)
+    db.flush()
+    seed_default_canned(db, user.agency_id)
     db.commit()
     db.refresh(user)
     _set_session_cookie(response, user)
@@ -107,6 +110,7 @@ def google_login(payload: GoogleAuthRequest, response: Response, db: Session = D
         user = User(agency=agency, name=identity.name, email=identity.email, password_hash=None)
         db.add(user)
         db.flush()
+        seed_default_canned(db, user.agency_id)
     link_or_get_oauth(db, identity=identity, user=user)
     db.commit()
     db.refresh(user)

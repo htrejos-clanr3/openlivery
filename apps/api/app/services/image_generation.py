@@ -1,8 +1,12 @@
-"""Carousel slide image backends: OpenAI, local Flux HTTP, Ollama, placeholder.
+"""Carousel slide image backends: OpenAI, Hugging Face FLUX, local Flux, Ollama, placeholder.
 
 Ollama chat/vision models (llava, qwen2.5, llama, …) cannot generate Flux-quality
 ads. Newer Ollama builds expose experimental image models (`x/flux2-klein`,
 `x/z-image-turbo`) on macOS; this module calls those if they are installed.
+
+Hugging Face uses Inference Providers (nscale, fal-ai, …). The retired
+`hf-inference` router path is skipped (HTTP 410). Non-OpenAI providers never
+fall back to OpenAI.
 """
 
 from __future__ import annotations
@@ -24,8 +28,19 @@ logger = logging.getLogger(__name__)
 OPENAI_IMAGE_MODEL = "gpt-image-1-mini"
 OPENAI_IMAGE_MODEL_FALLBACK = "gpt-image-1"
 DEFAULT_IMAGE_SIZE = "1024x1536"
-LOCAL_IMAGE_PROVIDERS = frozenset({"flux", "ollama", "placeholder"})
+DEFAULT_HF_IMAGE_MODEL = "black-forest-labs/FLUX.1-schnell"
+HF_ROUTER = "https://router.huggingface.co"
+HF_HUB_MODEL_URL = "https://huggingface.co/api/models/{model}"
+# huggingface is remote but billed on HF credits, not OpenAI — never fall back.
+LOCAL_IMAGE_PROVIDERS = frozenset({"huggingface", "flux", "ollama", "placeholder"})
 IMAGE_PROVIDERS = frozenset({"openai", *LOCAL_IMAGE_PROVIDERS})
+IMAGE_PROVIDER_ALIASES = {
+    "hf": "huggingface",
+    "huggingface-flux": "huggingface",
+    "hf-flux": "huggingface",
+}
+HF_OPENAI_COMPAT_PROVIDERS = frozenset({"nscale", "together", "replicate", "nebius"})
+HF_SKIP_PROVIDERS = frozenset({"hf-inference"})
 # Names that generate pixels. Vision/chat models must never be used as generators.
 OLLAMA_IMAGE_MODEL_PREFIXES = (
     "x/flux",
@@ -59,6 +74,11 @@ class ImageBackend:
     max_workers: int
 
 
+def normalize_image_provider(raw: str | None) -> str:
+    value = (raw or "openai").strip().lower()
+    return IMAGE_PROVIDER_ALIASES.get(value, value)
+
+
 def parse_size(size: str) -> tuple[int, int]:
     raw = (size or DEFAULT_IMAGE_SIZE).lower().replace(" ", "")
     try:
@@ -74,7 +94,7 @@ def parse_size(size: str) -> tuple[int, int]:
 def resolve_image_backend(db, agency_id) -> ImageBackend | None:
     """Return the configured slide-image backend, or None if OpenAI is required and missing."""
     settings = get_settings()
-    provider = (settings.image_provider or "openai").strip().lower()
+    provider = normalize_image_provider(settings.image_provider)
     if provider not in IMAGE_PROVIDERS:
         logger.warning("Unknown IMAGE_PROVIDER=%s", provider)
         return None
@@ -89,6 +109,19 @@ def resolve_image_backend(db, agency_id) -> ImageBackend | None:
             size=size,
             timeout_seconds=5.0,
             max_workers=1,
+        )
+    if provider == "huggingface":
+        timeout = float(settings.image_local_timeout_seconds or 240.0)
+        model = (settings.hf_image_model or DEFAULT_HF_IMAGE_MODEL).strip() or DEFAULT_HF_IMAGE_MODEL
+        return ImageBackend(
+            provider="huggingface",
+            model=model,
+            fallback_model=(settings.hf_image_provider or "").strip(),
+            base_url=HF_ROUTER,
+            api_key=(settings.hf_token or "").strip(),
+            size=size,
+            timeout_seconds=timeout,
+            max_workers=max(1, int(settings.image_local_workers or 1)),
         )
     if provider == "flux":
         timeout = float(settings.image_local_timeout_seconds or 240.0)
@@ -140,6 +173,9 @@ def backend_label(backend: ImageBackend) -> str:
     if backend.provider == "openai":
         extra = f" → {backend.fallback_model}" if backend.fallback_model else ""
         return f"OpenAI ({backend.model}{extra})"
+    if backend.provider == "huggingface":
+        forced = f" via {backend.fallback_model}" if backend.fallback_model else ""
+        return f"Hugging Face ({backend.model}{forced})"
     if backend.provider == "flux":
         return f"Flux Schnell ({backend.model} @ {backend.base_url})"
     if backend.provider == "ollama":
@@ -187,9 +223,16 @@ def quote_image_generation(db, agency_id, *, image_count: int) -> dict:
             "image_count": count,
             "usd_typical": round(per * count, 4),
             "usd_if_fallback": round(fb * count, 4),
-            "note": "No image backend is ready (add an OpenAI key or set IMAGE_PROVIDER=flux). Figures are OpenAI list prices if you generate later.",
+            "note": "No image backend is ready (add an OpenAI key, set IMAGE_PROVIDER=huggingface with HF_TOKEN, or IMAGE_PROVIDER=flux). Figures are OpenAI list prices if you generate later.",
         }
     if backend.provider != "openai":
+        if backend.provider == "huggingface":
+            note = (
+                "Hugging Face Inference Providers — $0 OpenAI image invoice. "
+                "Hugging Face may still consume Inference credits."
+            )
+        else:
+            note = f"Local {backend.provider} — $0 OpenAI image invoice for this run."
         return {
             "available": True,
             "billable": False,
@@ -203,7 +246,7 @@ def quote_image_generation(db, agency_id, *, image_count: int) -> dict:
             "image_count": count,
             "usd_typical": 0.0,
             "usd_if_fallback": 0.0,
-            "note": f"Local {backend.provider} — $0 OpenAI image invoice for this run.",
+            "note": note,
         }
     per = openai_image_list_usd(backend.model, backend.size)
     fb = openai_image_list_usd(backend.fallback_model, backend.size) if backend.fallback_model else None
@@ -263,6 +306,10 @@ def generate_slide_image(
         return _placeholder_png(prompt, backend.size), "image/png", None, empty_usage(
             backend.model, skipped_product_edit=skipped
         )
+    if backend.provider == "huggingface":
+        data, mime, err, usage = _huggingface_image(backend, prompt)
+        usage["skipped_product_edit"] = skipped
+        return data, mime, err, usage
     if backend.provider == "flux":
         data, mime, err, usage = _flux_image(backend, prompt)
         usage["skipped_product_edit"] = skipped
@@ -279,7 +326,7 @@ def generate_slide_image(
 def probe_image_backend(db, agency_id) -> dict:
     """Status payload for Settings: current provider, reachability, install hints."""
     settings = get_settings()
-    requested = (settings.image_provider or "openai").strip().lower()
+    requested = normalize_image_provider(settings.image_provider)
     backend = resolve_image_backend(db, agency_id)
     out = {
         "provider": requested,
@@ -296,13 +343,14 @@ def probe_image_backend(db, agency_id) -> dict:
     }
     if requested not in IMAGE_PROVIDERS:
         out["message"] = (
-            f"Unknown IMAGE_PROVIDER={requested!r}. Use openai, flux, ollama, or placeholder."
+            f"Unknown IMAGE_PROVIDER={requested!r}. Use openai, huggingface, flux, ollama, or placeholder."
         )
         return out
     if backend is None:
         out["message"] = (
             "OpenAI is selected for carousel images, but no OpenAI API key is stored. "
-            "Add one in Settings → Providers, or set IMAGE_PROVIDER=flux for local tests."
+            "Add one in Settings → Providers, or set IMAGE_PROVIDER=huggingface (HF_TOKEN) "
+            "or IMAGE_PROVIDER=flux for local tests."
         )
         out["install_hint"] = _flux_install_hint()
         return out
@@ -319,6 +367,27 @@ def probe_image_backend(db, agency_id) -> dict:
         out["ready"] = True
         out["reachable"] = True
         out["message"] = f"Carousel images use OpenAI {backend.model} (fallback {backend.fallback_model})."
+        return out
+    if backend.provider == "huggingface":
+        if not backend.api_key:
+            out["message"] = (
+                "IMAGE_PROVIDER=huggingface but HF_TOKEN is empty. "
+                "Create a token with Inference Providers and set HF_TOKEN in .env.docker."
+            )
+            out["install_hint"] = _huggingface_install_hint()
+            return out
+        ok, detail = _probe_huggingface(backend)
+        out["reachable"] = ok
+        out["ready"] = True
+        out["message"] = (
+            f"Hugging Face token is set. Model {backend.model}. {detail}"
+            if ok
+            else (
+                f"Hugging Face token is set, but the Hub mapping check failed: {detail}. "
+                "Generation may still work via router.huggingface.co."
+            )
+        )
+        out["install_hint"] = _huggingface_install_hint()
         return out
     if backend.provider == "flux":
         ok, detail = _probe_http(backend.base_url, timeout=3.0)
@@ -363,6 +432,18 @@ def probe_image_backend(db, agency_id) -> dict:
         "If generation fails, use IMAGE_PROVIDER=flux."
     )
     return out
+
+
+def _huggingface_install_hint() -> str:
+    return (
+        "Hugging Face FLUX (carousel images without OpenAI):\n"
+        "  1. Create a token with Inference Providers at https://huggingface.co/settings/tokens\n"
+        "  2. In .env.docker set IMAGE_PROVIDER=huggingface and HF_TOKEN=hf_...\n"
+        "  3. Optional: HF_IMAGE_MODEL=black-forest-labs/FLUX.1-schnell (default; FLUX.1-dev is gated)\n"
+        "  4. Optional: HF_IMAGE_PROVIDER=nscale to pin a live Hub provider\n"
+        "  5. Rebuild/restart the API. This never falls back to OpenAI.\n"
+        "The retired hf-inference router path (HTTP 410) is not used."
+    )
 
 
 def _flux_install_hint() -> str:
@@ -542,6 +623,256 @@ def _openai_slide_image(
     if data2:
         return data2, mime2 or "image/png", None, usage2
     return None, None, err or err2 or "unknown image failure", usage2 or usage
+
+
+def _huggingface_image(backend: ImageBackend, prompt: str) -> tuple[bytes | None, str | None, str | None, dict]:
+    usage = empty_usage(backend.model)
+    token = (backend.api_key or "").strip()
+    if not token:
+        return None, None, "HF_TOKEN is empty. Set it in .env.docker for IMAGE_PROVIDER=huggingface.", usage
+    last_err = "Hugging Face returned no image"
+    try:
+        with httpx.Client(timeout=backend.timeout_seconds, follow_redirects=True) as client:
+            attempts = _huggingface_attempts(client, backend, prompt[:3500])
+            for name, url, payload in attempts:
+                try:
+                    resp = client.post(
+                        url,
+                        headers=_huggingface_headers(token, json_accept=True),
+                        json=payload,
+                    )
+                except httpx.TimeoutException:
+                    last_err = f"{name} timeout after {backend.timeout_seconds:.0f}s"
+                    continue
+                except httpx.HTTPError as exc:
+                    last_err = f"{name} network error: {exc!s}"[:180]
+                    continue
+                if resp.status_code in {401, 403}:
+                    return None, None, (
+                        f"Hugging Face token rejected (HTTP {resp.status_code}). "
+                        f"{_huggingface_http_detail(resp)}"
+                    )[:280], usage
+                if resp.status_code == 402:
+                    return None, None, (
+                        "Hugging Face Inference credits are exhausted (HTTP 402). "
+                        f"{_huggingface_http_detail(resp)}"
+                    )[:280], usage
+                if resp.status_code in {400, 404, 410, 422, 429, 503}:
+                    last_err = f"{name} HTTP {resp.status_code}: {_huggingface_http_detail(resp)}"
+                    continue
+                if resp.status_code >= 400:
+                    last_err = f"{name} HTTP {resp.status_code}: {_huggingface_http_detail(resp)}"
+                    continue
+                data, mime, err = _huggingface_bytes_from_response(client, resp, token)
+                if data:
+                    return data, mime or "image/png", None, usage
+                last_err = err or f"{name} did not return image bytes"
+    except httpx.TimeoutException:
+        return None, None, f"huggingface timeout after {backend.timeout_seconds:.0f}s", usage
+    except Exception as exc:  # noqa: BLE001
+        return None, None, f"huggingface error: {exc!s}"[:180], usage
+    return None, None, last_err[:280], usage
+
+
+def _huggingface_headers(token: str, *, json_accept: bool) -> dict[str, str]:
+    headers = {"Authorization": f"Bearer {token}"}
+    if json_accept:
+        headers["Content-Type"] = "application/json"
+        headers["Accept"] = "application/json"
+    return headers
+
+
+def _huggingface_http_detail(resp: httpx.Response) -> str:
+    try:
+        body = resp.json()
+    except Exception:  # noqa: BLE001
+        return (resp.text or "").replace("\n", " ")[:180]
+    if isinstance(body, dict):
+        err = body.get("error") or body.get("message") or body
+        return str(err).replace("\n", " ")[:180]
+    return str(body)[:180]
+
+
+def _looks_like_image(content: bytes, content_type: str = "") -> bool:
+    ctype = (content_type or "").lower()
+    if ctype.startswith("image/"):
+        return True
+    return content.startswith(b"\x89PNG") or content.startswith(b"\xff\xd8") or content.startswith(b"RIFF")
+
+
+def _huggingface_live_providers(client: httpx.Client, model: str) -> list[tuple[str, str]]:
+    url = HF_HUB_MODEL_URL.format(model=model) + "?expand[]=inferenceProviderMapping"
+    try:
+        resp = client.get(url, timeout=12.0)
+    except httpx.HTTPError:
+        return []
+    if resp.status_code >= 400:
+        return []
+    try:
+        mapping = (resp.json() or {}).get("inferenceProviderMapping") or {}
+    except Exception:  # noqa: BLE001
+        return []
+    live: list[tuple[str, str]] = []
+    for provider, info in mapping.items():
+        if not isinstance(info, dict):
+            continue
+        if info.get("status") != "live":
+            continue
+        if info.get("task") not in (None, "text-to-image"):
+            continue
+        name = str(provider)
+        if name in HF_SKIP_PROVIDERS:
+            continue
+        live.append((name, str(info.get("providerId") or model)))
+    return live
+
+
+def _probe_huggingface(backend: ImageBackend) -> tuple[bool, str]:
+    try:
+        with httpx.Client(timeout=8.0, follow_redirects=True) as client:
+            live = _huggingface_live_providers(client, backend.model)
+    except httpx.HTTPError as exc:
+        return False, str(exc)[:180]
+    if not live:
+        return False, "no live text-to-image providers on the Hub mapping (router may still work)"
+    names = ", ".join(name for name, _pid in live[:6])
+    return True, f"Live Hub providers: {names}."
+
+
+def _huggingface_attempts(
+    client: httpx.Client, backend: ImageBackend, prompt: str
+) -> list[tuple[str, str, dict]]:
+    width, height = parse_size(backend.size)
+    preferred = (backend.fallback_model or "").strip().lower()
+    live = _huggingface_live_providers(client, backend.model)
+    if preferred:
+        live = [item for item in live if item[0] == preferred] or [(preferred, backend.model)]
+    attempts: list[tuple[str, str, dict]] = []
+    seen: set[str] = set()
+
+    def add(name: str, url: str, payload: dict) -> None:
+        if name in seen:
+            return
+        seen.add(name)
+        attempts.append((name, url, payload))
+
+    for provider, provider_id in live:
+        if provider in HF_OPENAI_COMPAT_PROVIDERS:
+            add(
+                provider,
+                f"{HF_ROUTER}/{provider}/v1/images/generations",
+                {
+                    "model": provider_id,
+                    "prompt": prompt,
+                    "n": 1,
+                    "size": backend.size,
+                    "response_format": "b64_json",
+                    "width": width,
+                    "height": height,
+                },
+            )
+        elif provider == "fal-ai":
+            add(
+                "fal-ai",
+                f"{HF_ROUTER}/fal-ai/{provider_id}",
+                {
+                    "prompt": prompt,
+                    "sync_mode": True,
+                    "image_size": {"width": width, "height": height},
+                },
+            )
+        elif provider == "wavespeed":
+            add(
+                "wavespeed",
+                f"{HF_ROUTER}/wavespeed/{provider_id}",
+                {"prompt": prompt},
+            )
+        else:
+            add(
+                provider,
+                f"{HF_ROUTER}/{provider}/{provider_id}",
+                {"prompt": prompt, "inputs": prompt},
+            )
+    if not preferred:
+        add(
+            "router-openai",
+            f"{HF_ROUTER}/v1/images/generations",
+            {
+                "model": backend.model,
+                "prompt": prompt,
+                "n": 1,
+                "size": backend.size,
+                "response_format": "b64_json",
+            },
+        )
+    if not attempts:
+        add(
+            "nscale",
+            f"{HF_ROUTER}/nscale/v1/images/generations",
+            {
+                "model": backend.model,
+                "prompt": prompt,
+                "n": 1,
+                "size": backend.size,
+                "response_format": "b64_json",
+            },
+        )
+    return attempts
+
+
+def _huggingface_bytes_from_response(
+    client: httpx.Client, resp: httpx.Response, token: str
+) -> tuple[bytes | None, str | None, str | None]:
+    content = resp.content or b""
+    ctype = resp.headers.get("content-type") or ""
+    if _looks_like_image(content, ctype):
+        mime = ctype.split(";")[0] if ctype.startswith("image/") else "image/png"
+        return content, mime, None
+    try:
+        body = resp.json()
+    except Exception:  # noqa: BLE001
+        return None, None, "Hugging Face response was not JSON or image bytes"
+    if not isinstance(body, dict):
+        return None, None, "Hugging Face JSON was not an object"
+
+    data = body.get("data")
+    if isinstance(data, list) and data:
+        item = data[0] if isinstance(data[0], dict) else {}
+        b64 = item.get("b64_json")
+        if b64:
+            decoded, mime, err, _usage = _b64_to_png(str(b64), "huggingface")
+            return decoded, mime, err
+        url = item.get("url")
+        if url:
+            return _huggingface_fetch_url(client, str(url), token)
+
+    images = body.get("images")
+    if isinstance(images, list) and images:
+        item = images[0] if isinstance(images[0], dict) else {}
+        url = item.get("url")
+        if url:
+            return _huggingface_fetch_url(client, str(url), token)
+        b64 = item.get("b64_json") or item.get("image")
+        if b64:
+            decoded, mime, err, _usage = _b64_to_png(str(b64), "huggingface")
+            return decoded, mime, err
+    return None, None, "Hugging Face JSON missing image / b64_json"
+
+
+def _huggingface_fetch_url(
+    client: httpx.Client, url: str, token: str
+) -> tuple[bytes | None, str | None, str | None]:
+    try:
+        img = client.get(url, headers=_huggingface_headers(token, json_accept=False))
+    except httpx.HTTPError as exc:
+        return None, None, f"image url fetch: {exc!s}"[:180]
+    if img.status_code >= 400:
+        return None, None, f"image url fetch HTTP {img.status_code}"
+    content = img.content or b""
+    if not _looks_like_image(content, img.headers.get("content-type") or ""):
+        return None, None, "fetched url was not an image"
+    ctype = (img.headers.get("content-type") or "image/png").split(";")[0]
+    return content, ctype or "image/png", None
 
 
 def _flux_image(backend: ImageBackend, prompt: str) -> tuple[bytes | None, str | None, str | None, dict]:

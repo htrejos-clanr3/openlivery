@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import Agency, User
-from ..schemas import AgencyOut, AgencyUpdate
+from ..schemas import AgencyMemberOut, AgencyOut, AgencyUpdate
 from ..slugs import slugify
 
 
@@ -19,6 +19,11 @@ ALLOWED_LOGO_TYPES = {"image/png", "image/jpeg", "image/webp", "image/svg+xml"}
 @router.get("", response_model=AgencyOut)
 def get_agency(user: User = Depends(get_current_user)):
     return user.agency
+
+
+@router.get("/members", response_model=list[AgencyMemberOut])
+def list_members(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    return db.scalars(select(User).where(User.agency_id == user.agency_id).order_by(User.name)).all()
 
 
 @router.patch("", response_model=AgencyOut)

@@ -13,7 +13,11 @@ import { portal } from "./dicts/portal";
 import { inbox } from "./dicts/inbox";
 import { tools } from "./dicts/tools";
 import { carousels } from "./dicts/carousels";
+import { automations } from "./dicts/automations";
 import { instagram } from "./dicts/instagram";
+import { linkedin } from "./dicts/linkedin";
+import { leads } from "./dicts/leads";
+import { manual } from "./dicts/manual";
 
 export const en = {
   ...core.en,
@@ -28,7 +32,11 @@ export const en = {
   inbox: inbox.en,
   tools: tools.en,
   carousels: carousels.en,
+  automations: automations.en,
   instagram: instagram.en,
+  linkedin: linkedin.en,
+  leads: leads.en,
+  manual: manual.en,
 };
 
 export type Dictionary = typeof en;
