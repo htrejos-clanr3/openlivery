@@ -15,6 +15,18 @@ from app.config import get_settings  # noqa: E402
 get_settings.cache_clear()
 
 
+def _consent(client_id: str):
+    return {
+        "consent": {
+            "channel": "instagram",
+            "client_id": client_id,
+            "admin_confirmed": True,
+            "no_password_stored": True,
+            "ai_disclosure_acknowledged": True,
+        }
+    }
+
+
 def _png() -> bytes:
     return (
         b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde"
@@ -86,7 +98,10 @@ def test_carousel_publish_now_via_instagram_bridge(authenticated_client):
     ).json()
 
     # Connect Instagram (mock)
-    session = client.post(f"/api/instagram/channels/{customer['id']}/oauth/session")
+    session = client.post(
+        f"/api/instagram/channels/{customer['id']}/oauth/session",
+        json=_consent(customer["id"]),
+    )
     assert session.status_code == 200, session.text
     complete = client.post(
         f"/api/instagram/channels/{customer['id']}/oauth/complete",
@@ -111,7 +126,10 @@ def test_carousel_schedule_queues_publication(authenticated_client):
         "/api/clients",
         json={"name": "Schedule Co", "industry": "Software", "description": "Dev", "general_context": "PYME"},
     ).json()
-    session = client.post(f"/api/instagram/channels/{customer['id']}/oauth/session")
+    session = client.post(
+        f"/api/instagram/channels/{customer['id']}/oauth/session",
+        json=_consent(customer["id"]),
+    )
     client.post(
         f"/api/instagram/channels/{customer['id']}/oauth/complete",
         json={"state": session.json()["state"], "use_mock": True},

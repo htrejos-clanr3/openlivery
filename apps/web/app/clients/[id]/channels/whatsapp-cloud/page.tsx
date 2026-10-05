@@ -7,6 +7,7 @@ import {
   ArrowLeft, BadgeCheck, BookOpen, Bot, CheckCircle2, ChevronDown, CircleAlert, ClipboardCopy, Circle,
   ExternalLink, Inbox, KeyRound, LoaderCircle, Plug, Power, RefreshCw, ShieldCheck, Smartphone, Sparkles, Webhook,
 } from "lucide-react";
+import { ChannelConnectConsentModal, buildChannelConsent } from "@/components/channel-connect-consent-modal";
 import { Alert } from "@/components/ui";
 import { api, ApiError, messageFrom } from "@/lib/api";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -106,6 +107,7 @@ function WhatsAppCloudChannelPageInner() {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<ProgressStep[] | null>(null);
   const [offerAgentHelp, setOfferAgentHelp] = useState(false);
+  const [consentOpen, setConsentOpen] = useState(false);
 
   const refreshHealth = useCallback(async () => {
     try {
@@ -220,6 +222,14 @@ function WhatsAppCloudChannelPageInner() {
     }
   }
 
+  function requestConnect() {
+    if (!agentId) {
+      setError(t("clients.whatsapp.needsAgent"));
+      return;
+    }
+    setConsentOpen(true);
+  }
+
   async function connectWithMeta() {
     if (!agentId) {
       setError(t("clients.whatsapp.needsAgent"));
@@ -228,7 +238,10 @@ function WhatsAppCloudChannelPageInner() {
     setBusy(true); setError(""); setProgress(null);
     try {
       await api(`/whatsapp-cloud/channels/${id}/agent`, { method: "PATCH", body: JSON.stringify({ agent_id: agentId }) });
-      const session = await api<WhatsAppSignupSession>(`/whatsapp-cloud/channels/${id}/signup/session`, { method: "POST" });
+      const session = await api<WhatsAppSignupSession>(`/whatsapp-cloud/channels/${id}/signup/session`, {
+        method: "POST",
+        body: JSON.stringify(buildChannelConsent("whatsapp_cloud", id)),
+      });
       if (session.mock_mode || options?.mock_mode) {
         setProgress([
           { id: "auth", label: t("clients.whatsappCloud.stepAuth"), done: true },
@@ -431,14 +444,14 @@ function WhatsAppCloudChannelPageInner() {
                 <Alert>
                   {channel?.error_message || health?.error?.message || t("clients.whatsappCloud.statusErrorCopy")}
                   <div className="wa-actions" style={{ marginTop: 12 }}>
-                    <button className="button primary" onClick={connectWithMeta} disabled={busy || !agentId}>
+                    <button className="button primary" onClick={requestConnect} disabled={busy || !agentId}>
                       {busy ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />} {t("clients.whatsappCloud.reconnectMeta")}
                     </button>
                   </div>
                 </Alert>
               )}
               <div className="wa-actions">
-                <button className="button primary" onClick={connectWithMeta} disabled={busy || !agentId}>
+                <button className="button primary" onClick={requestConnect} disabled={busy || !agentId}>
                   {busy ? <LoaderCircle className="spin" size={17} /> : <BadgeCheck size={17} />} {t("clients.whatsappCloud.connectMeta")}
                 </button>
               </div>
@@ -718,6 +731,17 @@ function WhatsAppCloudChannelPageInner() {
           <p>{t("clients.whatsapp.humanControlCopy")}</p>
         </aside>
       </div>
+      <ChannelConnectConsentModal
+        open={consentOpen}
+        channel="whatsapp_cloud"
+        clientId={id}
+        providerTermsUrl="https://developers.facebook.com/terms/"
+        onClose={() => setConsentOpen(false)}
+        onConfirmed={() => {
+          setConsentOpen(false);
+          void connectWithMeta();
+        }}
+      />
     </div>
   );
 }

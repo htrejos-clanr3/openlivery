@@ -2,13 +2,19 @@
 
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bot, Building2, LoaderCircle, MessageSquareText, ShieldCheck } from "lucide-react";
+import { Bot, Building2, ExternalLink, LoaderCircle, MessageSquareText, ShieldCheck } from "lucide-react";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 import { Alert } from "@/components/ui";
 
 type AuthOptions = { google_enabled: boolean; google_client_id: string | null };
 type ForgotResponse = { message: string; reset_token?: string | null; account_kind?: string | null };
+type LegalDocuments = {
+  tos_version: string;
+  privacy_version: string;
+  tos_url: string;
+  privacy_url: string;
+};
 
 function LoginForm() {
   const t = useT();
@@ -19,6 +25,9 @@ function LoginForm() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [options, setOptions] = useState<AuthOptions | null>(null);
+  const [legalDocs, setLegalDocs] = useState<LegalDocuments | null>(null);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [token, setToken] = useState(search.get("token") || "");
 
   useEffect(() => {
@@ -27,6 +36,15 @@ function LoginForm() {
     if (search.get("token") && purpose === "set") setMode("set");
     else if (search.get("token")) setMode("reset");
   }, [search]);
+
+  useEffect(() => {
+    if (mode !== "register") return;
+    setAcceptTerms(false);
+    setAcceptPrivacy(false);
+    api<LegalDocuments>("/legal/documents")
+      .then(setLegalDocs)
+      .catch(() => setLegalDocs(null));
+  }, [mode]);
 
   useEffect(() => {
     if (!options?.google_enabled || !options.google_client_id) return;
@@ -100,7 +118,18 @@ function LoginForm() {
         router.refresh();
         return;
       }
-      await api(mode === "login" ? "/auth/login" : "/auth/register", { method: "POST", body: JSON.stringify(data) });
+      if (mode === "register") {
+        if (!acceptTerms || !acceptPrivacy) {
+          setError(t("legal.registerBlocked"));
+          return;
+        }
+        await api("/auth/register", {
+          method: "POST",
+          body: JSON.stringify({ ...data, accept_terms: acceptTerms, accept_privacy: acceptPrivacy }),
+        });
+      } else {
+        await api("/auth/login", { method: "POST", body: JSON.stringify(data) });
+      }
       router.push("/");
       router.refresh();
     } catch (err) {
@@ -149,6 +178,22 @@ function LoginForm() {
           <label>{mode === "login" || mode === "register" ? t("auth.password") : t("auth.newPassword")}
             <input name="password" required type="password" minLength={8} placeholder={t("auth.passwordPlaceholder")} />
           </label>
+        )}
+        {mode === "register" && legalDocs && (
+          <fieldset className="stack-form" style={{ gap: 10 }}>
+            <legend>{t("legal.platformTitle")}</legend>
+            <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>{t("legal.platformDescription")}</p>
+            <label>
+              <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} />
+              {" "}{t("legal.acceptTerms")}{" "}
+              <a href={legalDocs.tos_url} target="_blank" rel="noreferrer">{t("legal.viewTerms")} <ExternalLink size={12} /></a>
+            </label>
+            <label>
+              <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} />
+              {" "}{t("legal.acceptPrivacy")}{" "}
+              <a href={legalDocs.privacy_url} target="_blank" rel="noreferrer">{t("legal.viewPrivacy")} <ExternalLink size={12} /></a>
+            </label>
+          </fieldset>
         )}
         {error && <Alert>{error}</Alert>}
         {info && <Alert type="info">{info}</Alert>}

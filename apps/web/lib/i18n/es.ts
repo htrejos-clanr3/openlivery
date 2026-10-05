@@ -12,6 +12,7 @@ import { inbox } from "./dicts/inbox";
 import { tools } from "./dicts/tools";
 import { carousels } from "./dicts/carousels";
 import { instagram } from "./dicts/instagram";
+import { legal } from "./dicts/legal";
 
 // Spanish dictionary. Composed from the same modules; typed as Dictionary so it
 // must mirror the exact shape of `en` (each area's `es` mirrors its own `en`).
@@ -29,4 +30,5 @@ export const es: Dictionary = {
   tools: tools.es,
   carousels: carousels.es,
   instagram: instagram.es,
+  legal: legal.es,
 };

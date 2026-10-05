@@ -51,6 +51,18 @@ def _post_signed(client: TestClient, channel_id: str, payload: dict, secret: str
     )
 
 
+def _consent(client_id: str, channel: str = "whatsapp_cloud"):
+    return {
+        "consent": {
+            "channel": channel,
+            "client_id": client_id,
+            "admin_confirmed": True,
+            "no_password_stored": True,
+            "ai_disclosure_acknowledged": False,
+        }
+    }
+
+
 def _setup_channel(client: TestClient, *, image_enabled: bool = False) -> tuple[dict, dict, dict]:
     customer = client.post(
         "/api/clients",
@@ -110,7 +122,14 @@ def test_configure_channel_hides_secrets(authenticated_client: TestClient):
     # Another agency cannot see the channel.
     client.post(
         "/api/auth/register",
-        json={"agency_name": "Other", "name": "Eve", "email": "eve@other.com", "password": "another-password"},
+        json={
+            "agency_name": "Other",
+            "name": "Eve",
+            "email": "eve@other.com",
+            "password": "another-password",
+            "accept_terms": True,
+            "accept_privacy": True,
+        },
     )
     assert client.get(f"/api/whatsapp-cloud/channels/{customer['id']}").status_code == 404
 
@@ -374,7 +393,10 @@ def test_mock_signup_completes_without_meta(authenticated_client: TestClient, mo
     assert options["managed_available"] is True
     assert options["mock_mode"] is True
 
-    session = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/signup/session").json()
+    session = client.post(
+        f"/api/whatsapp-cloud/channels/{customer['id']}/signup/session",
+        json=_consent(customer["id"]),
+    ).json()
     assert session["state"]
     complete = client.post(
         f"/api/whatsapp-cloud/channels/{customer['id']}/signup/complete",
@@ -406,7 +428,10 @@ def test_signup_state_binds_client(authenticated_client: TestClient, monkeypatch
     monkeypatch.setattr(signup, "get_settings", lambda: settings)
     monkeypatch.setattr(whatsapp_cloud_router, "get_settings", lambda: settings)
 
-    session = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/signup/session").json()
+    session = client.post(
+        f"/api/whatsapp-cloud/channels/{customer['id']}/signup/session",
+        json=_consent(customer["id"]),
+    ).json()
     stolen = client.post(
         f"/api/whatsapp-cloud/channels/{other['id']}/signup/complete",
         json={"state": session["state"], "agent_id": agent["id"], "use_mock": True},

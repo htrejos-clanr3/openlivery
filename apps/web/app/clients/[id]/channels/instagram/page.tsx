@@ -7,6 +7,7 @@ import {
   ArrowLeft, BookOpen, CheckCircle2, ChevronDown, Circle, CircleAlert, ExternalLink,
   Instagram, LoaderCircle, Plus, Power, RefreshCw, Sparkles,
 } from "lucide-react";
+import { ChannelConnectConsentModal, buildChannelConsent } from "@/components/channel-connect-consent-modal";
 import { Alert } from "@/components/ui";
 import { api, messageFrom } from "@/lib/api";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -76,6 +77,8 @@ function InstagramChannelPageInner() {
   const [errorDetail, setErrorDetail] = useState("");
   const [showTechnical, setShowTechnical] = useState(false);
   const [info, setInfo] = useState("");
+  const [consentOpen, setConsentOpen] = useState(false);
+  const [pendingMockConnect, setPendingMockConnect] = useState(false);
 
   const applyChannel = useCallback((current: InstagramChannel) => {
     setChannel(current);
@@ -179,6 +182,11 @@ function InstagramChannelPageInner() {
     })();
   }, [search, id, applyChannel, refreshConnectedData, t]);
 
+  function requestConnect(useMock = false) {
+    setPendingMockConnect(useMock);
+    setConsentOpen(true);
+  }
+
   async function connectWithMeta(useMock = false) {
     setBusy(true);
     setError("");
@@ -191,6 +199,7 @@ function InstagramChannelPageInner() {
       }
       const session = await api<InstagramOAuthSession>(`/instagram/channels/${id}/oauth/session`, {
         method: "POST",
+        body: JSON.stringify(buildChannelConsent("instagram", id)),
       });
       if (useMock || session.mock_mode || options?.mock_mode) {
         const updated = await api<InstagramChannel>(`/instagram/channels/${id}/oauth/complete`, {
@@ -476,7 +485,7 @@ function InstagramChannelPageInner() {
                 <Alert>
                   {channel.last_error || t("instagram.statusError")}
                   <div className="wa-actions" style={{ marginTop: 12 }}>
-                    <button className="button primary" type="button" onClick={() => connectWithMeta(false)} disabled={busy}>
+                    <button className="button primary" type="button" onClick={() => requestConnect(false)} disabled={busy}>
                       {busy ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />} {t("instagram.reconnectMeta")}
                     </button>
                     <button className="button secondary" type="button" onClick={openGuide}>
@@ -504,11 +513,11 @@ function InstagramChannelPageInner() {
                 <p className="ig-muted" style={{ marginBottom: 12 }}>{t("instagram.oauthAvailableHint")}</p>
               )}
               <div className="wa-actions">
-                <button className="button primary" type="button" onClick={() => connectWithMeta(false)} disabled={busy}>
+                <button className="button primary" type="button" onClick={() => requestConnect(false)} disabled={busy}>
                   {busy ? <LoaderCircle className="spin" size={17} /> : <Instagram size={17} />} {t("instagram.connectMeta")}
                 </button>
                 {options?.mock_mode && (
-                  <button className="button secondary" type="button" onClick={() => connectWithMeta(true)} disabled={busy}>
+                  <button className="button secondary" type="button" onClick={() => requestConnect(true)} disabled={busy}>
                     {t("instagram.connectMock")}
                   </button>
                 )}
@@ -752,6 +761,17 @@ function InstagramChannelPageInner() {
           )}
         </aside>
       </div>
+      <ChannelConnectConsentModal
+        open={consentOpen}
+        channel="instagram"
+        clientId={id}
+        providerTermsUrl="https://developers.facebook.com/terms/"
+        onClose={() => setConsentOpen(false)}
+        onConfirmed={() => {
+          setConsentOpen(false);
+          void connectWithMeta(pendingMockConnect);
+        }}
+      />
     </div>
   );
 }

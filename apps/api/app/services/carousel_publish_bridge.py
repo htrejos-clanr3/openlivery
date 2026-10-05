@@ -25,6 +25,7 @@ from ..models import (
 from .instagram_oauth import has_publish_permission
 from .instagram_graph import mock_enabled
 from .instagram_publishing import publish_content, require_connected_channel
+from .legal_consent import record_publish_approval
 
 
 def _log(db: Session, carousel: Carousel, *, actor_type: str, actor_id, action: str, payload: dict | None = None) -> None:
@@ -229,6 +230,14 @@ async def publish_carousel_now(db: Session, *, carousel: Carousel, user: User) -
     )
     assert content is not None
     db.commit()
+    record_publish_approval(
+        db,
+        user=user,
+        client_id=carousel.client_id,
+        channel="instagram",
+        content_id=content.id,
+        metadata={"source": "carousel_bridge", "carousel_id": str(carousel.id), "carousel_approved": True},
+    )
     try:
         publication = await publish_content(db, user=user, channel=channel, content=content, publication=publication)
     except HTTPException as exc:

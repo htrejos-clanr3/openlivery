@@ -30,6 +30,7 @@ from ..services.auth_identity import (
     link_or_get_oauth,
     verify_google_id_token,
 )
+from ..services.legal_consent import record_register_acceptance
 from ..slugs import unique_slug
 
 
@@ -63,6 +64,8 @@ def auth_options():
     dependencies=[Depends(login_rate_limit)],
 )
 def register(payload: RegisterRequest, response: Response, db: Session = Depends(get_db)):
+    if not payload.accept_terms or not payload.accept_privacy:
+        raise HTTPException(status_code=400, detail="Terms and privacy must be accepted to register")
     email = payload.email.lower()
     if db.scalar(select(User).where(User.email == email)):
         raise HTTPException(status_code=409, detail="A user with that email already exists")
@@ -75,6 +78,8 @@ def register(payload: RegisterRequest, response: Response, db: Session = Depends
         password_hash=hash_password(payload.password),
     )
     db.add(user)
+    db.flush()
+    record_register_acceptance(db, user=user)
     db.commit()
     db.refresh(user)
     _set_session_cookie(response, user)

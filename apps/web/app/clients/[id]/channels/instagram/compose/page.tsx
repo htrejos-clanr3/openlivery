@@ -51,6 +51,20 @@ function ComposePageInner() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [published, setPublished] = useState<InstagramPublication | null>(null);
+  const [reviewedExact, setReviewedExact] = useState(false);
+  const [publishAuthorized, setPublishAuthorized] = useState(false);
+
+  function publishApprovalBody() {
+    return { human_approved: publishAuthorized, reviewed_exact_content: reviewedExact };
+  }
+
+  function ensurePublishApproval() {
+    if (!reviewedExact || !publishAuthorized) {
+      setError(t("legal.publishBlocked"));
+      return false;
+    }
+    return true;
+  }
 
   useEffect(() => {
     (async () => {
@@ -202,6 +216,7 @@ function ComposePageInner() {
       setError(mediaError);
       return;
     }
+    if (!ensurePublishApproval()) return;
     if (!scheduleAt) {
       setError(t("instagram.compose.scheduleAt"));
       return;
@@ -219,6 +234,7 @@ function ComposePageInner() {
           body: JSON.stringify({
             scheduled_at: new Date(scheduleAt).toISOString(),
             timezone,
+            ...publishApprovalBody(),
           }),
         },
       );
@@ -237,6 +253,7 @@ function ComposePageInner() {
       setError(mediaError);
       return;
     }
+    if (!ensurePublishApproval()) return;
     setBusy(true);
     setError("");
     try {
@@ -245,7 +262,7 @@ function ComposePageInner() {
       setContentId(saved.id);
       const pub = await api<InstagramPublication>(
         `/instagram/channels/${id}/content/${saved.id}/publish`,
-        { method: "POST" },
+        { method: "POST", body: JSON.stringify(publishApprovalBody()) },
       );
       setPublished(pub);
     } catch (err) {
@@ -480,6 +497,17 @@ function ComposePageInner() {
                 {t("instagram.compose.scheduleAt")}
                 <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
               </label>
+              <fieldset style={{ gridColumn: "1 / -1", border: "1px solid #eceef3", borderRadius: 12, padding: "12px 14px" }}>
+                <legend>{t("legal.publishTitle")}</legend>
+                <label>
+                  <input type="checkbox" checked={reviewedExact} onChange={(e) => setReviewedExact(e.target.checked)} />
+                  {" "}{t("legal.publishReview")}
+                </label>
+                <label>
+                  <input type="checkbox" checked={publishAuthorized} onChange={(e) => setPublishAuthorized(e.target.checked)} />
+                  {" "}{t("legal.publishAuthorize")}
+                </label>
+              </fieldset>
               <div className="wa-actions" style={{ gridColumn: "1 / -1" }}>
                 <button className="button secondary" type="submit" disabled={busy}>
                   {busy ? <LoaderCircle className="spin" size={17} /> : null} {t("instagram.compose.saveDraft")}

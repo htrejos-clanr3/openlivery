@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     flux_model: str = "flux-schnell"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_image_model: str = "x/flux2-klein:4b"
+    # Legal document versions (bump when ToS/privacy change to require re-acceptance).
+    legal_tos_version: str = "2026-10-05"
+    legal_privacy_version: str = "2026-10-05"
+    legal_tos_url: str = "https://github.com/htrejos-clanr3/fast-livery/blob/main/docs/legal/terms-of-service.md"
+    legal_privacy_url: str = "https://github.com/htrejos-clanr3/fast-livery/blob/main/docs/legal/privacy-policy.md"
 
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", APP_DIR / ".env"),
