@@ -18,10 +18,12 @@ from ..schemas_whatsapp_cloud import (
     WhatsAppSignupCompleteOut,
     WhatsAppSignupCompleteRequest,
     WhatsAppSignupOptionsOut,
+    WhatsAppSignupSessionIn,
     WhatsAppSignupSessionOut,
 )
 from ..security import decrypt_secret, encrypt_secret
 from ..services.whatsapp_cloud import verify_phone_number
+from ..services.legal_consent import record_channel_connect_consent
 from ..services.whatsapp_cloud_health import build_health
 from ..services.whatsapp_errors import humanize_whatsapp_error
 from ..services.whatsapp_meta_signup import (
@@ -266,10 +268,14 @@ def disconnect_channel(client_id: uuid.UUID, db: Session = Depends(get_db), user
 @router.post("/channels/{client_id}/signup/session", response_model=WhatsAppSignupSessionOut)
 def start_signup_session(
     client_id: uuid.UUID,
+    payload: WhatsAppSignupSessionIn,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     _require_client(db, user, client_id)
+    if payload.consent.client_id != client_id:
+        raise HTTPException(status_code=400, detail="Consent client mismatch")
+    record_channel_connect_consent(db, user=user, payload=payload.consent)
     options = signup_options()
     settings = get_settings()
     state = create_signup_state(

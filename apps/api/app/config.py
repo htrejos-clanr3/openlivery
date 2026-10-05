@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     hf_token: str = ""
     hf_image_model: str = "black-forest-labs/FLUX.1-schnell"
     hf_image_provider: str = ""
+    # Legal document versions (bump when ToS/privacy change to require re-acceptance).
+    legal_tos_version: str = "2026-10-05"
+    legal_privacy_version: str = "2026-10-05"
+    legal_tos_url: str = "https://github.com/htrejos-clanr3/fast-livery/blob/main/docs/legal/terms-of-service.md"
+    legal_privacy_url: str = "https://github.com/htrejos-clanr3/fast-livery/blob/main/docs/legal/privacy-policy.md"
 
     model_config = SettingsConfigDict(
         env_file=(REPO_ROOT / ".env", APP_DIR / ".env"),

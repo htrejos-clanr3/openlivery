@@ -99,6 +99,8 @@ def test_register_login_logout_and_me(client: TestClient):
         "name": "Laura Mendez",
         "email": "laura@norte.com",
         "password": "very-secure-key",
+        "accept_terms": True,
+        "accept_privacy": True,
     }
     created = client.post("/api/auth/register", json=payload)
     assert created.status_code == 201

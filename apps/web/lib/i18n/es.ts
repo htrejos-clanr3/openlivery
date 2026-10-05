@@ -15,6 +15,7 @@ import { automations } from "./dicts/automations";
 import { instagram } from "./dicts/instagram";
 import { linkedin } from "./dicts/linkedin";
 import { leads } from "./dicts/leads";
+import { legal } from "./dicts/legal";
 import { manual } from "./dicts/manual";
 
 // Spanish dictionary. Composed from the same modules; typed as Dictionary so it
@@ -36,5 +37,6 @@ export const es: Dictionary = {
   instagram: instagram.es,
   linkedin: linkedin.es,
   leads: leads.es,
+  legal: legal.es,
   manual: manual.es,
 };

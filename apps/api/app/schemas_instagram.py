@@ -7,6 +7,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from .schemas_legal import ChannelConnectConsentIn, HumanPublishApprovalIn
+
 
 class InstagramChannelOut(BaseModel):
     id: UUID
@@ -45,6 +47,10 @@ class InstagramOAuthOptionsOut(BaseModel):
     scopes: list[str]
     redirect_path: str
     blocked_reason: str | None = None
+
+
+class InstagramOAuthSessionIn(BaseModel):
+    consent: ChannelConnectConsentIn
 
 
 class InstagramOAuthSessionOut(BaseModel):
@@ -171,7 +177,11 @@ class PublicationOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class ScheduleRequest(BaseModel):
+class PublishApprovalBody(HumanPublishApprovalIn):
+    pass
+
+
+class ScheduleRequest(HumanPublishApprovalIn):
     scheduled_at: datetime
     timezone: str = "UTC"
 

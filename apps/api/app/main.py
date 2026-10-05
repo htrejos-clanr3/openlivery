@@ -18,6 +18,7 @@ from .routers import (
     domains,
     instagram,
     leads,
+    legal,
     linkedin,
     meta,
     portal,
@@ -85,6 +86,7 @@ app.include_router(whatsapp.router, prefix="/api")
 app.include_router(whatsapp.internal_router, prefix="/api")
 app.include_router(whatsapp_cloud.router, prefix="/api")
 app.include_router(whatsapp_cloud_webhook.public_router, prefix="/api")
+app.include_router(legal.router, prefix="/api")
 app.include_router(instagram.router, prefix="/api")
 app.include_router(instagram.public_router, prefix="/api")
 app.include_router(linkedin.router, prefix="/api")

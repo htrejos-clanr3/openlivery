@@ -37,14 +37,21 @@ from ..schemas_instagram import (
     InstagramHealthOut,
     InstagramOAuthCompleteIn,
     InstagramOAuthOptionsOut,
+    InstagramOAuthSessionIn,
     InstagramOAuthSessionOut,
     InstagramPublishingLimitOut,
     MediaAssetOut,
+    PublishApprovalBody,
     PublicationOut,
     ScheduleRequest,
 )
 from ..security import decrypt_secret, encrypt_secret
 from ..services import instagram_oauth
+from ..services.legal_consent import (
+    record_channel_connect_consent,
+    record_publish_approval,
+    require_publish_approval,
+)
 from ..services.content_service import (
     duplicate_content,
     get_client_or_404,
@@ -216,11 +223,15 @@ def configure_manual(
 @router.post("/channels/{client_id}/oauth/session", response_model=InstagramOAuthSessionOut)
 def start_oauth_session(
     client_id: uuid.UUID,
+    payload: InstagramOAuthSessionIn,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     client = get_client_or_404(db, user, client_id)
     _ensure_channel(db, user, client)
+    if payload.consent.client_id != client_id:
+        raise HTTPException(status_code=400, detail="Consent client mismatch")
+    record_channel_connect_consent(db, user=user, payload=payload.consent)
     options = instagram_oauth.oauth_options()
     if not options["oauth_available"]:
         raise HTTPException(status_code=400, detail=options["blocked_reason"] or "OAuth unavailable")
@@ -678,6 +689,7 @@ def duplicate(
 async def publish_now(
     client_id: uuid.UUID,
     content_id: uuid.UUID,
+    payload: PublishApprovalBody,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -686,7 +698,20 @@ async def publish_now(
     content = get_content_or_404(db, user, content_id)
     if content.client_id != client_id:
         raise HTTPException(status_code=404, detail="Content not found")
+    require_publish_approval(
+        human_approved=payload.human_approved,
+        reviewed_exact_content=payload.reviewed_exact_content,
+    )
+    record_publish_approval(
+        db,
+        user=user,
+        client_id=client_id,
+        channel="instagram",
+        content_id=content_id,
+        metadata={"username": channel.username or ""},
+    )
     publication = await publish_content(db, user=user, channel=channel, content=content)
+    db.commit()
     return PublicationOut.model_validate(publication)
 
 
@@ -704,6 +729,18 @@ def schedule_publish(
     content = get_content_or_404(db, user, content_id)
     if content.client_id != client_id:
         raise HTTPException(status_code=404, detail="Content not found")
+    require_publish_approval(
+        human_approved=payload.human_approved,
+        reviewed_exact_content=payload.reviewed_exact_content,
+    )
+    record_publish_approval(
+        db,
+        user=user,
+        client_id=client_id,
+        channel="instagram",
+        content_id=content_id,
+        metadata={"username": channel.username or "", "scheduled": True},
+    )
     when = payload.scheduled_at
     if when.tzinfo is None:
         try:

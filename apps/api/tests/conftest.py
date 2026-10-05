@@ -56,6 +56,8 @@ def authenticated_client(client: TestClient):
             "name": "Ana Admin",
             "email": "ana@prisma.com",
             "password": "contrasena-segura",
+            "accept_terms": True,
+            "accept_privacy": True,
         },
     )
     assert response.status_code == 201

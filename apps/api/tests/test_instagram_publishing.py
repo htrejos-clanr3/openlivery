@@ -14,6 +14,22 @@ from app.config import get_settings  # noqa: E402
 get_settings.cache_clear()
 
 
+def _consent(client_id: str):
+    return {
+        "consent": {
+            "channel": "instagram",
+            "client_id": client_id,
+            "admin_confirmed": True,
+            "no_password_stored": True,
+            "ai_disclosure_acknowledged": True,
+        }
+    }
+
+
+def _publish_body():
+    return {"human_approved": True, "reviewed_exact_content": True}
+
+
 def _create_client(authenticated_client):
     response = authenticated_client.post(
         "/api/clients",
@@ -56,7 +72,10 @@ def test_token_not_exposed(authenticated_client, ig_client):
 
 def test_mock_connect_and_publish_image(authenticated_client, ig_client):
     client_id = ig_client["id"]
-    session = authenticated_client.post(f"/api/instagram/channels/{client_id}/oauth/session")
+    session = authenticated_client.post(
+        f"/api/instagram/channels/{client_id}/oauth/session",
+        json=_consent(client_id),
+    )
     assert session.status_code == 200, session.text
     state = session.json()["state"]
     complete = authenticated_client.post(
@@ -88,7 +107,10 @@ def test_mock_connect_and_publish_image(authenticated_client, ig_client):
     content_id = content.json()["id"]
     assert content.json()["status"] == "DRAFT"
 
-    published = authenticated_client.post(f"/api/instagram/channels/{client_id}/content/{content_id}/publish")
+    published = authenticated_client.post(
+        f"/api/instagram/channels/{client_id}/content/{content_id}/publish",
+        json=_publish_body(),
+    )
     assert published.status_code == 200, published.text
     assert published.json()["status"] == "PUBLISHED"
     assert published.json()["provider_publication_id"]
@@ -97,7 +119,10 @@ def test_mock_connect_and_publish_image(authenticated_client, ig_client):
 
 def test_carousel_ordering_and_publish(authenticated_client, ig_client):
     client_id = ig_client["id"]
-    session = authenticated_client.post(f"/api/instagram/channels/{client_id}/oauth/session")
+    session = authenticated_client.post(
+        f"/api/instagram/channels/{client_id}/oauth/session",
+        json=_consent(client_id),
+    )
     state = session.json()["state"]
     authenticated_client.post(
         f"/api/instagram/channels/{client_id}/oauth/complete",
@@ -125,7 +150,8 @@ def test_carousel_ordering_and_publish(authenticated_client, ig_client):
     assert updated.status_code == 200
     assert [m["media_id"] for m in updated.json()["media"]] == reordered
     pub = authenticated_client.post(
-        f"/api/instagram/channels/{client_id}/content/{content.json()['id']}/publish"
+        f"/api/instagram/channels/{client_id}/content/{content.json()['id']}/publish",
+        json=_publish_body(),
     )
     assert pub.status_code == 200, pub.text
     assert pub.json()["status"] == "PUBLISHED"
@@ -133,7 +159,10 @@ def test_carousel_ordering_and_publish(authenticated_client, ig_client):
 
 def test_tenant_isolation(authenticated_client, ig_client, client):
     client_id = ig_client["id"]
-    session = authenticated_client.post(f"/api/instagram/channels/{client_id}/oauth/session")
+    session = authenticated_client.post(
+        f"/api/instagram/channels/{client_id}/oauth/session",
+        json=_consent(client_id),
+    )
     authenticated_client.post(
         f"/api/instagram/channels/{client_id}/oauth/complete",
         json={"state": session.json()["state"], "use_mock": True},
@@ -145,6 +174,8 @@ def test_tenant_isolation(authenticated_client, ig_client, client):
             "name": "Bob",
             "email": "bob@other.com",
             "password": "contrasena-segura",
+            "accept_terms": True,
+            "accept_privacy": True,
         },
     )
     assert other.status_code == 201
@@ -156,7 +187,10 @@ def test_schedule_creates_queued_publication(authenticated_client, ig_client):
     from datetime import datetime, timedelta, timezone
 
     client_id = ig_client["id"]
-    session = authenticated_client.post(f"/api/instagram/channels/{client_id}/oauth/session")
+    session = authenticated_client.post(
+        f"/api/instagram/channels/{client_id}/oauth/session",
+        json=_consent(client_id),
+    )
     authenticated_client.post(
         f"/api/instagram/channels/{client_id}/oauth/complete",
         json={"state": session.json()["state"], "use_mock": True},
@@ -172,7 +206,7 @@ def test_schedule_creates_queued_publication(authenticated_client, ig_client):
     when = (datetime.now(timezone.utc) + timedelta(hours=2)).isoformat()
     scheduled = authenticated_client.post(
         f"/api/instagram/channels/{client_id}/content/{content.json()['id']}/schedule",
-        json={"scheduled_at": when, "timezone": "America/Bogota"},
+        json={"scheduled_at": when, "timezone": "America/Bogota", **_publish_body()},
     )
     assert scheduled.status_code == 200, scheduled.text
     assert scheduled.json()["status"] == "QUEUED"
@@ -201,7 +235,10 @@ def test_generate_carousel_structure(authenticated_client, ig_client):
 
 def test_idempotent_republish_returns_same_id(authenticated_client, ig_client):
     client_id = ig_client["id"]
-    session = authenticated_client.post(f"/api/instagram/channels/{client_id}/oauth/session")
+    session = authenticated_client.post(
+        f"/api/instagram/channels/{client_id}/oauth/session",
+        json=_consent(client_id),
+    )
     authenticated_client.post(
         f"/api/instagram/channels/{client_id}/oauth/complete",
         json={"state": session.json()["state"], "use_mock": True},
@@ -215,7 +252,8 @@ def test_idempotent_republish_returns_same_id(authenticated_client, ig_client):
         json={"content_type": "IMAGE", "caption": "Once", "media_ids": [up.json()["id"]]},
     )
     first = authenticated_client.post(
-        f"/api/instagram/channels/{client_id}/content/{content.json()['id']}/publish"
+        f"/api/instagram/channels/{client_id}/content/{content.json()['id']}/publish",
+        json=_publish_body(),
     )
     # Second publish creates a new publication attempt on same content — content is PUBLISHED
     # Updating published content should fail

@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from .schemas_legal import ChannelConnectConsentIn
+
 
 class WhatsAppCloudChannelUpdate(BaseModel):
     agent_id: uuid.UUID
@@ -73,6 +75,10 @@ class WhatsAppSignupOptionsOut(BaseModel):
     meta_config_id: str | None = None
     graph_version: str
     blocked_reason: str | None = None
+
+
+class WhatsAppSignupSessionIn(BaseModel):
+    consent: ChannelConnectConsentIn
 
 
 class WhatsAppSignupSessionOut(BaseModel):

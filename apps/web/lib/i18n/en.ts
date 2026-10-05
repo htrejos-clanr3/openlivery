@@ -17,6 +17,7 @@ import { automations } from "./dicts/automations";
 import { instagram } from "./dicts/instagram";
 import { linkedin } from "./dicts/linkedin";
 import { leads } from "./dicts/leads";
+import { legal } from "./dicts/legal";
 import { manual } from "./dicts/manual";
 
 export const en = {
@@ -36,6 +37,7 @@ export const en = {
   instagram: instagram.en,
   linkedin: linkedin.en,
   leads: leads.en,
+  legal: legal.en,
   manual: manual.en,
 };
 
