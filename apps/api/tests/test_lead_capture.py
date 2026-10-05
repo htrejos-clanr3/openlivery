@@ -103,7 +103,14 @@ def test_tenant_isolation(authenticated_client: TestClient, client: TestClient):
     authenticated_client.post("/api/auth/logout")
     other = client.post(
         "/api/auth/register",
-        json={"agency_name": "Otra", "name": "Beto", "email": "beto-leads@prisma.com", "password": "contrasena-segura"},
+        json={
+            "agency_name": "Otra",
+            "name": "Beto",
+            "email": "beto-leads@prisma.com",
+            "password": "contrasena-segura",
+            "accept_terms": True,
+            "accept_privacy": True,
+        },
     )
     assert other.status_code == 201, other.text
     second = client.post(
@@ -262,7 +269,14 @@ def test_patch_isolation(authenticated_client: TestClient, client: TestClient):
     authenticated_client.post("/api/auth/logout")
     other = client.post(
         "/api/auth/register",
-        json={"agency_name": "OtraPatch", "name": "Beto", "email": "beto-patch@prisma.com", "password": "contrasena-segura"},
+        json={
+            "agency_name": "OtraPatch",
+            "name": "Beto",
+            "email": "beto-patch@prisma.com",
+            "password": "contrasena-segura",
+            "accept_terms": True,
+            "accept_privacy": True,
+        },
     )
     assert other.status_code == 201, other.text
     assert client.patch(f"/api/clients/{first['id']}/leads/{lead['id']}", json={"notes": "hack"}).status_code == 404

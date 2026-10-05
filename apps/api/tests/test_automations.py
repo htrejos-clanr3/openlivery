@@ -77,7 +77,14 @@ def test_score_with_mocked_deepseek(authenticated_client, monkeypatch):
 def test_runs_are_private_to_each_user(client, monkeypatch):
     first = client.post(
         "/api/auth/register",
-        json={"agency_name": "Agencia Uno", "name": "Ana", "email": "ana-auto@prisma.com", "password": "contrasena-segura"},
+        json={
+            "agency_name": "Agencia Uno",
+            "name": "Ana",
+            "email": "ana-auto@prisma.com",
+            "password": "contrasena-segura",
+            "accept_terms": True,
+            "accept_privacy": True,
+        },
     )
     assert first.status_code == 201, first.text
     client.put("/api/providers/deepseek", json={"api_key": "sk-a"})
@@ -105,7 +112,14 @@ def test_runs_are_private_to_each_user(client, monkeypatch):
     client.post("/api/auth/logout")
     second = client.post(
         "/api/auth/register",
-        json={"agency_name": "Agencia Dos", "name": "Beto", "email": "beto-auto@prisma.com", "password": "contrasena-segura"},
+        json={
+            "agency_name": "Agencia Dos",
+            "name": "Beto",
+            "email": "beto-auto@prisma.com",
+            "password": "contrasena-segura",
+            "accept_terms": True,
+            "accept_privacy": True,
+        },
     )
     assert second.status_code == 201, second.text
     listed = client.get("/api/automations/runs")
