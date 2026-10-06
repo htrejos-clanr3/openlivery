@@ -653,6 +653,14 @@ class CarouselScheduleRequest(BaseModel):
     scheduled_at: datetime
 
 
+class CarouselPublishRequest(BaseModel):
+    """POC A: publish an approved carousel to one or more connected networks."""
+
+    destinations: list[str] = Field(default_factory=lambda: ["instagram"])
+    human_approved: bool = True
+    reviewed_exact_content: bool = True
+
+
 class CarouselSlideOut(ORMModel):
     id: uuid.UUID
     position: int
@@ -720,6 +728,8 @@ class CarouselOut(ORMModel):
     scheduled_at: datetime | None = None
     published_at: datetime | None = None
     ig_media_id: str | None = None
+    linkedin_post_id: str | None = None
+    publish_results: dict = Field(default_factory=dict)
     publish_error: str | None = None
     content_item_id: uuid.UUID | None = None
     publication_id: uuid.UUID | None = None
