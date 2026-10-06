@@ -27,25 +27,24 @@ No un escritorio/skill distinto por plataforma como centro de UX.
 
 ## Fases
 
-### Fase 1 — Unificar lo que ya existe (prioridad)
+### Fase 1 — POC: carrusel → Instagram + LinkedIn (prioridad)
 
-Objetivo: “crear + elegir redes” sin inventar un CMS gigante.
+Objetivo: salir con un POC usable: **una pieza carrusel → publicar en redes seleccionables**.
 
-| Pieza canónica | Destinos MVP |
+| Pieza canónica | Destinos POC |
 |---|---|
-| Carrusel (Pomelli / bridge actual) | Instagram (ya), opcional export/copy |
-| Post texto | LinkedIn (publish OAuth), copy-paste fallback |
-| Imagen / post IG | Instagram compose existente |
+| Carrusel (slides con imagen, ya avanzado) | **Instagram** carousel (bridge actual) |
+| | **LinkedIn** MultiImage orgánico (2–20; extender publisher más allá de texto) |
 
-Trabajo concreto:
+Trabajo concreto del POC:
 
-1. **Hub de publicación** por cliente: lista de piezas + “Publicar en…” con checkboxes de redes **ya conectadas**.  
-2. Reordenar LinkedIn: Conectar → Generar → Aprobar → Publicar primero; voz/perfil secundario.  
-3. Modal legal B en LinkedIn OAuth (paridad con IG/WA).  
-4. Preview/límites por adaptador (texto LinkedIn vs caption IG).  
-5. Una aprobación humana por destino (o una global + confirmación por red si falla).  
+1. UI en carrusel aprobado: checkboxes **Instagram** / **LinkedIn** (solo si el canal está conectado).  
+2. Extender LinkedIn publishing: upload de imágenes + post `multiImage` (+ mock).  
+3. Caption del carrusel → commentary LinkedIn (adaptar longitud).  
+4. Aprobación humana una vez → publicar por adaptador; resultado por red.  
+5. Modal legal B en LinkedIn OAuth (paridad mínima con IG).  
 
-Fuera de Fase 1: editor multi-red sofisticado, scheduling cross-network, YouTube.
+Fuera del POC: YouTube, Studio completo, scheduling cross-network, post texto como hub unificado, Page/org LinkedIn.
 
 ### Fase 2 — Video como tipo de contenido
 
