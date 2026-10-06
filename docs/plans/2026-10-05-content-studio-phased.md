@@ -44,7 +44,23 @@ Trabajo concreto del POC:
 4. Aprobación humana una vez → publicar por adaptador; resultado por red.  
 5. Modal legal B en LinkedIn OAuth (paridad mínima con IG).  
 
-Fuera del POC: YouTube, Studio completo, scheduling cross-network, post texto como hub unificado, Page/org LinkedIn.
+Fuera del POC A: YouTube, Studio completo, scheduling cross-network, post texto como hub unificado, Page/org LinkedIn, WhatsApp campaña.
+
+### Fase 1b — POC B: WhatsApp campaña (después de A)
+
+WhatsApp **no** publica a un feed: envía a **personas**. Viabilidad oficial confirmada vía plantillas MARKETING (media card carousel), no session messages libres.
+
+| Requisito | Detalle |
+|---|---|
+| Destinatarios | Listado de contactos del cliente (`Contact`/leads con teléfono) |
+| Opt-in | Solo contactos con consentimiento marketing; respetar opt-out |
+| Formato | Template Meta **media card carousel** (2–10), aprobado en WABA |
+| Adaptador | Mapear slides del carrusel → cards del template + envío Cloud API |
+| UI | Checkbox WhatsApp + selector/segmento de audiencia (componente extra vs IG/LI) |
+
+Hoy el producto solo hace inbox/`send_text` en ventana de servicio. POC B añade broadcast + templates + audiencia.
+
+**Orden decidido:** salir con POC A (IG + LinkedIn); WhatsApp queda documentado como POC B.
 
 ### Fase 2 — Video como tipo de contenido
 
