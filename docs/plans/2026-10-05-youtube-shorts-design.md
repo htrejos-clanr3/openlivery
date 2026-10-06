@@ -2,11 +2,14 @@
 
 Date: 2026-10-05  
 Branch: `youtube-shorts` (from `main`)  
-Status: validated for implementation
+Status: validated — implement in **Phase 2** of Content Studio  
+Parent direction: [`2026-10-05-content-studio-phased.md`](./2026-10-05-content-studio-phased.md)
 
 ## Goal
 
-Native YouTube Shorts channel for Fast Livery: brief + optional assets → BYO video generation → simple FFmpeg brand wrap → human approval → upload as **private** via Google OAuth owned by the platform.
+Video vertical as a **canonical content type** with YouTube as primary destination: brief + optional assets → BYO video generation → simple FFmpeg brand wrap → human approval → upload as **private** via Google OAuth owned by the platform.
+
+Not a standalone “desk” parallel to LinkedIn copy tools. Fits Studio: create once → select networks → publish.
 
 ## Decisions
 
