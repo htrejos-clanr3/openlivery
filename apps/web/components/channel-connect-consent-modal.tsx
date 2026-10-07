@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
-export type ChannelKind = "instagram" | "whatsapp_cloud";
+export type ChannelKind = "instagram" | "whatsapp_cloud" | "linkedin";
 
 type LegalDocuments = {
   tos_version: string;
@@ -133,7 +133,8 @@ export function ChannelConnectConsentModal({
         )}
         <p style={{ margin: 0, fontSize: 12 }}>
           <a href={providerTermsUrl} target="_blank" rel="noreferrer">
-            {t("legal.metaTerms")} <ExternalLink size={12} />
+            {channel === "linkedin" ? t("legal.linkedinTerms") : t("legal.metaTerms")}{" "}
+            <ExternalLink size={12} />
           </a>
         </p>
         {error && <p className="alert alert-error">{error}</p>}

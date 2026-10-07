@@ -17,6 +17,18 @@ get_settings.cache_clear()
 from tests.test_carousel_instagram_bridge import _approve_carousel, _consent  # noqa: E402
 
 
+def _li_consent(client_id: str):
+    return {
+        "consent": {
+            "channel": "linkedin",
+            "client_id": client_id,
+            "admin_confirmed": True,
+            "no_password_stored": True,
+            "ai_disclosure_acknowledged": False,
+        }
+    }
+
+
 def test_carousel_publish_instagram_and_linkedin(authenticated_client):
     client = authenticated_client
     customer = client.post(
@@ -37,7 +49,10 @@ def test_carousel_publish_instagram_and_linkedin(authenticated_client):
         == 200
     )
 
-    li_session = client.post(f"/api/linkedin/channels/{customer['id']}/oauth/session")
+    li_session = client.post(
+        f"/api/linkedin/channels/{customer['id']}/oauth/session",
+        json=_li_consent(customer["id"]),
+    )
     assert li_session.status_code == 200, li_session.text
     assert (
         client.post(
@@ -72,7 +87,10 @@ def test_carousel_publish_linkedin_only(authenticated_client):
         "/api/clients",
         json={"name": "LI Only Co", "industry": "Software", "description": "Dev", "general_context": "PYME"},
     ).json()
-    li_session = client.post(f"/api/linkedin/channels/{customer['id']}/oauth/session")
+    li_session = client.post(
+        f"/api/linkedin/channels/{customer['id']}/oauth/session",
+        json=_li_consent(customer["id"]),
+    )
     client.post(
         f"/api/linkedin/channels/{customer['id']}/oauth/complete",
         json={"state": li_session.json()["state"], "use_mock": True},

@@ -6,6 +6,7 @@ import uuid
 from pydantic import BaseModel, Field
 
 from .schemas import ORMModel
+from .schemas_legal import ChannelConnectConsentIn
 
 
 class LinkedInChannelUpdate(BaseModel):
@@ -62,6 +63,10 @@ class LinkedInOAuthSessionOut(BaseModel):
     state: str
     dialog_url: str | None = None
     mock_mode: bool = False
+
+
+class LinkedInOAuthSessionIn(BaseModel):
+    consent: ChannelConnectConsentIn
 
 
 class LinkedInOAuthCompleteIn(BaseModel):

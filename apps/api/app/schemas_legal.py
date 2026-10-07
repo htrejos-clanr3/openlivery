@@ -25,7 +25,7 @@ class LegalPlatformAcceptIn(BaseModel):
 
 
 class ChannelConnectConsentIn(BaseModel):
-    channel: str = Field(pattern=r"^(instagram|whatsapp_cloud)$")
+    channel: str = Field(pattern=r"^(instagram|whatsapp_cloud|linkedin)$")
     client_id: uuid.UUID
     admin_confirmed: bool = False
     no_password_stored: bool = True

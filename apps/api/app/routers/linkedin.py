@@ -23,6 +23,7 @@ from ..schemas_linkedin import (
     LinkedInHumanizeRequest,
     LinkedInOAuthCompleteIn,
     LinkedInOAuthOptionsOut,
+    LinkedInOAuthSessionIn,
     LinkedInOAuthSessionOut,
     LinkedInPublicationOut,
     LinkedInProfileRequest,
@@ -30,6 +31,7 @@ from ..schemas_linkedin import (
 )
 from ..security import decrypt_secret, encrypt_secret
 from ..services.content_service import get_client_or_404
+from ..services.legal_consent import record_channel_connect_consent
 from ..services.linkedin.generate import clean_text, generate_post, load_hooks, rewrite_profile, score_profile_heuristic
 from ..services.linkedin import oauth as linkedin_oauth
 from ..services.linkedin.publishing import LinkedInPublishingError, LinkedInPublishingProvider
@@ -129,10 +131,16 @@ def oauth_options(user: User = Depends(get_current_user)):
 @router.post("/channels/{client_id}/oauth/session", response_model=LinkedInOAuthSessionOut)
 def start_oauth_session(
     client_id: uuid.UUID,
+    payload: LinkedInOAuthSessionIn,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
     _get_or_create_channel(db, user, client_id)
+    if payload.consent.client_id != client_id:
+        raise HTTPException(status_code=400, detail="Consent client_id must match the channel client")
+    if payload.consent.channel != "linkedin":
+        raise HTTPException(status_code=400, detail="Consent channel must be linkedin")
+    record_channel_connect_consent(db, user=user, payload=payload.consent)
     options = linkedin_oauth.oauth_options()
     if not options["oauth_available"]:
         raise HTTPException(status_code=400, detail=options["blocked_reason"] or "LinkedIn OAuth unavailable")
