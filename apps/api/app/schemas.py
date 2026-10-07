@@ -656,9 +656,9 @@ class CarouselScheduleRequest(BaseModel):
 class CarouselPublishRequest(BaseModel):
     """POC A: publish an approved carousel to one or more connected networks."""
 
-    destinations: list[str] = Field(default_factory=lambda: ["instagram"])
-    human_approved: bool = True
-    reviewed_exact_content: bool = True
+    destinations: list[str] = Field(default_factory=list)
+    human_approved: bool = False
+    reviewed_exact_content: bool = False
 
 
 class CarouselSlideOut(ORMModel):

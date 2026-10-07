@@ -65,8 +65,11 @@ export default function CarouselDetailPage() {
     const liOk = Boolean(li && (li.publishes || (li.status === "connected" && li.access_token_configured)));
     setIgReady(igOk);
     setLiReady(liOk);
-    setDestInstagram(igOk);
-    setDestLinkedIn(liOk && !igOk);
+    const igPublished = Boolean(data.publish_results?.instagram?.ok);
+    const liPublished = Boolean(data.publish_results?.linkedin?.ok);
+    // On retry, pre-select only networks that still need a successful publish.
+    setDestInstagram(igOk && !igPublished);
+    setDestLinkedIn(liOk && !liPublished);
   }
 
   useEffect(() => {
@@ -100,6 +103,10 @@ export default function CarouselDetailPage() {
         }),
       });
       setCarousel(updated);
+      const igPublished = Boolean(updated.publish_results?.instagram?.ok);
+      const liPublished = Boolean(updated.publish_results?.linkedin?.ok);
+      setDestInstagram(igReady && !igPublished);
+      setDestLinkedIn(liReady && !liPublished);
       setInfo(updated.publish_error ? t("carousels.detail.publishPartial") : t("carousels.detail.publishNow"));
       setReviewedExact(false);
       setPublishAuthorized(false);
@@ -715,33 +722,76 @@ export default function CarouselDetailPage() {
         </article>
       )}
 
-      {(carousel.status === "approved" || carousel.status === "failed") && (
+      {(() => {
+        const results = carousel.publish_results || {};
+        const igPublished = Boolean(results.instagram?.ok);
+        const liPublished = Boolean(results.linkedin?.ok);
+        const hasFailures = Object.values(results).some((row) => row && row.ok === false);
+        const canPublish =
+          carousel.status === "approved" ||
+          carousel.status === "failed" ||
+          (carousel.status === "published" && hasFailures);
+        const showResults = Boolean(results.instagram || results.linkedin || carousel.publish_error);
+        if (!canPublish && !showResults) return null;
+        return (
         <div className="access-form section-block">
           <h3 style={{ marginTop: 0 }}>{t("carousels.detail.publishTargetsTitle")}</h3>
           <p>{t("carousels.detail.publishTargetsHint")}</p>
+          {showResults && (
+            <div className="stack-form" style={{ gap: 6, marginBottom: 16 }}>
+              <strong>{t("carousels.detail.publishResultTitle")}</strong>
+              <p style={{ margin: 0 }}>
+                {t("carousels.detail.publishInstagram")}:{" "}
+                {igPublished
+                  ? `${t("carousels.detail.publishResultOk")}${carousel.ig_media_id ? ` (${carousel.ig_media_id})` : ""}`
+                  : results.instagram?.error
+                    ? `${t("carousels.detail.publishResultFail")}: ${results.instagram.error}`
+                    : t("carousels.detail.publishResultPending")}
+              </p>
+              <p style={{ margin: 0 }}>
+                {t("carousels.detail.publishLinkedIn")}:{" "}
+                {liPublished
+                  ? `${t("carousels.detail.publishResultOk")}${carousel.linkedin_post_id ? ` (${carousel.linkedin_post_id})` : ""}`
+                  : results.linkedin?.error
+                    ? `${t("carousels.detail.publishResultFail")}: ${results.linkedin.error}`
+                    : t("carousels.detail.publishResultPending")}
+              </p>
+              {carousel.publish_error && <p className="ig-muted" style={{ margin: 0 }}>{carousel.publish_error}</p>}
+            </div>
+          )}
+          {canPublish && (
+          <>
           <div className="stack-form" style={{ gap: 10, marginBottom: 16 }}>
             <label>
               <input
                 type="checkbox"
-                checked={destInstagram && igReady}
-                disabled={!igReady || busy}
+                checked={destInstagram && igReady && !igPublished}
+                disabled={!igReady || busy || igPublished}
                 onChange={(e) => setDestInstagram(e.target.checked)}
               />
               {" "}{t("carousels.detail.publishInstagram")}
               <small style={{ marginLeft: 8, color: "var(--muted)" }}>
-                {igReady ? t("carousels.detail.targetReady") : t("carousels.detail.targetNotConnected")}
+                {igPublished
+                  ? t("carousels.detail.publishResultOk")
+                  : igReady
+                    ? t("carousels.detail.targetReady")
+                    : t("carousels.detail.targetNotConnected")}
               </small>
             </label>
             <label>
               <input
                 type="checkbox"
-                checked={destLinkedIn && liReady}
-                disabled={!liReady || busy}
+                checked={destLinkedIn && liReady && !liPublished}
+                disabled={!liReady || busy || liPublished}
                 onChange={(e) => setDestLinkedIn(e.target.checked)}
               />
               {" "}{t("carousels.detail.publishLinkedIn")}
               <small style={{ marginLeft: 8, color: "var(--muted)" }}>
-                {liReady ? t("carousels.detail.targetReady") : t("carousels.detail.targetNotConnected")}
+                {liPublished
+                  ? t("carousels.detail.publishResultOk")
+                  : liReady
+                    ? t("carousels.detail.targetReady")
+                    : t("carousels.detail.targetNotConnected")}
               </small>
             </label>
             <label>
@@ -756,7 +806,7 @@ export default function CarouselDetailPage() {
           <div className="header-actions" style={{ marginBottom: 16, gap: 8, flexWrap: "wrap" }}>
             <button className="button primary" type="button" disabled={busy} onClick={publishNow}>
               {busy && <LoaderCircle className="spin" size={16} />}
-              {t("carousels.detail.publishNow")}
+              {hasFailures ? t("carousels.detail.publishRetryFailed") : t("carousels.detail.publishNow")}
             </button>
             <Link className="button secondary" href={`/clients/${carousel.client_id}/channels/instagram`}>
               {t("carousels.detail.openInstagram")}
@@ -765,12 +815,7 @@ export default function CarouselDetailPage() {
               {t("carousels.detail.openLinkedIn")}
             </Link>
           </div>
-          {(carousel.ig_media_id || carousel.linkedin_post_id || carousel.publish_error) && (
-            <p className="ig-muted" style={{ marginBottom: 16 }}>
-              {carousel.ig_media_id ? `${t("carousels.detail.igMediaId")}: ${carousel.ig_media_id}` : null}
-              {carousel.ig_media_id && carousel.linkedin_post_id ? " · " : null}
-              {carousel.linkedin_post_id ? `${t("carousels.detail.linkedInPostId")}: ${carousel.linkedin_post_id}` : null}
-            </p>
+          </>
           )}
           <p>{t("carousels.detail.scheduleHint")}</p>
           <form onSubmit={schedule}>
@@ -781,7 +826,8 @@ export default function CarouselDetailPage() {
             <button className="button secondary" disabled={busy}>{t("carousels.detail.schedule")}</button>
           </form>
         </div>
-      )}
+        );
+      })()}
       <Modal
         open={regenAsk}
         title={t("carousels.detail.regenerateApprovedTitle")}

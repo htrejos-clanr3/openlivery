@@ -125,7 +125,7 @@ def require_linkedin_publishable_carousel(carousel: Carousel) -> list:
 def normalize_destinations(raw: list[str] | None) -> list[str]:
     destinations = [d.strip().lower() for d in (raw or []) if d and str(d).strip()]
     if not destinations:
-        destinations = ["instagram"]
+        raise HTTPException(status_code=400, detail="Choose at least one network")
     unknown = [d for d in destinations if d not in ALLOWED_DESTINATIONS]
     if unknown:
         raise HTTPException(status_code=400, detail=f"Unsupported destinations: {unknown}")
@@ -137,6 +137,11 @@ def normalize_destinations(raw: list[str] | None) -> list[str]:
             seen.add(dest)
             ordered.append(dest)
     return ordered
+
+
+def _destination_ok(results: dict, dest: str) -> bool:
+    row = results.get(dest) or {}
+    return bool(row.get("ok"))
 
 
 def _linkedin_commentary(carousel: Carousel) -> str:
@@ -357,15 +362,23 @@ async def publish_carousel_now(
     user: User,
     destinations: list[str] | None = None,
 ) -> Carousel:
-    """Publish an approved carousel to selected networks (Instagram and/or LinkedIn)."""
-    if carousel.status not in {"approved", "failed"}:
+    """Publish an approved carousel to selected networks (Instagram and/or LinkedIn).
+
+    Partial success keeps prior network results and stays retryable (`failed`) until
+    every selected destination has ok=True. Fully successful runs become `published`.
+    """
+    if carousel.status not in {"approved", "failed", "published"}:
         raise HTTPException(status_code=400, detail="Carousel must be client-approved before publishing")
     targets = normalize_destinations(destinations)
     results: dict = dict(carousel.publish_results or {})
-    errors: list[str] = []
-    any_ok = False
+    pending = [dest for dest in targets if not _destination_ok(results, dest)]
+    if not pending:
+        raise HTTPException(status_code=400, detail="Selected networks are already published")
 
-    for dest in targets:
+    errors: list[str] = []
+    ran_ok = False
+
+    for dest in pending:
         try:
             if dest == "instagram":
                 outcome = await _publish_instagram_now(db, carousel=carousel, user=user)
@@ -375,20 +388,34 @@ async def publish_carousel_now(
                 outcome = await _publish_linkedin_now(db, carousel=carousel, user=user)
                 carousel.linkedin_post_id = outcome.get("provider_id")
                 results["linkedin"] = outcome
-            any_ok = True
+            ran_ok = True
         except HTTPException as exc:
             detail = exc.detail if isinstance(exc.detail, str) else str(exc.detail)
             results[dest] = {"ok": False, "error": detail}
             errors.append(f"{dest}: {detail}")
 
     carousel.publish_results = results
-    if any_ok:
+    succeeded = [dest for dest in targets if _destination_ok(results, dest)]
+    failed = [dest for dest in targets if not _destination_ok(results, dest)]
+    summary_parts = []
+    for dest in targets:
+        row = results.get(dest) or {}
+        if row.get("ok"):
+            summary_parts.append(f"{dest}: published")
+        else:
+            summary_parts.append(f"{dest}: failed ({row.get('error') or 'unknown error'})")
+    explicit = "; ".join(summary_parts)
+
+    if failed:
+        # Keep successes; stay retryable until every selected destination succeeds.
+        carousel.status = "failed"
+        carousel.publish_error = explicit
+        if succeeded:
+            carousel.published_at = carousel.published_at or now_utc()
+    else:
         carousel.status = "published"
         carousel.published_at = carousel.published_at or now_utc()
-        carousel.publish_error = "; ".join(errors) if errors else None
-    else:
-        carousel.status = "failed"
-        carousel.publish_error = "; ".join(errors) if errors else "Publish failed"
+        carousel.publish_error = None
 
     _log(
         db,
@@ -396,10 +423,10 @@ async def publish_carousel_now(
         actor_type="agency",
         actor_id=user.id,
         action="publish_multi",
-        payload={"destinations": targets, "results": results},
+        payload={"destinations": targets, "pending": pending, "results": results, "summary": explicit},
     )
     db.commit()
-    if not any_ok:
+    if not ran_ok and not succeeded:
         raise HTTPException(status_code=400, detail=carousel.publish_error or "Publish failed")
     return carousel
 

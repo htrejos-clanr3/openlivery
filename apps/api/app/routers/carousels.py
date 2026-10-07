@@ -448,8 +448,14 @@ async def publish_carousel(
     from ..services.carousel_publish_bridge import publish_carousel_now
 
     body = payload or CarouselPublishRequest()
+    # Stay pending until both confirmations are explicitly true (defaults are false).
     if not body.human_approved or not body.reviewed_exact_content:
-        raise HTTPException(status_code=400, detail="Human approval is required before publishing")
+        raise HTTPException(
+            status_code=400,
+            detail="Human approval is required before publishing; confirm review and authorization",
+        )
+    if not body.destinations:
+        raise HTTPException(status_code=400, detail="Choose at least one network")
     carousel = _carousel_for_agency(db, user, carousel_id)
     await publish_carousel_now(db, carousel=carousel, user=user, destinations=body.destinations)
     return _carousel_out(_carousel_for_agency(db, user, carousel_id))
