@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { LoaderCircle, Plus, Save, Trash2, Zap } from "lucide-react";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { SwitchRow } from "@/components/switch-row";
 import { Alert, Modal } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import type { AgentTool, ToolParam } from "@/types";
@@ -33,10 +34,13 @@ function ParamsEditor({ label, params, onChange }: { label: string; params: Tool
             <option value="boolean">boolean</option>
           </select>
           <input placeholder={t("tools.http.paramDescription")} value={param.description} onChange={(e) => update(index, { description: e.target.value })} />
-          <label className="param-required" title={t("tools.http.paramRequired")}>
-            <input type="checkbox" checked={param.required} onChange={(e) => update(index, { required: e.target.checked })} />
-            {t("tools.http.paramRequired")}
-          </label>
+          <SwitchRow
+            className="compact param-required-switch"
+            title={t("tools.http.paramRequired")}
+            label={t("tools.http.paramRequired")}
+            checked={param.required}
+            onChange={(checked) => update(index, { required: checked })}
+          />
           <button type="button" className="icon-button danger-icon" onClick={() => onChange(params.filter((_, i) => i !== index))} title={t("tools.delete")}>
             <Trash2 size={15} />
           </button>

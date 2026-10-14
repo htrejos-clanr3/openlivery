@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Bot, Building2, ExternalLink, LoaderCircle, MessageSquareText, ShieldCheck } from "lucide-react";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
+import { SwitchRow } from "@/components/switch-row";
 import { Alert } from "@/components/ui";
 
 type AuthOptions = { google_enabled: boolean; google_client_id: string | null };
@@ -183,16 +184,26 @@ function LoginForm() {
           <fieldset className="stack-form" style={{ gap: 10 }}>
             <legend>{t("legal.platformTitle")}</legend>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>{t("legal.platformDescription")}</p>
-            <label>
-              <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} />
-              {" "}{t("legal.acceptTerms")}{" "}
-              <a href={legalDocs.tos_url} target="_blank" rel="noreferrer">{t("legal.viewTerms")} <ExternalLink size={12} /></a>
-            </label>
-            <label>
-              <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} />
-              {" "}{t("legal.acceptPrivacy")}{" "}
-              <a href={legalDocs.privacy_url} target="_blank" rel="noreferrer">{t("legal.viewPrivacy")} <ExternalLink size={12} /></a>
-            </label>
+            <SwitchRow
+              label={t("legal.acceptTerms")}
+              hint={(
+                <a href={legalDocs.tos_url} target="_blank" rel="noreferrer">
+                  {t("legal.viewTerms")} <ExternalLink size={12} />
+                </a>
+              )}
+              checked={acceptTerms}
+              onChange={setAcceptTerms}
+            />
+            <SwitchRow
+              label={t("legal.acceptPrivacy")}
+              hint={(
+                <a href={legalDocs.privacy_url} target="_blank" rel="noreferrer">
+                  {t("legal.viewPrivacy")} <ExternalLink size={12} />
+                </a>
+              )}
+              checked={acceptPrivacy}
+              onChange={setAcceptPrivacy}
+            />
           </fieldset>
         )}
         {error && <Alert>{error}</Alert>}
@@ -225,7 +236,7 @@ export default function LoginPage() {
   return (
     <main className="access-page agency-access">
       <header className="access-topbar">
-        <div className="access-brand"><span className="openlivery-icon"><img src="/brand/openlivery-logo-original.png" alt="" /></span><strong>OpenLivery</strong></div>
+        <div className="access-brand"><span className="openlivery-icon"><img src="/brand/app-logo-icon.png" alt="" /></span><strong>OpenLivery</strong></div>
         <small>{t("auth.tagline")}</small>
       </header>
       <div className="access-layout">
@@ -234,7 +245,7 @@ export default function LoginPage() {
           <h1>{t("auth.introTitle")}</h1>
           <p>{t("auth.introDescription")}</p>
           <div className="access-preview" aria-hidden="true">
-            <header><div><span className="preview-logo openlivery-icon"><img src="/brand/openlivery-logo-original.png" alt="" /></span><strong>{t("auth.previewTitle")}</strong></div><small>{t("auth.previewToday")}</small></header>
+            <header><div><span className="preview-logo openlivery-icon"><img src="/brand/app-logo-icon.png" alt="" /></span><strong>{t("auth.previewTitle")}</strong></div><small>{t("auth.previewToday")}</small></header>
             <div className="preview-metrics"><article><span>{t("auth.previewClientsActive")}</span><strong>12</strong></article><article><span>{t("auth.previewAgents")}</span><strong>28</strong></article><article><span>{t("auth.previewConversations")}</span><strong>846</strong></article></div>
             <div className="preview-list">
               <div><span className="preview-icon"><Building2 size={16} /></span><p><strong>{t("auth.previewClinicName")}</strong><small>{t("auth.previewClinicMeta")}</small></p><em>{t("auth.previewActive")}</em></div>

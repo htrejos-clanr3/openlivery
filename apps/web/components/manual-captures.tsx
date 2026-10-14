@@ -189,7 +189,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
               <span>OAuth · openid · profile · w_member_social</span>
             </div>
             <label>Texto final<textarea readOnly value="Un hecho real, revisado y listo para publicar." /></label>
-            <label className="li-approval"><input type="checkbox" readOnly checked /><span>Revisé este texto exacto</span></label>
+            <label className="switch-row"><span><strong>Revisé este texto exacto</strong></span><input type="checkbox" role="switch" readOnly checked /></label>
             <button type="button">Publicar texto aprobado</button>
           </div>
         </ShotFrame>

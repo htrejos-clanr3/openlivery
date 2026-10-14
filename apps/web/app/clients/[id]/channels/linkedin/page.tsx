@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, BookOpen, CheckCircle2, ChevronDown, Copy, ExternalLink, Linkedin, LoaderCircle, LogOut, Send, Sparkles } from "lucide-react";
 import { ChannelConnectConsentModal, buildChannelConsent } from "@/components/channel-connect-consent-modal";
+import { SwitchRow } from "@/components/switch-row";
 import { Alert, PageHead } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
@@ -356,14 +357,11 @@ export default function LinkedInDeskPage() {
                   </div>
                   {channel.publishes ? (
                     <div className="li-publish-box">
-                      <label className="li-approval">
-                        <input
-                          type="checkbox"
-                          checked={publishApproved}
-                          onChange={(event) => setPublishApproved(event.target.checked)}
-                        />
-                        <span>{t("linkedin.publishConfirm")}</span>
-                      </label>
+                      <SwitchRow
+                        label={t("linkedin.publishConfirm")}
+                        checked={publishApproved}
+                        onChange={setPublishApproved}
+                      />
                       <button type="button" className="button primary" disabled={busy || !publishApproved || !post.copy_ready.trim()} onClick={publishPost}>
                         {busy ? <LoaderCircle className="spin" size={17} /> : <Send size={17} />} {busy ? t("linkedin.publishing") : t("linkedin.publish")}
                       </button>

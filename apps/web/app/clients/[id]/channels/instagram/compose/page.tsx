@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { FileDropzone } from "@/components/file-dropzone";
 import { FormatPlaybookFields, type FormatPlaybookValue } from "@/components/format-playbook-fields";
+import { SwitchRow } from "@/components/switch-row";
 import { Alert } from "@/components/ui";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -529,16 +530,10 @@ function ComposePageInner() {
                 {t("instagram.compose.scheduleAt")}
                 <input type="datetime-local" value={scheduleAt} onChange={(e) => setScheduleAt(e.target.value)} />
               </label>
-              <fieldset style={{ gridColumn: "1 / -1", border: "1px solid #eceef3", borderRadius: 12, padding: "12px 14px" }}>
+              <fieldset className="consent-toggles" style={{ gridColumn: "1 / -1", border: "1px solid #eceef3", borderRadius: 12, padding: "12px 14px" }}>
                 <legend>{t("legal.publishTitle")}</legend>
-                <label>
-                  <input type="checkbox" checked={reviewedExact} onChange={(e) => setReviewedExact(e.target.checked)} />
-                  {" "}{t("legal.publishReview")}
-                </label>
-                <label>
-                  <input type="checkbox" checked={publishAuthorized} onChange={(e) => setPublishAuthorized(e.target.checked)} />
-                  {" "}{t("legal.publishAuthorize")}
-                </label>
+                <SwitchRow label={t("legal.publishReview")} checked={reviewedExact} onChange={setReviewedExact} />
+                <SwitchRow label={t("legal.publishAuthorize")} checked={publishAuthorized} onChange={setPublishAuthorized} />
               </fieldset>
               <div className="wa-actions" style={{ gridColumn: "1 / -1" }}>
                 <button className="button secondary" type="submit" disabled={busy}>

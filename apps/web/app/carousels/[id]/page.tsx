@@ -13,6 +13,7 @@ import { CarouselImageCostAlert } from "@/components/carousel-image-cost-alert";
 import { FileDropzone } from "@/components/file-dropzone";
 import { AuthenticatedImage } from "@/components/authenticated-image";
 import { FormatPlaybookFields, type FormatPlaybookValue } from "@/components/format-playbook-fields";
+import { SwitchRow } from "@/components/switch-row";
 import type { Carousel, CarouselSlide, InstagramChannel, LinkedInChannel } from "@/types";
 
 export default function CarouselDetailPage() {
@@ -761,47 +762,45 @@ export default function CarouselDetailPage() {
           )}
           {canPublish && (
           <>
-          <div className="stack-form" style={{ gap: 10, marginBottom: 16 }}>
-            <label>
-              <input
-                type="checkbox"
-                checked={destInstagram && igReady && !igPublished}
-                disabled={!igReady || busy || igPublished}
-                onChange={(e) => setDestInstagram(e.target.checked)}
-              />
-              {" "}{t("carousels.detail.publishInstagram")}
-              <small style={{ marginLeft: 8, color: "var(--muted)" }}>
-                {igPublished
+          <div className="consent-toggles" style={{ marginBottom: 16 }}>
+            <SwitchRow
+              label={t("carousels.detail.publishInstagram")}
+              hint={
+                igPublished
                   ? t("carousels.detail.publishResultOk")
                   : igReady
                     ? t("carousels.detail.targetReady")
-                    : t("carousels.detail.targetNotConnected")}
-              </small>
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={destLinkedIn && liReady && !liPublished}
-                disabled={!liReady || busy || liPublished}
-                onChange={(e) => setDestLinkedIn(e.target.checked)}
-              />
-              {" "}{t("carousels.detail.publishLinkedIn")}
-              <small style={{ marginLeft: 8, color: "var(--muted)" }}>
-                {liPublished
+                    : t("carousels.detail.targetNotConnected")
+              }
+              checked={destInstagram && igReady && !igPublished}
+              disabled={!igReady || busy || igPublished}
+              onChange={setDestInstagram}
+            />
+            <SwitchRow
+              label={t("carousels.detail.publishLinkedIn")}
+              hint={
+                liPublished
                   ? t("carousels.detail.publishResultOk")
                   : liReady
                     ? t("carousels.detail.targetReady")
-                    : t("carousels.detail.targetNotConnected")}
-              </small>
-            </label>
-            <label>
-              <input type="checkbox" checked={reviewedExact} disabled={busy} onChange={(e) => setReviewedExact(e.target.checked)} />
-              {" "}{t("carousels.detail.publishReviewExact")}
-            </label>
-            <label>
-              <input type="checkbox" checked={publishAuthorized} disabled={busy} onChange={(e) => setPublishAuthorized(e.target.checked)} />
-              {" "}{t("carousels.detail.publishAuthorize")}
-            </label>
+                    : t("carousels.detail.targetNotConnected")
+              }
+              checked={destLinkedIn && liReady && !liPublished}
+              disabled={!liReady || busy || liPublished}
+              onChange={setDestLinkedIn}
+            />
+            <SwitchRow
+              label={t("carousels.detail.publishReviewExact")}
+              checked={reviewedExact}
+              disabled={busy}
+              onChange={setReviewedExact}
+            />
+            <SwitchRow
+              label={t("carousels.detail.publishAuthorize")}
+              checked={publishAuthorized}
+              disabled={busy}
+              onChange={setPublishAuthorized}
+            />
           </div>
           <div className="header-actions" style={{ marginBottom: 16, gap: 8, flexWrap: "wrap" }}>
             <button className="button primary" type="button" disabled={busy} onClick={publishNow}>
