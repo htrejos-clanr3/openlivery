@@ -243,7 +243,71 @@ def test_huggingface_nscale_b64(monkeypatch):
     assert usage["model"] == "black-forest-labs/FLUX.1-schnell"
 
 
+def test_huggingface_fal_data_url_is_decoded_not_fetched(monkeypatch):
+    """fal-ai sync_mode puts a data:image URL in images[].url — must not HTTP GET it."""
+    from app.config import Settings
+
+    monkeypatch.setattr(
+        "app.services.image_generation.get_settings",
+        lambda: Settings(
+            image_provider="huggingface",
+            hf_token="hf_test_token",
+            hf_image_model="black-forest-labs/FLUX.1-schnell",
+            hf_image_provider="fal-ai",
+        ),
+    )
+    data_url = "data:image/png;base64," + TINY_PNG_B64
+
+    class FakeResp:
+        def __init__(self, status_code=200, payload=None, headers=None, text=""):
+            self.status_code = status_code
+            self._payload = payload
+            self.headers = headers or {"content-type": "application/json"}
+            self.text = text
+            self.content = b""
+
+        def json(self):
+            return self._payload
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def get(self, url, headers=None, **kwargs):
+            if "huggingface.co/api/models" in url:
+                return FakeResp(
+                    payload={
+                        "inferenceProviderMapping": {
+                            "fal-ai": {
+                                "status": "live",
+                                "task": "text-to-image",
+                                "providerId": "fal-ai/flux/schnell",
+                            },
+                        }
+                    }
+                )
+            raise AssertionError(f"must not HTTP GET image refs: {url[:80]}")
+
+        def post(self, url, headers=None, json=None):
+            assert "/fal-ai/" in url
+            return FakeResp(payload={"images": [{"url": data_url}]})
+
+    monkeypatch.setattr("app.services.image_generation.httpx.Client", FakeClient)
+    backend = resolve_image_backend(MagicMock(), "agency")
+    data, mime, err, _usage = generate_slide_image(backend, "vertical 4:5 ad")
+    assert err is None, err
+    assert data[:8] == b"\x89PNG\r\n\x1a\n"
+    assert mime == "image/png"
+
+
 def test_hf_alias_and_quote_are_not_openai(monkeypatch):
+
     from app.config import Settings
     from app.services.image_generation import quote_image_generation
 
