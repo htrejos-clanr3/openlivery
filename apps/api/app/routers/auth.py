@@ -13,6 +13,7 @@ from ..models import Agency, OAuthAccount, User
 from ..ratelimit import login_rate_limit
 from ..schemas import (
     AuthOptionsOut,
+    ChangePasswordRequest,
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     GoogleAuthRequest,
@@ -194,6 +195,25 @@ def set_password(payload: SetPasswordRequest, response: Response, db: Session = 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response):
     response.delete_cookie("access_token", path="/")
+
+
+@router.post("/change-password", response_model=UserOut)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Change (or create) the signed-in agency user's password from Settings."""
+    new_password = payload.new_password
+    if user.password_hash:
+        if not payload.current_password or not verify_password(payload.current_password, user.password_hash):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        if verify_password(new_password, user.password_hash):
+            raise HTTPException(status_code=400, detail="New password must be different from the current password")
+    user.password_hash = hash_password(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 @router.get("/me", response_model=UserOut)

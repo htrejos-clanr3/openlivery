@@ -582,6 +582,13 @@ class SetPasswordRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class ChangePasswordRequest(BaseModel):
+    """Authenticated password change (Settings). current_password required when one already exists."""
+
+    current_password: str = Field(default="", max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class AuthOptionsOut(BaseModel):
     google_enabled: bool
     google_client_id: str | None = None
