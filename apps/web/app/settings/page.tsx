@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { ArrowRight, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, LoaderCircle, Save, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, ExternalLink, Eye, EyeOff, ImagePlus, KeyRound, LoaderCircle, Save, ShieldCheck, Trash2 } from "lucide-react";
 import { PageHead } from "@/components/ui";
 import { FileDropzone, type FileDropzoneHandle } from "@/components/file-dropzone";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
 import { useT, type TranslateFn } from "@/lib/i18n";
 import { PROVIDERS } from "@/lib/providers";
-import type { Agency, ImageGenerationStatus, Provider, ProviderTest } from "@/types";
+import type { Agency, ImageGenerationStatus, Provider, ProviderTest, User } from "@/types";
 
 export default function SettingsPage() {
   const t = useT();
   const toast = useToast();
   const [agency, setAgency] = useState<Agency | null>(null);
+  const [me, setMe] = useState<User | null>(null);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [imageStatus, setImageStatus] = useState<ImageGenerationStatus | null>(null);
   const [busy, setBusy] = useState(false);
@@ -22,12 +23,13 @@ export default function SettingsPage() {
   const logoDropRef = useRef<FileDropzoneHandle>(null);
 
   const load = async () => {
-    const [a, p, img] = await Promise.all([
+    const [a, p, img, user] = await Promise.all([
       api<Agency>("/agency"),
       api<Provider[]>("/providers"),
       api<ImageGenerationStatus>("/providers/image-generation"),
+      api<User>("/auth/me"),
     ]);
-    setAgency(a); setProviders(p); setImageStatus(img);
+    setAgency(a); setProviders(p); setImageStatus(img); setMe(user);
   };
   useEffect(() => { load(); }, []);
 
@@ -62,10 +64,73 @@ export default function SettingsPage() {
   }
   async function removeKey(provider: string) { await api(`/providers/${provider}`, { method: "DELETE" }); await load(); }
 
+  async function changePassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const current = String(data.get("current_password") || "");
+    const next = String(data.get("new_password") || "");
+    const confirm = String(data.get("confirm_password") || "");
+    if (next !== confirm) {
+      toast.error(t("settings.index.passwordMismatch"));
+      return;
+    }
+    if (me?.password_configured && current && next === current) {
+      toast.error(t("settings.index.passwordSameAsCurrent"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const updated = await api<User>("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({ current_password: current, new_password: next }),
+      });
+      setMe(updated);
+      form.reset();
+      toast.success(t("settings.index.passwordUpdated"));
+    } catch (err) {
+      toast.error(messageFrom(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!agency) return <div className="page-loading"><LoaderCircle className="spin" /> {t("settings.index.loading")}</div>;
+  const passwordConfigured = Boolean(me?.password_configured);
   return <div className="page"><PageHead eyebrow={t("settings.index.eyebrow")} title={t("settings.index.title")} description={t("settings.index.description")} />
 
     <form className="page-form" onSubmit={saveIdentity}><section className="form-section"><div className="section-copy"><h2>{t("settings.index.identityHeading")}</h2><p>{t("settings.index.identityCopy")}</p></div><div className="form-fields"><div className="logo-editor"><FileDropzone ref={logoDropRef} className="logo-preview" accept="image/png,image/jpeg,image/webp,image/svg+xml" disabled={busy} onFile={uploadLogo}>{agency.logo_url ? <img src={`${agency.logo_url}?v=${logoVersion}`} alt={t("settings.index.logoAlt")} /> : <ImagePlus size={24} />}</FileDropzone><div><strong>{t("settings.index.logoLabel")}</strong><small>{t("settings.index.logoHint")}</small><div><button type="button" className="text-button" onClick={() => logoDropRef.current?.open()}>{t("settings.index.change")}</button>{agency.logo_url && <button type="button" className="text-button danger-text" onClick={deleteLogo}><Trash2 size={14} /> {t("settings.index.remove")}</button>}</div></div></div><div className="form-grid"><label>{t("settings.index.agencyName")}<input name="name" required defaultValue={agency.name} /></label><label>{t("settings.index.identifier")}<input name="slug" required defaultValue={agency.slug} /></label></div><label>{t("settings.index.brandColor")}<div className="color-input"><input type="color" name="brand_color" defaultValue={agency.brand_color} /><input defaultValue={agency.brand_color} readOnly /></div></label><button className="button primary align-start" disabled={busy}>{busy ? <LoaderCircle size={17} className="spin" /> : <Save size={17} />} {t("settings.index.saveIdentity")}</button></div></section></form>
+
+    <form className="page-form" onSubmit={changePassword}>
+      <section className="form-section">
+        <div className="section-copy">
+          <h2>{t("settings.index.passwordHeading")}</h2>
+          <p>{passwordConfigured ? t("settings.index.passwordCopy") : t("settings.index.passwordCreateCopy")}</p>
+        </div>
+        <div className="form-fields">
+          {passwordConfigured ? (
+            <label>
+              {t("settings.index.currentPassword")}
+              <input name="current_password" type="password" autoComplete="current-password" required minLength={1} />
+            </label>
+          ) : null}
+          <div className="form-grid">
+            <label>
+              {t("settings.index.newPassword")}
+              <input name="new_password" type="password" autoComplete="new-password" required minLength={8} placeholder={t("settings.index.passwordHint")} />
+            </label>
+            <label>
+              {t("settings.index.confirmPassword")}
+              <input name="confirm_password" type="password" autoComplete="new-password" required minLength={8} />
+            </label>
+          </div>
+          <button className="button primary align-start" disabled={busy}>
+            {busy ? <LoaderCircle size={17} className="spin" /> : <KeyRound size={17} />}
+            {passwordConfigured ? t("settings.index.savePassword") : t("settings.index.createPassword")}
+          </button>
+        </div>
+      </section>
+    </form>
 
     <section className="section-block">
       <div className="section-heading"><div><h2>{t("meta.linkFromSettings")}</h2><p>{t("meta.linkFromSettingsCopy")}</p></div></div>

@@ -11,7 +11,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 export const metadata: Metadata = {
   title: "OpenLivery — AI agents for your agency",
   description: "Open source platform to build and manage AI agents.",
-  icons: { icon: "/brand/openlivery-logo-original.png", apple: "/brand/openlivery-logo-original.png" },
+  icons: { icon: "/brand/app-logo-icon.png", apple: "/brand/app-logo-icon.png" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

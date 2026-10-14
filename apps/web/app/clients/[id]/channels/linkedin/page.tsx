@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, BookOpen, CheckCircle2, ChevronDown, Copy, ExternalLink, Linkedin, LoaderCircle, LogOut, Send, Sparkles } from "lucide-react";
+import { ChannelConnectConsentModal, buildChannelConsent } from "@/components/channel-connect-consent-modal";
+import { SwitchRow } from "@/components/switch-row";
 import { Alert, PageHead } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
@@ -42,6 +44,7 @@ export default function LinkedInDeskPage() {
   const [cleaned, setCleaned] = useState("");
   const [publishApproved, setPublishApproved] = useState(false);
   const [publication, setPublication] = useState<LinkedInPublication | null>(null);
+  const [consentOpen, setConsentOpen] = useState(false);
 
   const load = useCallback(async () => {
     const [row, oauth, rows] = await Promise.all([
@@ -96,11 +99,16 @@ export default function LinkedInDeskPage() {
     });
   }
 
+  function requestConnect() {
+    setConsentOpen(true);
+  }
+
   async function connectLinkedIn() {
     setBusy(true);
     try {
       const session = await api<LinkedInOAuthSession>(`/linkedin/channels/${id}/oauth/session`, {
         method: "POST",
+        body: JSON.stringify(buildChannelConsent("linkedin", id)),
       });
       if (session.mock_mode) {
         const row = await api<LinkedInChannel>(`/linkedin/channels/${id}/oauth/complete`, {
@@ -252,7 +260,7 @@ export default function LinkedInDeskPage() {
                   <LogOut size={17} /> {t("linkedin.disconnect")}
                 </button>
               ) : (
-                <button type="button" className="button primary" onClick={connectLinkedIn} disabled={busy || !options?.oauth_available}>
+                <button type="button" className="button primary" onClick={requestConnect} disabled={busy || !options?.oauth_available}>
                   {busy ? <LoaderCircle className="spin" size={17} /> : <Linkedin size={17} />} {busy ? t("linkedin.connecting") : t("linkedin.connect")}
                 </button>
               )}
@@ -349,14 +357,11 @@ export default function LinkedInDeskPage() {
                   </div>
                   {channel.publishes ? (
                     <div className="li-publish-box">
-                      <label className="li-approval">
-                        <input
-                          type="checkbox"
-                          checked={publishApproved}
-                          onChange={(event) => setPublishApproved(event.target.checked)}
-                        />
-                        <span>{t("linkedin.publishConfirm")}</span>
-                      </label>
+                      <SwitchRow
+                        label={t("linkedin.publishConfirm")}
+                        checked={publishApproved}
+                        onChange={setPublishApproved}
+                      />
                       <button type="button" className="button primary" disabled={busy || !publishApproved || !post.copy_ready.trim()} onClick={publishPost}>
                         {busy ? <LoaderCircle className="spin" size={17} /> : <Send size={17} />} {busy ? t("linkedin.publishing") : t("linkedin.publish")}
                       </button>
@@ -418,6 +423,17 @@ export default function LinkedInDeskPage() {
           )}
         </main>
       </div>
+      <ChannelConnectConsentModal
+        open={consentOpen}
+        channel="linkedin"
+        clientId={id}
+        providerTermsUrl="https://www.linkedin.com/legal/l/api-terms"
+        onClose={() => setConsentOpen(false)}
+        onConfirmed={() => {
+          setConsentOpen(false);
+          void connectLinkedIn();
+        }}
+      />
     </div>
   );
 }

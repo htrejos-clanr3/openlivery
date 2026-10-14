@@ -251,7 +251,9 @@ h1, h2, h3, .brand { font-family: inherit; }
 .filter-select { min-width: 240px; display: flex; align-items: center; gap: 9px; color: #687082; font-size: 13px; }
 .filter-select select { height: 44px; min-width: 190px; }
 label { color: #343b4d; font-size: 14px; font-weight: 600; }
-input, textarea, select { min-height: 43px; padding: 10px 12px; color: #202638; border: 1px solid #cfd6df; border-radius: 7px; background: white; font-size: 15px; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+textarea,
+select { min-height: 43px; padding: 10px 12px; color: #202638; border: 1px solid #cfd6df; border-radius: 7px; background: white; font-size: 15px; }
 input:focus, textarea:focus, select:focus { outline: 0; border-color: #7770ff; box-shadow: 0 0 0 3px rgba(99,91,255,.13); }
 textarea { line-height: 1.55; }
 .field-help { margin-top: 6px; color: #7d8593; font-size: 12px; font-weight: 400; }
@@ -723,6 +725,31 @@ textarea { line-height: 1.55; }
 .switch-row input[type="checkbox"]:checked { background: #635bff; }
 .switch-row input[type="checkbox"]:checked::after { transform: translateX(18px); }
 .switch-row input[type="checkbox"]:focus-visible { outline: 0; box-shadow: 0 0 0 3px rgba(99, 91, 255, .2); }
+.switch-row input[type="checkbox"]:disabled { opacity: .45; cursor: not-allowed; }
+.consent-toggles { display: flex; flex-direction: column; gap: 10px; }
+.consent-toggles .switch-row { margin: 0; }
+.switch-label-with-icon { display: inline-flex; align-items: center; gap: 8px; }
+.switch-label-with-icon svg { flex: 0 0 auto; color: var(--muted); }
+/* Raw checkboxes must not inherit text-field min-height/padding. */
+input[type="checkbox"]:not(.switch-row input) {
+  width: 18px;
+  min-width: 18px;
+  max-width: 18px;
+  height: 18px;
+  min-height: 18px !important;
+  max-height: 18px;
+  padding: 0 !important;
+  margin: 0;
+  border-radius: 4px;
+  accent-color: #635bff;
+  cursor: pointer;
+}
+.param-required-switch {
+  min-height: 42px !important;
+  padding: 6px 10px !important;
+  gap: 10px !important;
+}
+.param-required-switch strong { font-size: 12px; white-space: nowrap; }
 
 /* Accesos de agencia y cliente */
 .access-page { min-height: 100vh; color: #202638; background: #f8f9fb; }
@@ -1435,7 +1462,8 @@ textarea { line-height: 1.55; }
   width: 32px !important;
   height: 32px !important;
   min-width: 32px;
-  display: inline-block !important;
+  display: inline-grid !important;
+  place-items: center;
   position: relative;
   overflow: hidden;
   flex: 0 0 auto;
@@ -1445,19 +1473,27 @@ textarea { line-height: 1.55; }
   box-shadow: none !important;
 }
 .openlivery-icon img {
-  width: 112px !important;
+  width: 100% !important;
+  height: 100% !important;
   max-width: none !important;
-  height: 112px !important;
-  position: absolute;
-  top: -38px;
-  left: -15px;
+  position: static;
   object-fit: contain;
+  display: block;
 }
-.openlivery-icon::after { content: ""; width: 6px; position: absolute; inset: 0 0 0 auto; z-index: 2; background: #f1f7f7; }
-.brand .openlivery-icon { width: 30px !important; height: 30px !important; min-width: 30px; }
-.brand .openlivery-icon img { width: 106px !important; height: 106px !important; top: -36px; left: -14px; }
-.preview-logo.openlivery-icon { width: 30px !important; height: 30px !important; min-width: 30px; }
-.preview-logo.openlivery-icon img { width: 106px !important; height: 106px !important; top: -36px; left: -14px; }
+.openlivery-icon::after { content: none; }
+.brand .openlivery-icon,
+.preview-logo.openlivery-icon {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px;
+}
+.brand .openlivery-icon img,
+.preview-logo.openlivery-icon img {
+  width: 100% !important;
+  height: 100% !important;
+  top: auto;
+  left: auto;
+}
 
 .brand-row { padding-bottom: 14px; }
 .brand { color: #063f67; font-size: 17px; font-weight: 700; }

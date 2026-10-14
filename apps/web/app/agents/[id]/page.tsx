@@ -13,6 +13,7 @@ import { FileDropzone } from "@/components/file-dropzone";
 import { AgentToolsTab } from "@/components/agent-tools/agent-tools-tab";
 import { Combobox } from "@/components/combobox";
 import { ProviderSetupPanel } from "@/components/provider-setup-panel";
+import { SwitchRow } from "@/components/switch-row";
 import { PROVIDERS, modelsFor, defaultModelFor, estimateTokens, modelContextWindow, AUDIO_MODELS, IMAGE_MODELS, isOpenAIOnlyCapabilityProvider } from "@/lib/providers";
 import { TIMEZONES } from "@/lib/timezones";
 import type { Agent, AgentTool, Client, KnowledgeDocument, Provider, QAPair } from "@/types";
@@ -203,11 +204,21 @@ export default function AgentDetailPage() {
       </div></section>
       <section className="settings-section"><div className="settings-copy"><h3>{t("agents.detail.capabilitiesHeading")}</h3><p>{t("agents.detail.capabilitiesCopy")}</p></div><div className="settings-fields">
         <div className="capability">
-          <label className="capability-head"><input type="checkbox" checked={imageEnabled} onChange={(e) => setImageEnabled(e.target.checked)} /><ImageIcon size={17} /><span><strong>{t("agents.detail.imageLabel")}</strong><small>{t("agents.detail.imageHint")}</small></span></label>
+          <SwitchRow
+            label={<strong className="switch-label-with-icon"><ImageIcon size={17} /> {t("agents.detail.imageLabel")}</strong>}
+            hint={t("agents.detail.imageHint")}
+            checked={imageEnabled}
+            onChange={setImageEnabled}
+          />
           {imageEnabled && <label className="capability-model">{t("agents.detail.modelLabel")}<Combobox value={imageModel} onChange={setImageModel} options={IMAGE_MODELS} placeholder="gpt-4.1" allowCustom /></label>}
         </div>
         <div className="capability">
-          <label className="capability-head"><input type="checkbox" checked={audioEnabled} onChange={(e) => setAudioEnabled(e.target.checked)} /><AudioLines size={17} /><span><strong>{t("agents.detail.audioLabel")}</strong><small>{t("agents.detail.audioHint")}</small></span></label>
+          <SwitchRow
+            label={<strong className="switch-label-with-icon"><AudioLines size={17} /> {t("agents.detail.audioLabel")}</strong>}
+            hint={t("agents.detail.audioHint")}
+            checked={audioEnabled}
+            onChange={setAudioEnabled}
+          />
           {audioEnabled && <label className="capability-model">{t("agents.detail.modelLabel")}<Combobox value={audioModel} onChange={setAudioModel} options={AUDIO_MODELS} placeholder="whisper-1" allowCustom /></label>}
         </div>
         <Alert type="info">{t("agents.detail.capabilitiesOpenAI")}</Alert>

@@ -838,33 +838,72 @@ def _huggingface_bytes_from_response(
     data = body.get("data")
     if isinstance(data, list) and data:
         item = data[0] if isinstance(data[0], dict) else {}
-        b64 = item.get("b64_json")
-        if b64:
-            decoded, mime, err, _usage = _b64_to_png(str(b64), "huggingface")
-            return decoded, mime, err
-        url = item.get("url")
-        if url:
-            return _huggingface_fetch_url(client, str(url), token)
+        decoded = _huggingface_image_from_item(client, item, token)
+        if decoded[0] or decoded[2]:
+            return decoded
 
     images = body.get("images")
     if isinstance(images, list) and images:
-        item = images[0] if isinstance(images[0], dict) else {}
-        url = item.get("url")
-        if url:
-            return _huggingface_fetch_url(client, str(url), token)
-        b64 = item.get("b64_json") or item.get("image")
-        if b64:
-            decoded, mime, err, _usage = _b64_to_png(str(b64), "huggingface")
-            return decoded, mime, err
+        first = images[0]
+        if isinstance(first, str):
+            return _huggingface_resolve_image_ref(client, first, token)
+        if isinstance(first, dict):
+            decoded = _huggingface_image_from_item(client, first, token)
+            if decoded[0] or decoded[2]:
+                return decoded
+
+    # fal-ai / some providers put a lone image field on the root object
+    for key in ("image", "b64_json", "url"):
+        value = body.get(key)
+        if isinstance(value, str) and value.strip():
+            return _huggingface_resolve_image_ref(client, value, token)
     return None, None, "Hugging Face JSON missing image / b64_json"
+
+
+def _huggingface_image_from_item(
+    client: httpx.Client, item: dict, token: str
+) -> tuple[bytes | None, str | None, str | None]:
+    for key in ("b64_json", "image", "url"):
+        value = item.get(key)
+        if isinstance(value, str) and value.strip():
+            decoded, mime, err = _huggingface_resolve_image_ref(client, value, token)
+            if decoded:
+                return decoded, mime, None
+            if err and key != "url":
+                return None, None, err
+    return None, None, "item had no decodable image field"
+
+
+def _huggingface_resolve_image_ref(
+    client: httpx.Client, ref: str, token: str
+) -> tuple[bytes | None, str | None, str | None]:
+    """Decode data: URLs / raw b64 in-process; only HTTP(S) URLs are fetched."""
+    text = (ref or "").strip()
+    if not text:
+        return None, None, "empty image reference"
+    if text.startswith(("http://", "https://")):
+        return _huggingface_fetch_url(client, text, token)
+    # fal-ai sync_mode uses data:image/...;base64,... — never HTTP GET that.
+    # OpenAI-compat providers return raw b64_json without a data: prefix.
+    decoded, mime, err, _usage = _b64_to_png(text, "huggingface")
+    return decoded, mime, err
 
 
 def _huggingface_fetch_url(
     client: httpx.Client, url: str, token: str
 ) -> tuple[bytes | None, str | None, str | None]:
+    # fal-ai sync_mode often returns data:image/...;base64,... in the "url" field.
+    # GETting that raises httpx "URL too long" — decode locally instead.
+    if url.startswith("data:image"):
+        decoded, mime, err, _usage = _b64_to_png(url, "huggingface")
+        return decoded, mime, err
+    if len(url) > 8000:
+        return None, None, "image url too long (expected http(s) or data:image)"
     try:
         img = client.get(url, headers=_huggingface_headers(token, json_accept=False))
     except httpx.HTTPError as exc:
+        return None, None, f"image url fetch: {exc!s}"[:180]
+    except Exception as exc:  # noqa: BLE001 — InvalidURL etc.
         return None, None, f"image url fetch: {exc!s}"[:180]
     if img.status_code >= 400:
         return None, None, f"image url fetch HTTP {img.status_code}"

@@ -105,6 +105,8 @@ export type Carousel = {
   scheduled_at: string | null;
   published_at: string | null;
   ig_media_id: string | null;
+  linkedin_post_id?: string | null;
+  publish_results?: Record<string, { ok?: boolean; provider_id?: string; error?: string }>;
   publish_error: string | null;
   content_item_id?: string | null;
   publication_id?: string | null;

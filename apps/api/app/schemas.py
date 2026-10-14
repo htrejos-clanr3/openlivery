@@ -582,6 +582,13 @@ class SetPasswordRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
 
 
+class ChangePasswordRequest(BaseModel):
+    """Authenticated password change (Settings). current_password required when one already exists."""
+
+    current_password: str = Field(default="", max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+
 class AuthOptionsOut(BaseModel):
     google_enabled: bool
     google_client_id: str | None = None
@@ -653,6 +660,14 @@ class CarouselScheduleRequest(BaseModel):
     scheduled_at: datetime
 
 
+class CarouselPublishRequest(BaseModel):
+    """POC A: publish an approved carousel to one or more connected networks."""
+
+    destinations: list[str] = Field(default_factory=list)
+    human_approved: bool = False
+    reviewed_exact_content: bool = False
+
+
 class CarouselSlideOut(ORMModel):
     id: uuid.UUID
     position: int
@@ -720,6 +735,8 @@ class CarouselOut(ORMModel):
     scheduled_at: datetime | None = None
     published_at: datetime | None = None
     ig_media_id: str | None = None
+    linkedin_post_id: str | None = None
+    publish_results: dict = Field(default_factory=dict)
     publish_error: str | None = None
     content_item_id: uuid.UUID | None = None
     publication_id: uuid.UUID | None = None

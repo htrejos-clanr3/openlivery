@@ -13,7 +13,8 @@ import { CarouselImageCostAlert } from "@/components/carousel-image-cost-alert";
 import { FileDropzone } from "@/components/file-dropzone";
 import { AuthenticatedImage } from "@/components/authenticated-image";
 import { FormatPlaybookFields, type FormatPlaybookValue } from "@/components/format-playbook-fields";
-import type { Carousel, CarouselSlide } from "@/types";
+import { SwitchRow } from "@/components/switch-row";
+import type { Carousel, CarouselSlide, InstagramChannel, LinkedInChannel } from "@/types";
 
 export default function CarouselDetailPage() {
   const t = useT();
@@ -37,6 +38,12 @@ export default function CarouselDetailPage() {
   const [generating, setGenerating] = useState(false);
   const [generatingSeconds, setGeneratingSeconds] = useState(0);
   const [regenAsk, setRegenAsk] = useState(false);
+  const [igReady, setIgReady] = useState(false);
+  const [liReady, setLiReady] = useState(false);
+  const [destInstagram, setDestInstagram] = useState(true);
+  const [destLinkedIn, setDestLinkedIn] = useState(false);
+  const [reviewedExact, setReviewedExact] = useState(false);
+  const [publishAuthorized, setPublishAuthorized] = useState(false);
 
   async function load() {
     const data = await api<Carousel>(`/carousels/${params.id}`);
@@ -51,11 +58,65 @@ export default function CarouselDetailPage() {
       if (current && data.slides.some((s) => s.id === current)) return current;
       return data.slides[0]?.id ?? null;
     });
+    const [ig, li] = await Promise.all([
+      api<InstagramChannel>(`/instagram/channels/${data.client_id}`).catch(() => null),
+      api<LinkedInChannel>(`/linkedin/channels/${data.client_id}`).catch(() => null),
+    ]);
+    const igOk = Boolean(ig && ig.status === "connected");
+    const liOk = Boolean(li && (li.publishes || (li.status === "connected" && li.access_token_configured)));
+    setIgReady(igOk);
+    setLiReady(liOk);
+    const igPublished = Boolean(data.publish_results?.instagram?.ok);
+    const liPublished = Boolean(data.publish_results?.linkedin?.ok);
+    // On retry, pre-select only networks that still need a successful publish.
+    setDestInstagram(igOk && !igPublished);
+    setDestLinkedIn(liOk && !liPublished);
   }
 
   useEffect(() => {
     load().catch((err) => setError(messageFrom(err)));
   }, [params.id]);
+
+  async function publishNow() {
+    if (!carousel) return;
+    const destinations = [
+      ...(destInstagram && igReady ? ["instagram"] : []),
+      ...(destLinkedIn && liReady ? ["linkedin"] : []),
+    ];
+    if (!destinations.length) {
+      setError(t("carousels.detail.publishNeedTarget"));
+      return;
+    }
+    if (!reviewedExact || !publishAuthorized) {
+      setError(t("carousels.detail.publishNeedApproval"));
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setInfo("");
+    try {
+      const updated = await api<Carousel>(`/carousels/${params.id}/publish`, {
+        method: "POST",
+        body: JSON.stringify({
+          destinations,
+          human_approved: publishAuthorized,
+          reviewed_exact_content: reviewedExact,
+        }),
+      });
+      setCarousel(updated);
+      const igPublished = Boolean(updated.publish_results?.instagram?.ok);
+      const liPublished = Boolean(updated.publish_results?.linkedin?.ok);
+      setDestInstagram(igReady && !igPublished);
+      setDestLinkedIn(liReady && !liPublished);
+      setInfo(updated.publish_error ? t("carousels.detail.publishPartial") : t("carousels.detail.publishNow"));
+      setReviewedExact(false);
+      setPublishAuthorized(false);
+    } catch (err) {
+      setError(messageFrom(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const selected = useMemo(
     () => carousel?.slides.find((s) => s.id === selectedId) ?? carousel?.slides[0] ?? null,
@@ -662,20 +723,100 @@ export default function CarouselDetailPage() {
         </article>
       )}
 
-      {(carousel.status === "approved" || carousel.status === "failed") && (
+      {(() => {
+        const results = carousel.publish_results || {};
+        const igPublished = Boolean(results.instagram?.ok);
+        const liPublished = Boolean(results.linkedin?.ok);
+        const hasFailures = Object.values(results).some((row) => row && row.ok === false);
+        const canPublish =
+          carousel.status === "approved" ||
+          carousel.status === "failed" ||
+          (carousel.status === "published" && hasFailures);
+        const showResults = Boolean(results.instagram || results.linkedin || carousel.publish_error);
+        if (!canPublish && !showResults) return null;
+        return (
         <div className="access-form section-block">
-          <p>{t("carousels.detail.scheduleHint")}</p>
-          <div className="header-actions" style={{ marginBottom: 16 }}>
-            <button
-              className="button primary"
-              type="button"
+          <h3 style={{ marginTop: 0 }}>{t("carousels.detail.publishTargetsTitle")}</h3>
+          <p>{t("carousels.detail.publishTargetsHint")}</p>
+          {showResults && (
+            <div className="stack-form" style={{ gap: 6, marginBottom: 16 }}>
+              <strong>{t("carousels.detail.publishResultTitle")}</strong>
+              <p style={{ margin: 0 }}>
+                {t("carousels.detail.publishInstagram")}:{" "}
+                {igPublished
+                  ? `${t("carousels.detail.publishResultOk")}${carousel.ig_media_id ? ` (${carousel.ig_media_id})` : ""}`
+                  : results.instagram?.error
+                    ? `${t("carousels.detail.publishResultFail")}: ${results.instagram.error}`
+                    : t("carousels.detail.publishResultPending")}
+              </p>
+              <p style={{ margin: 0 }}>
+                {t("carousels.detail.publishLinkedIn")}:{" "}
+                {liPublished
+                  ? `${t("carousels.detail.publishResultOk")}${carousel.linkedin_post_id ? ` (${carousel.linkedin_post_id})` : ""}`
+                  : results.linkedin?.error
+                    ? `${t("carousels.detail.publishResultFail")}: ${results.linkedin.error}`
+                    : t("carousels.detail.publishResultPending")}
+              </p>
+              {carousel.publish_error && <p className="ig-muted" style={{ margin: 0 }}>{carousel.publish_error}</p>}
+            </div>
+          )}
+          {canPublish && (
+          <>
+          <div className="consent-toggles" style={{ marginBottom: 16 }}>
+            <SwitchRow
+              label={t("carousels.detail.publishInstagram")}
+              hint={
+                igPublished
+                  ? t("carousels.detail.publishResultOk")
+                  : igReady
+                    ? t("carousels.detail.targetReady")
+                    : t("carousels.detail.targetNotConnected")
+              }
+              checked={destInstagram && igReady && !igPublished}
+              disabled={!igReady || busy || igPublished}
+              onChange={setDestInstagram}
+            />
+            <SwitchRow
+              label={t("carousels.detail.publishLinkedIn")}
+              hint={
+                liPublished
+                  ? t("carousels.detail.publishResultOk")
+                  : liReady
+                    ? t("carousels.detail.targetReady")
+                    : t("carousels.detail.targetNotConnected")
+              }
+              checked={destLinkedIn && liReady && !liPublished}
+              disabled={!liReady || busy || liPublished}
+              onChange={setDestLinkedIn}
+            />
+            <SwitchRow
+              label={t("carousels.detail.publishReviewExact")}
+              checked={reviewedExact}
               disabled={busy}
-              onClick={() => run(`/carousels/${params.id}/publish`)}
-            >
-              {busy && <LoaderCircle className="spin" size={16} />}
-              {t("carousels.detail.publishNow")}
-            </button>
+              onChange={setReviewedExact}
+            />
+            <SwitchRow
+              label={t("carousels.detail.publishAuthorize")}
+              checked={publishAuthorized}
+              disabled={busy}
+              onChange={setPublishAuthorized}
+            />
           </div>
+          <div className="header-actions" style={{ marginBottom: 16, gap: 8, flexWrap: "wrap" }}>
+            <button className="button primary" type="button" disabled={busy} onClick={publishNow}>
+              {busy && <LoaderCircle className="spin" size={16} />}
+              {hasFailures ? t("carousels.detail.publishRetryFailed") : t("carousels.detail.publishNow")}
+            </button>
+            <Link className="button secondary" href={`/clients/${carousel.client_id}/channels/instagram`}>
+              {t("carousels.detail.openInstagram")}
+            </Link>
+            <Link className="button secondary" href={`/clients/${carousel.client_id}/channels/linkedin`}>
+              {t("carousels.detail.openLinkedIn")}
+            </Link>
+          </div>
+          </>
+          )}
+          <p>{t("carousels.detail.scheduleHint")}</p>
           <form onSubmit={schedule}>
             <label>
               {t("carousels.detail.schedule")}
@@ -684,7 +825,8 @@ export default function CarouselDetailPage() {
             <button className="button secondary" disabled={busy}>{t("carousels.detail.schedule")}</button>
           </form>
         </div>
-      )}
+        );
+      })()}
       <Modal
         open={regenAsk}
         title={t("carousels.detail.regenerateApprovedTitle")}

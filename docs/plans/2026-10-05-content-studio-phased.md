@@ -1,0 +1,108 @@
+# Content Studio — visión faseada
+
+Date: 2026-10-05  
+Branch: `youtube-shorts`  
+Status: product direction (validated)
+
+## Norte del producto
+
+```text
+Cliente → Conectar redes (OAuth por canal)
+       → Crear contenido (tipo: carrusel / video / post / imagen)
+       → Preview adaptado por red
+       → Aprobación humana
+       → Publicar en las redes seleccionadas
+```
+
+Un **contenido canónico** + **adaptadores por red**.  
+No un escritorio/skill distinto por plataforma como centro de UX.
+
+## Qué no cambia
+
+- App de plataforma + OAuth del usuario (sin passwords)  
+- Tokens cifrados por agency → client  
+- Gates legales A/B/F  
+- BYO keys de IA donde aplique  
+- APIs oficiales (Meta / LinkedIn / Google); sin scraping  
+
+## Fases
+
+### Fase 1 — POC: carrusel → Instagram + LinkedIn (prioridad)
+
+Objetivo: salir con un POC usable: **una pieza carrusel → publicar en redes seleccionables**.
+
+| Pieza canónica | Destinos POC |
+|---|---|
+| Carrusel (slides con imagen, ya avanzado) | **Instagram** carousel (bridge actual) |
+| | **LinkedIn** MultiImage orgánico (2–20; extender publisher más allá de texto) |
+
+Trabajo concreto del POC:
+
+1. UI en carrusel aprobado: checkboxes **Instagram** / **LinkedIn** (solo si el canal está conectado).  
+2. Extender LinkedIn publishing: upload de imágenes + post `multiImage` (+ mock).  
+3. Caption del carrusel → commentary LinkedIn (adaptar longitud).  
+4. Aprobación humana una vez → publicar por adaptador; resultado por red.  
+5. Modal legal B en LinkedIn OAuth (paridad mínima con IG).  
+
+Fuera del POC A: YouTube, Studio completo, scheduling cross-network, post texto como hub unificado, Page/org LinkedIn, WhatsApp campaña.
+
+### Fase 1b — POC B: WhatsApp campaña (después de A)
+
+WhatsApp **no** publica a un feed: envía a **personas**. Viabilidad oficial confirmada vía plantillas MARKETING (media card carousel), no session messages libres.
+
+| Requisito | Detalle |
+|---|---|
+| Destinatarios | Listado de contactos del cliente (`Contact`/leads con teléfono) |
+| Opt-in | Solo contactos con consentimiento marketing; respetar opt-out |
+| Formato | Template Meta **media card carousel** (2–10), aprobado en WABA |
+| Adaptador | Mapear slides del carrusel → cards del template + envío Cloud API |
+| UI | Checkbox WhatsApp + selector/segmento de audiencia (componente extra vs IG/LI) |
+
+Hoy el producto solo hace inbox/`send_text` en ventana de servicio. POC B añade broadcast + templates + audiencia.
+
+**Orden decidido:** salir con POC A (IG + LinkedIn); WhatsApp queda documentado como POC B.
+
+### Fase 2 — Video como tipo de contenido
+
+- Tipo canónico: **video vertical Short/Reel**  
+- Generación BYO (fal/Replicate) + wrap FFmpeg (logo)  
+- Destino primario: **YouTube (`private`)**  
+- Destino siguiente: Instagram Reels (mismo asset adaptado) cuando el adaptador esté listo  
+
+Diseño técnico detallado: [`2026-10-05-youtube-shorts-design.md`](./2026-10-05-youtube-shorts-design.md)  
+Interpretación: YouTube es **destino + pipeline de video**, no un tercer “desk” paralelo al Studio.
+
+### Fase 3 — Studio completo
+
+- Un solo compose por tipo de contenido  
+- Multi-selección de redes con cola de publicación  
+- Presupuestos AI / tiers  
+- Scheduling unificado  
+
+## Implicación para LinkedIn (revisión actual)
+
+LinkedIn deja de ser “el producto”. Es:
+
+1. Canal conectable (OAuth)  
+2. Adaptador de **post texto**  
+3. Herramientas de voz/hooks como ayuda al generador, no home  
+
+## Implicación para YouTube
+
+Implementar bajo Fase 2, reutilizando el hub/aprobación de Fase 1.  
+No construir una UX de copy-desk al estilo LinkedIn skill.
+
+## Criterio de éxito Fase 1
+
+Desde un cliente con IG y LinkedIn conectados:
+
+1. Crear o elegir un carrusel / post texto  
+2. Marcar redes destino  
+3. Aprobar  
+4. Ver resultado por red (publicado / error / copy-paste) sin salir a un desk distinto por cada red  
+
+## Orden de implementación sugerido
+
+1. Doc + ajuste LinkedIn (orden UI + legal B + guía)  
+2. Hub mínimo “Publicar en…” (carrusel→IG + texto→LinkedIn)  
+3. Luego pipeline video → YouTube (Fase 2)

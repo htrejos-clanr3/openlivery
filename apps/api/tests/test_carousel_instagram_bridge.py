@@ -110,7 +110,14 @@ def test_carousel_publish_now_via_instagram_bridge(authenticated_client):
     assert complete.status_code == 200, complete.text
 
     carousel = _approve_carousel(client, customer["id"], customer["portal_slug"])
-    published = client.post(f"/api/carousels/{carousel['id']}/publish")
+    published = client.post(
+        f"/api/carousels/{carousel['id']}/publish",
+        json={
+            "destinations": ["instagram"],
+            "human_approved": True,
+            "reviewed_exact_content": True,
+        },
+    )
     assert published.status_code == 200, published.text
     body = published.json()
     assert body["status"] == "published"

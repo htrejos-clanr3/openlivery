@@ -76,6 +76,19 @@ def test_oauth_session_requires_consent(authenticated_client):
     assert denied.status_code == 422
 
 
+def test_linkedin_oauth_session_requires_consent(authenticated_client):
+    os.environ["LINKEDIN_MOCK_MODE"] = "true"
+    get_settings.cache_clear()
+    li = _client(authenticated_client)
+    denied = authenticated_client.post(f"/api/linkedin/channels/{li['id']}/oauth/session", json={})
+    assert denied.status_code == 422
+    ok = authenticated_client.post(
+        f"/api/linkedin/channels/{li['id']}/oauth/session",
+        json=_consent(li["id"], channel="linkedin"),
+    )
+    assert ok.status_code == 200, ok.text
+
+
 def test_publish_requires_human_approval(authenticated_client):
     ig = _client(authenticated_client)
     session = authenticated_client.post(

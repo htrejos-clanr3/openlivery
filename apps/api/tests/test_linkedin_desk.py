@@ -10,6 +10,18 @@ from app.services.linkedin.generate import clean_text, load_hooks, score_profile
 get_settings.cache_clear()
 
 
+def _consent(client_id: str):
+    return {
+        "consent": {
+            "channel": "linkedin",
+            "client_id": client_id,
+            "admin_confirmed": True,
+            "no_password_stored": True,
+            "ai_disclosure_acknowledged": False,
+        }
+    }
+
+
 def test_hooks_catalog_has_twenty_one():
     pack = load_hooks()
     assert len(pack["hooks"]) == 21
@@ -49,7 +61,10 @@ def test_linkedin_desk_generate_and_profile(authenticated_client: TestClient):
     assert options.json()["oauth_available"] is True
     assert "w_member_social" in options.json()["scopes"]
 
-    session = client.post(f"/api/linkedin/channels/{cid}/oauth/session")
+    denied = client.post(f"/api/linkedin/channels/{cid}/oauth/session", json={})
+    assert denied.status_code == 422
+
+    session = client.post(f"/api/linkedin/channels/{cid}/oauth/session", json=_consent(cid))
     assert session.status_code == 200, session.text
     connected = client.post(
         f"/api/linkedin/channels/{cid}/oauth/complete",

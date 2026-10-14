@@ -2,11 +2,12 @@
 
 import { ExternalLink } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
+import { SwitchRow } from "@/components/switch-row";
 import { Modal } from "@/components/ui";
 import { api } from "@/lib/api";
 import { useT } from "@/lib/i18n";
 
-export type ChannelKind = "instagram" | "whatsapp_cloud";
+export type ChannelKind = "instagram" | "whatsapp_cloud" | "linkedin";
 
 type LegalDocuments = {
   tos_version: string;
@@ -34,7 +35,6 @@ type Props = {
 export function ChannelConnectConsentModal({
   open,
   channel,
-  clientId,
   providerTermsUrl,
   onClose,
   onConfirmed,
@@ -102,38 +102,42 @@ export function ChannelConnectConsentModal({
     >
       <form className="modal-form" onSubmit={submit}>
         {!platformReady && docs && (
-          <fieldset className="stack-form" style={{ gap: 10 }}>
+          <fieldset className="stack-form consent-toggles" style={{ gap: 10 }}>
             <legend>{t("legal.platformTitle")}</legend>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: 12 }}>{t("legal.platformDescription")}</p>
-            <label>
-              <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} />
-              {" "}{t("legal.acceptTerms")}{" "}
-              <a href={docs.tos_url} target="_blank" rel="noreferrer">{t("legal.viewTerms")} <ExternalLink size={12} /></a>
-            </label>
-            <label>
-              <input type="checkbox" checked={acceptPrivacy} onChange={(e) => setAcceptPrivacy(e.target.checked)} />
-              {" "}{t("legal.acceptPrivacy")}{" "}
-              <a href={docs.privacy_url} target="_blank" rel="noreferrer">{t("legal.viewPrivacy")} <ExternalLink size={12} /></a>
-            </label>
+            <SwitchRow
+              label={t("legal.acceptTerms")}
+              hint={(
+                <a href={docs.tos_url} target="_blank" rel="noreferrer">
+                  {t("legal.viewTerms")} <ExternalLink size={12} />
+                </a>
+              )}
+              checked={acceptTerms}
+              onChange={setAcceptTerms}
+            />
+            <SwitchRow
+              label={t("legal.acceptPrivacy")}
+              hint={(
+                <a href={docs.privacy_url} target="_blank" rel="noreferrer">
+                  {t("legal.viewPrivacy")} <ExternalLink size={12} />
+                </a>
+              )}
+              checked={acceptPrivacy}
+              onChange={setAcceptPrivacy}
+            />
           </fieldset>
         )}
-        <label>
-          <input type="checkbox" checked={adminConfirmed} onChange={(e) => setAdminConfirmed(e.target.checked)} required />
-          {" "}{t("legal.adminConfirm")}
-        </label>
-        <label>
-          <input type="checkbox" checked={noPassword} onChange={(e) => setNoPassword(e.target.checked)} required />
-          {" "}{t("legal.noPassword")}
-        </label>
-        {channel === "instagram" && (
-          <label>
-            <input type="checkbox" checked={aiDisclosure} onChange={(e) => setAiDisclosure(e.target.checked)} required />
-            {" "}{t("legal.aiDisclosure")}
-          </label>
-        )}
+        <div className="consent-toggles">
+          <SwitchRow label={t("legal.adminConfirm")} checked={adminConfirmed} onChange={setAdminConfirmed} required />
+          <SwitchRow label={t("legal.noPassword")} checked={noPassword} onChange={setNoPassword} required />
+          {channel === "instagram" ? (
+            <SwitchRow label={t("legal.aiDisclosure")} checked={aiDisclosure} onChange={setAiDisclosure} required />
+          ) : null}
+        </div>
         <p style={{ margin: 0, fontSize: 12 }}>
           <a href={providerTermsUrl} target="_blank" rel="noreferrer">
-            {t("legal.metaTerms")} <ExternalLink size={12} />
+            {channel === "linkedin" ? t("legal.linkedinTerms") : t("legal.metaTerms")}{" "}
+            <ExternalLink size={12} />
           </a>
         </p>
         {error && <p className="alert alert-error">{error}</p>}

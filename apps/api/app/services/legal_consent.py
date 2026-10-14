@@ -247,10 +247,13 @@ def record_publish_approval(
     user: User,
     client_id: uuid.UUID,
     channel: str,
-    content_id: uuid.UUID,
+    content_id: uuid.UUID | None = None,
     metadata: dict | None = None,
 ) -> None:
     docs = legal_documents()
+    meta = dict(metadata or {})
+    if content_id is not None:
+        meta["content_id"] = str(content_id)
     db.add(
         LegalAcceptance(
             agency_id=user.agency_id,
@@ -260,7 +263,7 @@ def record_publish_approval(
             document_key=f"{channel}_publish",
             document_version=docs.tos_version,
             channel=channel,
-            metadata_json={"content_id": str(content_id), **(metadata or {})},
+            metadata_json=meta,
             created_at=now_utc(),
         )
     )

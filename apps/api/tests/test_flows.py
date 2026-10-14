@@ -112,6 +112,43 @@ def test_register_login_logout_and_me(client: TestClient):
     assert client.post("/api/auth/login", json={"email": payload["email"], "password": payload["password"]}).status_code == 200
 
 
+def test_change_password_from_settings(authenticated_client: TestClient):
+    wrong = authenticated_client.post(
+        "/api/auth/change-password",
+        json={"current_password": "wrong-old-password", "new_password": "brand-new-pass-99"},
+    )
+    assert wrong.status_code == 400
+
+    same = authenticated_client.post(
+        "/api/auth/change-password",
+        json={"current_password": "contrasena-segura", "new_password": "contrasena-segura"},
+    )
+    assert same.status_code == 400
+
+    ok = authenticated_client.post(
+        "/api/auth/change-password",
+        json={"current_password": "contrasena-segura", "new_password": "brand-new-pass-99"},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["password_configured"] is True
+
+    authenticated_client.post("/api/auth/logout")
+    assert (
+        authenticated_client.post(
+            "/api/auth/login",
+            json={"email": "ana@prisma.com", "password": "contrasena-segura"},
+        ).status_code
+        == 401
+    )
+    assert (
+        authenticated_client.post(
+            "/api/auth/login",
+            json={"email": "ana@prisma.com", "password": "brand-new-pass-99"},
+        ).status_code
+        == 200
+    )
+
+
 def test_provider_key_is_stored_masked(authenticated_client: TestClient):
     saved = authenticated_client.put("/api/providers/openai", json={"api_key": "sk-super-secret-key"})
     assert saved.status_code == 200

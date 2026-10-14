@@ -14,6 +14,7 @@ from ..schemas import (
     CarouselCreate,
     CarouselGenerateRequest,
     CarouselOut,
+    CarouselPublishRequest,
     CarouselScheduleRequest,
     CarouselSlideDecision,
     CarouselSlideGenerateRequest,
@@ -154,6 +155,8 @@ def _carousel_out(carousel: Carousel, *, generation_notes: list[str] | None = No
         scheduled_at=carousel.scheduled_at,
         published_at=carousel.published_at,
         ig_media_id=carousel.ig_media_id,
+        linkedin_post_id=getattr(carousel, "linkedin_post_id", None),
+        publish_results=getattr(carousel, "publish_results", None) or {},
         publish_error=carousel.publish_error,
         content_item_id=carousel.content_item_id,
         publication_id=carousel.publication_id,
@@ -437,14 +440,24 @@ def schedule_carousel(
 @router.post("/{carousel_id}/publish", response_model=CarouselOut)
 async def publish_carousel(
     carousel_id: uuid.UUID,
+    payload: CarouselPublishRequest | None = None,
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """Publish an approved carousel to the client's connected Instagram now."""
+    """Publish an approved carousel to selected networks (Instagram and/or LinkedIn)."""
     from ..services.carousel_publish_bridge import publish_carousel_now
 
+    body = payload or CarouselPublishRequest()
+    # Stay pending until both confirmations are explicitly true (defaults are false).
+    if not body.human_approved or not body.reviewed_exact_content:
+        raise HTTPException(
+            status_code=400,
+            detail="Human approval is required before publishing; confirm review and authorization",
+        )
+    if not body.destinations:
+        raise HTTPException(status_code=400, detail="Choose at least one network")
     carousel = _carousel_for_agency(db, user, carousel_id)
-    await publish_carousel_now(db, carousel=carousel, user=user)
+    await publish_carousel_now(db, carousel=carousel, user=user, destinations=body.destinations)
     return _carousel_out(_carousel_for_agency(db, user, carousel_id))
 
 
