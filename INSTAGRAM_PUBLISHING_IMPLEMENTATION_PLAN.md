@@ -1,7 +1,7 @@
 # Instagram Publishing — Implementation Plan
 
 **Branch:** `instagram-publishing`  
-**Fork:** OpenLivery (htrejos-clanr3)  
+**Fork:** Fast Livery (htrejos-clanr3)  
 **Date:** 2026-08-25  
 **Scope:** Content publishing (image / carousel / Reel). **Instagram Messaging / DM is out of MVP** (`PHASE_FUTURE_INSTAGRAM_MESSAGING`).
 
@@ -100,7 +100,7 @@ Típico para publicar:
 | Prompt | Docs / decisión |
 |--------|------------------|
 | Límite fijo inventado | Usar `content_publishing_limit` + UI “Usadas X / Y” solo con datos oficiales |
-| Media sin URL pública | Obligatorio `image_url`/`video_url` o resumable; OpenLivery hoy guarda blobs → **URL firmada pública** en `BACKEND_URL` |
+| Media sin URL pública | Obligatorio `image_url`/`video_url` o resumable; Fast Livery hoy guarda blobs → **URL firmada pública** en `BACKEND_URL` |
 | QR Instagram | No existe en Content Publishing oficial |
 | MCP DevTools para publicar | **No**; solo Graph API |
 

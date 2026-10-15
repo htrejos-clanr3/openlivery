@@ -19,7 +19,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
   switch (kind) {
     case "map":
       return (
-        <ShotFrame url="openlivery.app — capas">
+        <ShotFrame url="fast-livery.app — capas">
           <div className="shot-map">
             <article><small>1</small><strong>Cliente</strong><span>DNA, marca, portal</span></article>
             <span className="shot-arrow">→</span>
@@ -31,10 +31,10 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "home":
       return (
-        <ShotFrame url="openlivery.app/inicio">
+        <ShotFrame url="fast-livery.app/inicio">
           <div className="shot-app">
             <aside>
-              <b>OpenLivery</b>
+              <b>Fast Livery</b>
               <i className="on">Inicio</i>
               <i>Clientes</i>
               <i>Agentes</i>
@@ -56,7 +56,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "clients":
       return (
-        <ShotFrame url="openlivery.app/clientes/nuevo">
+        <ShotFrame url="fast-livery.app/clientes/nuevo">
           <div className="shot-form">
             <header className="shot-form-head">
               <h4>Nuevo cliente</h4>
@@ -71,7 +71,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "agents":
       return (
-        <ShotFrame url="openlivery.app/agentes">
+        <ShotFrame url="fast-livery.app/agentes">
           <div className="shot-app">
             <aside>
               <b>Mesero Virtual</b>
@@ -93,13 +93,13 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "keys":
       return (
-        <ShotFrame url="openlivery.app/configuracion">
+        <ShotFrame url="fast-livery.app/configuracion">
           <div className="shot-form">
             <header className="shot-form-head">
               <h4>Configuración · Proveedores</h4>
               <span className="shot-help">Ayuda</span>
             </header>
-            <label>Agencia / logo<input readOnly value="OpenLivery" /></label>
+            <label>Agencia / logo<input readOnly value="Fast Livery" /></label>
             <label>OpenAI<input readOnly value="sk-••••••••••••" /></label>
             <button type="button">Guardar clave</button>
           </div>
@@ -107,7 +107,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "chat":
       return (
-        <ShotFrame url="openlivery.app/playground">
+        <ShotFrame url="fast-livery.app/playground">
           <div className="shot-app">
             <aside>
               <label>Cliente<select disabled><option>La Casona</option></select></label>
@@ -128,7 +128,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "inbox":
       return (
-        <ShotFrame url="openlivery.app/inbox">
+        <ShotFrame url="fast-livery.app/inbox">
           <div className="shot-app">
             <aside>
               <b>Inbox</b>
@@ -148,7 +148,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "carousels":
       return (
-        <ShotFrame url="openlivery.app/carruseles/nuevo">
+        <ShotFrame url="fast-livery.app/carruseles/nuevo">
           <div className="shot-form shot-wide">
             <header className="shot-form-head">
               <h4>Nuevo carrusel</h4>
@@ -166,7 +166,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "campaign":
       return (
-        <ShotFrame url="openlivery.app/instagram/compose">
+        <ShotFrame url="fast-livery.app/instagram/compose">
           <div className="shot-form">
             <h4>Nueva publicación</h4>
             <div className="shot-types"><i className="on">Carrusel</i><i>Imagen</i><i>Reel</i></div>
@@ -178,7 +178,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "linkedin":
       return (
-        <ShotFrame url="openlivery.app/canales/linkedin">
+        <ShotFrame url="fast-livery.app/canales/linkedin">
           <div className="shot-form shot-wide">
             <header className="shot-form-head">
               <h4>LinkedIn · perfil personal</h4>
@@ -196,7 +196,7 @@ export function ManualCaptureScene({ kind }: { kind: ManualLessonId }) {
       );
     case "live":
       return (
-        <ShotFrame url="openlivery.app/canales">
+        <ShotFrame url="fast-livery.app/canales">
           <div className="shot-map shot-channels">
             <article><strong>WhatsApp</strong><span>Guía paso a paso</span></article>
             <article><strong>Instagram</strong><span>Login o avanzado</span></article>

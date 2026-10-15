@@ -106,7 +106,7 @@ export async function connectChannel(channelId: string): Promise<void> {
   const socket = makeWASocket({
     auth: state,
     logger,
-    browser: Browsers.macOS("OpenLivery"),
+    browser: Browsers.macOS("Fast Livery"),
     syncFullHistory: false,
     shouldSyncHistoryMessage: () => false,
     markOnlineOnConnect: false,
@@ -203,7 +203,7 @@ export async function shutdown(): Promise<void> {
   for (const runtime of runtimes.values()) {
     runtime.stopRequested = true;
     if (runtime.reconnectTimer) clearTimeout(runtime.reconnectTimer);
-    runtime.socket.end(new Error("OpenLivery is shutting down"));
+    runtime.socket.end(new Error("Fast Livery is shutting down"));
   }
   runtimes.clear();
 }

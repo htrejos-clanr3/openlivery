@@ -1,4 +1,4 @@
-# Instagram Content Publishing (OpenLivery)
+# Instagram Content Publishing (Fast Livery)
 
 Publish images, carousels, and Reels from each client’s Instagram professional account. **Direct messages are not part of this feature** (see `PHASE_FUTURE_INSTAGRAM_MESSAGING` in `INSTAGRAM_PUBLISHING_IMPLEMENTATION_PLAN.md`).
 
@@ -52,16 +52,16 @@ Every entry point (Channels hub → Configure Instagram, Client → Channels →
 3. In [Meta for Developers](https://developers.facebook.com/apps/), create/open a Meta App and enable Instagram Content Publishing products / Facebook Login as needed.
 4. Issue a **Page access token** with `instagram_basic` + `instagram_content_publish` (or `instagram_business_basic` / `instagram_business_content_publish`).
 5. Copy the **Instagram user ID** (numeric IG Business Account id — not `@username`). Often: Graph `GET /{page-id}?fields=instagram_business_account`.
-6. In OpenLivery → that client → Instagram → **Advanced setup**, paste ID + token (and optional Page ID / username) → **Save credentials**.
+6. In Fast Livery → that client → Instagram → **Advanced setup**, paste ID + token (and optional Page ID / username) → **Save credentials**.
 7. Status becomes **Connected**. Use **New publication** or publish an approved carousel to verify.
 
 ### Guided Meta login (optional)
 
-Only when the OpenLivery server has `META_APP_ID` and `META_APP_SECRET`:
+Only when the Fast Livery server has `META_APP_ID` and `META_APP_SECRET`:
 
 1. Click **Connect with Meta**.
 2. Authorize permissions and choose the Page linked to the professional Instagram account.
-3. Return to OpenLivery; status becomes Connected when account + publish permission are valid.
+3. Return to Fast Livery; status becomes Connected when account + publish permission are valid.
 
 ### Mock (local)
 

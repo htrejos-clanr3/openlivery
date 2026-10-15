@@ -44,7 +44,7 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="OpenLivery API",
+    title="Fast Livery API",
     description="API to manage agencies, clients and AI agents.",
     version="0.3.0",
     lifespan=lifespan,

@@ -1,12 +1,12 @@
 # Meta Developer Tools MCP (Social Technologies MCP)
 
-OpenLivery uses Meta’s hosted MCP **only for platform diagnostics** — not for sending/receiving WhatsApp or Instagram messages.
+Fast Livery uses Meta’s hosted MCP **only for platform diagnostics** — not for sending/receiving WhatsApp or Instagram messages.
 
 Official docs: [Meta DevTools MCP](https://developers.facebook.com/documentation/mcp/devtools-mcp)  
 Endpoint: `https://mcp.facebook.com/devtools` (Streamable HTTP)  
 Rename note (2026-08-18): Meta also calls this **Social Technologies MCP**.
 
-## What OpenLivery uses MCP for
+## What Fast Livery uses MCP for
 
 | Capability | Tool (official names) |
 |------------|------------------------|
@@ -39,7 +39,7 @@ META_API_WARNING_THRESHOLD=70
 META_API_CRITICAL_THRESHOLD=90
 ```
 
-**Auth reality:** Meta’s MCP is primarily OAuth for IDE agents. Server-side OpenLivery supports optional bearer + **mock mode**. Prefer mock for local UI; use live MCP when your Meta account/token path is available.
+**Auth reality:** Meta’s MCP is primarily OAuth for IDE agents. Server-side Fast Livery supports optional bearer + **mock mode**. Prefer mock for local UI; use live MCP when your Meta account/token path is available.
 
 ## UI
 

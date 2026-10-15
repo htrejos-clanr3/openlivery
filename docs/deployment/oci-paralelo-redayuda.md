@@ -1,4 +1,4 @@
-# OpenLivery en OCI (paralelo a Red Ayuda / Yarumo)
+# Fast Livery en OCI (paralelo a Red Ayuda / Yarumo)
 
 ## Veredicto
 
@@ -10,8 +10,8 @@
 
 ## Por qué no dentro de `/opt/red-ayuda`
 
-1. Red Ayuda es un checkout Git + Compose propios (`deploy-production.sh`, `.env`, volúmenes MySQL/media). Meter OpenLivery ahí contaminaría el deploy y el `git status` de producción.
-2. OpenLivery trae **otro stack** (Postgres + API + web gateway + WhatsApp bridge). Choca con MySQL/nginx internos de Red Ayuda si se mezclan.
+1. Red Ayuda es un checkout Git + Compose propios (`deploy-production.sh`, `.env`, volúmenes MySQL/media). Meter Fast Livery ahí contaminaría el deploy y el `git status` de producción.
+2. Fast Livery trae **otro stack** (Postgres + API + web gateway + WhatsApp bridge). Choca con MySQL/nginx internos de Red Ayuda si se mezclan.
 3. El patrón ya usado en este host es **una app = un directorio `/opt/<app>` + un puerto localhost + un `server_name` nginx**:
 
 | App | Disco | Proxy local | Dominio |

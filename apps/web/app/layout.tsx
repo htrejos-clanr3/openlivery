@@ -9,7 +9,7 @@ import { LanguageProvider } from "@/lib/i18n";
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 
 export const metadata: Metadata = {
-  title: "OpenLivery — AI agents for your agency",
+  title: "Fast Livery — AI agents for your agency",
   description: "Open source platform to build and manage AI agents.",
   icons: { icon: "/brand/app-logo-icon.png", apple: "/brand/app-logo-icon.png" },
 };

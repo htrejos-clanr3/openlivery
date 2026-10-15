@@ -1443,7 +1443,7 @@ input[type="checkbox"]:not(.switch-row input) {
   align-items: center;
 }
 
-/* Identidad OpenLivery: azul institucional, verde como acento y superficies neutras. */
+/* Identidad Fast Livery: azul institucional, verde como acento y superficies neutras. */
 :root {
   --ink: #102a43;
   --muted: #5f6f7f;

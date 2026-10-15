@@ -48,7 +48,7 @@ const en = {
     language: "Language",
     slides: "Slides",
     withImages: "Generate images for every slide",
-    withImagesHint: "Even if unchecked, OpenLivery still generates at least one image related to the description.",
+    withImagesHint: "Even if unchecked, Fast Livery still generates at least one image related to the description.",
     interpretPrompt: "AI should interpret the title/brief (not use it literally)",
     interpretPromptHint:
       "On: e.g. “Take the company’s main features” → expands using client DNA, agent briefs, and knowledge RAG/embeddings. Off: keep title and brief exact (e.g. a fixed promo line).",
@@ -220,7 +220,7 @@ const es: Dict = {
     language: "Idioma",
     slides: "Slides",
     withImages: "Generar imágenes en todos los slides",
-    withImagesHint: "Aunque lo desmarques, OpenLivery genera al menos 1 imagen relacionada con la descripción.",
+    withImagesHint: "Aunque lo desmarques, Fast Livery genera al menos 1 imagen relacionada con la descripción.",
     interpretPrompt: "La IA debe interpretar el título/brief (no usarlo literal)",
     interpretPromptHint:
       "Activado: p. ej. «Tome las principales funcionalidades de lo que hace la empresa» → amplía con DNA del cliente, briefs de agentes y knowledge RAG/embeddings. Desactivado: título y brief exactos (p. ej. una promo fija).",

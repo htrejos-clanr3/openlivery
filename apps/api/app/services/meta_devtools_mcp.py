@@ -161,13 +161,13 @@ class MetaDeveloperToolsProvider:
         if name == TOOL_APP_LIST:
             return {
                 "apps": [
-                    {"app_id": app_id, "name": "OpenLivery Meta App", "permission": "manage" if manage_allowed() else "read"}
+                    {"app_id": app_id, "name": "Fast Livery Meta App", "permission": "manage" if manage_allowed() else "read"}
                 ]
             }
         if name == TOOL_APP:
             return {
                 "app_id": app_id,
-                "name": "OpenLivery Meta App",
+                "name": "Fast Livery Meta App",
                 "status": "HEALTHY" if scenario != "critical" else "CRITICAL",
                 "platforms": ["whatsapp", "instagram"],
             }

@@ -1,5 +1,6 @@
 import logging
 import uuid
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -20,11 +21,19 @@ from ..schemas_whatsapp_cloud import (
     WhatsAppSignupOptionsOut,
     WhatsAppSignupSessionIn,
     WhatsAppSignupSessionOut,
+    WhatsAppTemplateListOut,
+    WhatsAppTemplateSendIn,
+    WhatsAppTemplateSendOut,
+    WhatsAppWebhookRegistrationOut,
 )
 from ..security import decrypt_secret, encrypt_secret
-from ..services.whatsapp_cloud import verify_phone_number
+from ..services.whatsapp_cloud import list_message_templates, send_template, verify_phone_number
 from ..services.legal_consent import record_channel_connect_consent
 from ..services.whatsapp_cloud_health import build_health
+from ..services.whatsapp_cloud_webhook_register import (
+    register_webhook_for_number,
+    unregister_webhook_for_number,
+)
 from ..services.whatsapp_errors import humanize_whatsapp_error
 from ..services.whatsapp_meta_signup import (
     build_embedded_signup_url,
@@ -72,10 +81,13 @@ def _require_agent(db: Session, user: User, client: Client, agent_id: uuid.UUID)
     return agent
 
 
-def _public_channel(channel: WhatsAppCloudChannel) -> dict:
-    webhook_url = (
+def _webhook_url(channel: WhatsAppCloudChannel) -> str:
+    return (
         f"{get_settings().frontend_url.rstrip('/')}/api/public/whatsapp-cloud/channels/{channel.id}/webhook"
     )
+
+
+def _public_channel(channel: WhatsAppCloudChannel, webhook_registration: dict | None = None) -> dict:
     error = humanize_whatsapp_error(channel.last_error) if channel.last_error else None
     return {
         "id": channel.id,
@@ -89,7 +101,7 @@ def _public_channel(channel: WhatsAppCloudChannel) -> dict:
         "waba_id": channel.waba_id,
         "has_access_token": bool(channel.encrypted_access_token),
         "has_app_secret": bool(channel.encrypted_app_secret) or bool(get_settings().meta_app_secret),
-        "webhook_url": webhook_url,
+        "webhook_url": _webhook_url(channel),
         "webhook_verify_token": channel.webhook_verify_token,
         "last_error": channel.last_error,
         "error_message": error["message"] if error else None,
@@ -98,7 +110,27 @@ def _public_channel(channel: WhatsAppCloudChannel) -> dict:
         "last_connected_at": channel.last_connected_at,
         "created_at": channel.created_at,
         "updated_at": channel.updated_at,
+        "webhook_registration": webhook_registration,
     }
+
+
+async def _auto_register_webhook(channel: WhatsAppCloudChannel) -> dict:
+    if not channel.encrypted_access_token or not channel.phone_number_id:
+        return {
+            "ok": False,
+            "code": "meta_error",
+            "message": "Save access token and phone number ID before registering the webhook",
+            "host": None,
+            "app_without_webhook": False,
+        }
+    result = await register_webhook_for_number(
+        waba_id=channel.waba_id,
+        phone_number_id=channel.phone_number_id,
+        access_token=decrypt_secret(channel.encrypted_access_token),
+        webhook_url=_webhook_url(channel),
+        verify_token=channel.webhook_verify_token,
+    )
+    return result.as_dict()
 
 
 def _get_or_create_channel(db: Session, user: User, client: Client, agent: Agent) -> WhatsAppCloudChannel:
@@ -225,7 +257,72 @@ async def connect_channel(client_id: uuid.UUID, db: Session = Depends(get_db), u
     channel.updated_at = now_utc()
     db.commit()
     db.refresh(channel)
-    return _public_channel(channel)
+    registration = await _auto_register_webhook(channel)
+    if not registration.get("ok"):
+        # Credentials are valid; surface webhook issues without flipping status to error.
+        logger.warning(
+            "whatsapp webhook auto-register failed client_id=%s code=%s message=%s",
+            client_id,
+            registration.get("code"),
+            registration.get("message"),
+        )
+    return _public_channel(channel, webhook_registration=registration)
+
+
+@router.post("/channels/{client_id}/register-webhook", response_model=WhatsAppWebhookRegistrationOut)
+async def register_webhook(client_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Retry Meta webhook override registration without re-pasting credentials."""
+    channel = _channel_for_user(db, user, client_id)
+    return await _auto_register_webhook(channel)
+
+
+@router.get("/channels/{client_id}/templates", response_model=WhatsAppTemplateListOut)
+async def list_templates(client_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    channel = _channel_for_user(db, user, client_id)
+    if not channel.encrypted_access_token or not channel.waba_id:
+        raise HTTPException(status_code=400, detail="Save access token and WABA ID before listing templates")
+    raw = await list_message_templates(decrypt_secret(channel.encrypted_access_token), channel.waba_id)
+    templates = [
+        {
+            "id": item.get("id"),
+            "name": item.get("name") or "",
+            "language": item.get("language"),
+            "status": item.get("status"),
+            "category": item.get("category"),
+            "components": item.get("components") or [],
+        }
+        for item in raw
+        if item.get("name")
+    ]
+    return {"templates": templates, "count": len(templates)}
+
+
+@router.post("/channels/{client_id}/templates/send", response_model=WhatsAppTemplateSendOut)
+async def send_channel_template(
+    client_id: uuid.UUID,
+    payload: WhatsAppTemplateSendIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    channel = _channel_for_user(db, user, client_id)
+    if not channel.encrypted_access_token or not channel.phone_number_id:
+        raise HTTPException(status_code=400, detail="Save access token and phone number ID before sending templates")
+    if channel.status != "connected" or not channel.is_enabled:
+        raise HTTPException(status_code=400, detail="Connect the WhatsApp Cloud channel before sending templates")
+    wamid = await send_template(
+        decrypt_secret(channel.encrypted_access_token),
+        channel.phone_number_id,
+        payload.to.strip(),
+        name=payload.name.strip(),
+        language=payload.language.strip(),
+        body_parameters=payload.body_parameters,
+    )
+    return {
+        "wamid": wamid,
+        "to": payload.to.strip(),
+        "name": payload.name.strip(),
+        "language": payload.language.strip(),
+    }
 
 
 @router.post("/channels/{client_id}/test", response_model=WhatsAppCloudHealthOut)
@@ -253,8 +350,18 @@ async def test_channel(client_id: uuid.UUID, db: Session = Depends(get_db), user
 
 
 @router.post("/channels/{client_id}/disconnect", response_model=WhatsAppCloudChannelOut)
-def disconnect_channel(client_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+async def disconnect_channel(client_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     channel = _channel_for_user(db, user, client_id)
+    if channel.encrypted_access_token and channel.phone_number_id:
+        path = urlparse(_webhook_url(channel)).path
+        try:
+            await unregister_webhook_for_number(
+                phone_number_id=channel.phone_number_id,
+                access_token=decrypt_secret(channel.encrypted_access_token),
+                webhook_path=path,
+            )
+        except Exception:  # noqa: BLE001 — disconnect must succeed locally
+            logger.warning("whatsapp webhook unregister failed client_id=%s", client_id, exc_info=True)
     channel.status = "disconnected"
     channel.is_enabled = False
     channel.last_error = None
@@ -356,14 +463,26 @@ async def complete_signup(
             step["done"] = True
     db.commit()
     db.refresh(channel)
+    registration = await _auto_register_webhook(channel)
+    if registration.get("ok"):
+        for step in steps:
+            if step.get("id") == "webhook":
+                step["done"] = True
+                step["detail"] = registration.get("message")
+    else:
+        for step in steps:
+            if step.get("id") == "webhook":
+                step["done"] = False
+                step["detail"] = registration.get("message")
     logger.info(
-        "whatsapp signup complete client_id=%s channel_id=%s mode=%s phone_number_id=%s",
+        "whatsapp signup complete client_id=%s channel_id=%s mode=%s phone_number_id=%s webhook=%s",
         client_id,
         channel.id,
         channel.connection_mode,
         channel.phone_number_id,
+        registration.get("code"),
     )
-    return {"channel": _public_channel(channel), "steps": steps}
+    return {"channel": _public_channel(channel, webhook_registration=registration), "steps": steps}
 
 
 @router.get("/oauth/callback")

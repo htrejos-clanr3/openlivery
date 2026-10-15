@@ -236,7 +236,7 @@ export default function LoginPage() {
   return (
     <main className="access-page agency-access">
       <header className="access-topbar">
-        <div className="access-brand"><span className="openlivery-icon"><img src="/brand/app-logo-icon.png" alt="" /></span><strong>OpenLivery</strong></div>
+        <div className="access-brand"><span className="openlivery-icon"><img src="/brand/app-logo-icon.png" alt="" /></span><strong>Fast Livery</strong></div>
         <small>{t("auth.tagline")}</small>
       </header>
       <div className="access-layout">

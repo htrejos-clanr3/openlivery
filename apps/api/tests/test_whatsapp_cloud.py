@@ -140,10 +140,26 @@ def test_connect_verifies_credentials(authenticated_client: TestClient, monkeypa
 
     fake_verify = AsyncMock(return_value={"display_phone_number": "+57 300 111 2233", "verified_name": "Bistro"})
     monkeypatch.setattr(whatsapp_cloud_router, "verify_phone_number", fake_verify)
+    fake_register = AsyncMock(
+        return_value={
+            "ok": True,
+            "code": "registered",
+            "message": "Webhook registered on the phone number via Meta Graph API.",
+            "host": None,
+            "app_without_webhook": False,
+        }
+    )
+    monkeypatch.setattr(whatsapp_cloud_router, "_auto_register_webhook", fake_register)
+    fake_unregister = AsyncMock(return_value=None)
+    monkeypatch.setattr(whatsapp_cloud_router, "unregister_webhook_for_number", fake_unregister)
+
     connected = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/connect").json()
     assert connected["status"] == "connected"
     assert connected["phone_number"] == "+57 300 111 2233"
     assert connected["display_name"] == "Bistro"
+    assert connected["webhook_registration"]["ok"] is True
+    assert connected["webhook_registration"]["code"] == "registered"
+    fake_register.assert_awaited()
 
     failing = AsyncMock(side_effect=HTTPException(status_code=502, detail="Credential check failed: bad token"))
     monkeypatch.setattr(whatsapp_cloud_router, "verify_phone_number", failing)
@@ -154,6 +170,72 @@ def test_connect_verifies_credentials(authenticated_client: TestClient, monkeypa
     disconnected = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/disconnect").json()
     assert disconnected["status"] == "disconnected"
     assert disconnected["is_enabled"] is False
+    fake_unregister.assert_awaited()
+
+
+def test_register_webhook_and_templates(authenticated_client: TestClient, monkeypatch):
+    client = authenticated_client
+    customer, _agent, _channel = _setup_channel(client)
+
+    fake_register = AsyncMock(
+        return_value={
+            "ok": True,
+            "code": "skipped_waba_override",
+            "message": "WABA already routes webhooks to brain.example.",
+            "host": "brain.example",
+            "app_without_webhook": False,
+        }
+    )
+    monkeypatch.setattr(whatsapp_cloud_router, "_auto_register_webhook", fake_register)
+    registered = client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/register-webhook").json()
+    assert registered["ok"] is True
+    assert registered["code"] == "skipped_waba_override"
+
+    fake_list = AsyncMock(
+        return_value=[
+            {
+                "id": "1",
+                "name": "hello_world",
+                "language": "en_US",
+                "status": "APPROVED",
+                "category": "UTILITY",
+                "components": [],
+            }
+        ]
+    )
+    monkeypatch.setattr(whatsapp_cloud_router, "list_message_templates", fake_list)
+    listed = client.get(f"/api/whatsapp-cloud/channels/{customer['id']}/templates").json()
+    assert listed["count"] == 1
+    assert listed["templates"][0]["name"] == "hello_world"
+
+    # Sending requires connected status.
+    assert (
+        client.post(
+            f"/api/whatsapp-cloud/channels/{customer['id']}/templates/send",
+            json={"to": "573001112233", "name": "hello_world", "language": "en_US"},
+        ).status_code
+        == 400
+    )
+
+    monkeypatch.setattr(
+        whatsapp_cloud_router,
+        "verify_phone_number",
+        AsyncMock(return_value={"display_phone_number": "+57", "verified_name": "Bistro"}),
+    )
+    monkeypatch.setattr(
+        whatsapp_cloud_router,
+        "_auto_register_webhook",
+        AsyncMock(return_value={"ok": True, "code": "mock", "message": "ok", "host": None, "app_without_webhook": False}),
+    )
+    client.post(f"/api/whatsapp-cloud/channels/{customer['id']}/connect")
+    fake_send = AsyncMock(return_value="wamid.abc")
+    monkeypatch.setattr(whatsapp_cloud_router, "send_template", fake_send)
+    sent = client.post(
+        f"/api/whatsapp-cloud/channels/{customer['id']}/templates/send",
+        json={"to": "573001112233", "name": "hello_world", "language": "en_US", "body_parameters": ["Ana"]},
+    ).json()
+    assert sent["wamid"] == "wamid.abc"
+    fake_send.assert_awaited()
 
 
 def test_webhook_verify_handshake(authenticated_client: TestClient):

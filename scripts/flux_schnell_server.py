@@ -1,4 +1,4 @@
-"""Local Flux Schnell HTTP sidecar for OpenLivery carousel tests.
+"""Local Flux Schnell HTTP sidecar for Fast Livery carousel tests.
 
 Does not download the ~12 GB weights unless FLUX_ALLOW_DOWNLOAD=1.
 Does not import torch until a generate request (or --preload).
@@ -129,7 +129,7 @@ def _run_generate(prompt: str, width: int, height: int, steps: int) -> bytes:
     return buf.getvalue()
 
 
-app = FastAPI(title="OpenLivery Flux Schnell sidecar", version="0.1.0")
+app = FastAPI(title="Fast Livery Flux Schnell sidecar", version="0.1.0")
 
 
 @app.get("/health")
@@ -166,7 +166,7 @@ def generate(body: GenerateBody):
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="OpenLivery Flux Schnell sidecar")
+    parser = argparse.ArgumentParser(description="Fast Livery Flux Schnell sidecar")
     parser.add_argument("--host", default=os.environ.get("FLUX_HOST", "127.0.0.1"))
     parser.add_argument("--port", type=int, default=int(os.environ.get("FLUX_PORT", "7868")))
     parser.add_argument("--preload", action="store_true", help="Load weights at startup")

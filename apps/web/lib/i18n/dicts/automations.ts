@@ -17,7 +17,7 @@ const en = {
     '{\n  "Nombre completo": "Luis Pérez",\n  "correo": "luis@acme.com",\n  "empresa": "Acme SAS",\n  "presupuesto aprox": "USD 20 mil",\n  "empleados": "unas 60 personas",\n  "cuando": "en dos semanas",\n  "soy el dueño": "sí"\n}',
   auto2Title: "2. Score and qualify",
   auto2Copy:
-    "Same payload. DeepSeek extracts fields; OpenLivery applies the rubric: budget ≥ $10k +3, start ≤ 30 days +2, 50+ employees +2, decision maker +3. 7+ hot / 4–6 warm / <4 cold.",
+    "Same payload. DeepSeek extracts fields; Fast Livery applies the rubric: budget ≥ $10k +3, start ≤ 30 days +2, 50+ employees +2, decision maker +3. 7+ hot / 4–6 warm / <4 cold.",
   auto3Title: "3. Generate a document",
   auto3Copy: "Template with {{variables}}. DeepSeek writes a professional proposal/contract from the filled text without inventing prices.",
   template: "Template",
@@ -54,7 +54,7 @@ const en = {
   captureEyebrow: "Lead capture",
   captureTitle: "Capture leads",
   captureCopy:
-    "Simple automation: when a contact or form arrives, OpenLivery can create a lead for that client. This is not a Zapier canvas. Scoring, follow-up, calendar, documents, and onboarding come later.",
+    "Simple automation: when a contact or form arrives, Fast Livery can create a lead for that client. This is not a Zapier canvas. Scoring, follow-up, calendar, documents, and onboarding come later.",
   captureClient: "Client",
   captureSelectClient: "Choose a client",
   captureOpenClient: "Open client automations",
@@ -100,7 +100,7 @@ const es: typeof en = {
     '{\n  "Nombre completo": "Luis Pérez",\n  "correo": "luis@acme.com",\n  "empresa": "Acme SAS",\n  "presupuesto aprox": "USD 20 mil",\n  "empleados": "unas 60 personas",\n  "cuando": "en dos semanas",\n  "soy el dueño": "sí"\n}',
   auto2Title: "2. Scoring y calificación",
   auto2Copy:
-    "El mismo payload. DeepSeek extrae campos; OpenLivery aplica la rúbrica: presupuesto ≥ $10k +3, inicio ≤ 30 días +2, 50+ empleados +2, decision maker +3. 7+ caliente / 4–6 tibio / <4 frío.",
+    "El mismo payload. DeepSeek extrae campos; Fast Livery aplica la rúbrica: presupuesto ≥ $10k +3, inicio ≤ 30 días +2, 50+ empleados +2, decision maker +3. 7+ caliente / 4–6 tibio / <4 frío.",
   auto3Title: "3. Generar un documento",
   auto3Copy: "Plantilla con {{variables}}. DeepSeek escribe una propuesta/contrato profesional sin inventar precios.",
   template: "Plantilla",
@@ -137,7 +137,7 @@ const es: typeof en = {
   captureEyebrow: "Captura de leads",
   captureTitle: "Captura de leads",
   captureCopy:
-    "Automatización simple: cuando llega un contacto o un formulario, OpenLivery puede crear un lead de ese cliente. No es un lienzo tipo Zapier. Scoring, seguimiento, agenda, documentos y onboarding vienen después.",
+    "Automatización simple: cuando llega un contacto o un formulario, Fast Livery puede crear un lead de ese cliente. No es un lienzo tipo Zapier. Scoring, seguimiento, agenda, documentos y onboarding vienen después.",
   captureClient: "Cliente",
   captureSelectClient: "Elige un cliente",
   captureOpenClient: "Abrir automatizaciones del cliente",

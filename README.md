@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="apps/web/public/brand/openlivery-logo-original.png" width="88" alt="OpenLivery" />
+  <img src="apps/web/public/brand/openlivery-logo-original.png" width="88" alt="Fast Livery" />
 </p>
 
-<h1 align="center">OpenLivery</h1>
+<h1 align="center">Fast Livery</h1>
 
 <p align="center">
   The open-source, white-label platform for agencies to build, run and manage AI agents for their clients.
@@ -24,7 +24,7 @@
 
 ---
 
-OpenLivery is a multi-tenant workspace where an agency creates AI agents for its
+Fast Livery is a multi-tenant workspace where an agency creates AI agents for its
 clients, gives each client a branded portal, and talks to end users over
 WhatsApp or an embeddable web chat widget. Bring your own OpenAI / Anthropic
 keys and self-host the whole thing with one command.
@@ -126,7 +126,7 @@ Deploying to a public server (reverse proxy, TLS, backups) is covered in
 
 ## Community & support
 
-- **[GitHub Discussions](https://github.com/sarrazola/openlivery/discussions)** — questions, ideas and help building with OpenLivery.
+- **[GitHub Discussions](https://github.com/sarrazola/openlivery/discussions)** — questions, ideas and help building with Fast Livery.
 - **[GitHub Issues](https://github.com/sarrazola/openlivery/issues)** — bugs and feature requests.
 
 ## Project structure

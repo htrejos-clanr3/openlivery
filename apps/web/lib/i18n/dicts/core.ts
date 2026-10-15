@@ -38,7 +38,7 @@ const en = {
     settings: "Settings",
   },
   shell: {
-    loading: "Loading OpenLivery…",
+    loading: "Loading Fast Livery…",
     openMenu: "Open menu",
     closeMenu: "Close menu",
     logout: "Log out",
@@ -49,10 +49,10 @@ const en = {
     markRead: "Mark read",
   },
   auth: {
-    signInTitle: "Sign in to OpenLivery",
+    signInTitle: "Sign in to Fast Livery",
     signInSubtitle: "Manage your agency's AI agents.",
     registerTitle: "Create your agency",
-    registerSubtitle: "Set up OpenLivery in a couple of minutes.",
+    registerSubtitle: "Set up Fast Livery in a couple of minutes.",
     tabSignIn: "Sign in",
     tabRegister: "Register",
     agencyName: "Agency name",
@@ -150,7 +150,7 @@ const es: typeof en = {
     settings: "Configuración",
   },
   shell: {
-    loading: "Cargando OpenLivery…",
+    loading: "Cargando Fast Livery…",
     openMenu: "Abrir menú",
     closeMenu: "Cerrar menú",
     logout: "Cerrar sesión",
@@ -161,10 +161,10 @@ const es: typeof en = {
     markRead: "Marcar leída",
   },
   auth: {
-    signInTitle: "Entra a OpenLivery",
+    signInTitle: "Entra a Fast Livery",
     signInSubtitle: "Gestiona los agentes de IA de tu agencia.",
     registerTitle: "Crea tu agencia",
-    registerSubtitle: "Configura OpenLivery en un par de minutos.",
+    registerSubtitle: "Configura Fast Livery en un par de minutos.",
     tabSignIn: "Entrar",
     tabRegister: "Registrarse",
     agencyName: "Nombre de la agencia",

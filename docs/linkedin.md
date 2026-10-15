@@ -1,6 +1,6 @@
 # LinkedIn: generar, aprobar y publicar
 
-OpenLivery genera posts y reescrituras de perfil por cliente. Para perfiles personales también puede publicar texto con la API oficial **Share on LinkedIn**. Nunca publica automáticamente: una persona debe revisar el texto exacto, marcar la autorización y pulsar **Publicar texto aprobado**.
+Fast Livery genera posts y reescrituras de perfil por cliente. Para perfiles personales también puede publicar texto con la API oficial **Share on LinkedIn**. Nunca publica automáticamente: una persona debe revisar el texto exacto, marcar la autorización y pulsar **Publicar texto aprobado**.
 
 No se usan cookies, scraping ni automatización del navegador.
 

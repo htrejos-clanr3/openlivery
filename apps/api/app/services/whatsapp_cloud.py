@@ -92,3 +92,86 @@ async def fetch_media(access_token: str, media_id: str) -> tuple[bytes, str]:
     if download.status_code >= 400 or len(download.content) > MAX_MEDIA_BYTES:
         raise HTTPException(status_code=502, detail="Could not download the media file.")
     return download.content, mime
+
+
+async def list_message_templates(access_token: str, waba_id: str) -> list[dict]:
+    """Fetch message templates for a WABA (live from Graph; no local cache)."""
+    settings = get_settings()
+    if settings.meta_mock_mode or access_token == "mock-access-token" or waba_id.startswith("mock-"):
+        return [
+            {
+                "id": "mock-tpl-1",
+                "name": "hello_world",
+                "language": "en_US",
+                "status": "APPROVED",
+                "category": "UTILITY",
+                "components": [{"type": "BODY", "text": "Hello {{1}}"}],
+            }
+        ]
+    if not waba_id.strip():
+        raise HTTPException(status_code=400, detail="WABA ID is required to list templates")
+    response = await _graph_request(
+        "GET",
+        _graph_url(f"{waba_id}?fields=message_templates{{name,status,language,category,id,components}}"),
+        access_token,
+    )
+    if response.status_code >= 400:
+        # Fallback shape used by older Graph versions.
+        response = await _graph_request(
+            "GET",
+            _graph_url(f"{waba_id}/message_templates"),
+            access_token,
+        )
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"Could not list templates: {_graph_error(response)}")
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail="Invalid template response from Meta.") from exc
+    if isinstance(payload.get("message_templates"), dict):
+        data = payload["message_templates"].get("data") or []
+    else:
+        data = payload.get("data") or []
+    return [item for item in data if isinstance(item, dict)]
+
+
+async def send_template(
+    access_token: str,
+    phone_number_id: str,
+    to: str,
+    *,
+    name: str,
+    language: str,
+    body_parameters: list[str] | None = None,
+) -> str | None:
+    """Send an approved WhatsApp template message; returns wamid when present."""
+    settings = get_settings()
+    if settings.meta_mock_mode or access_token == "mock-access-token" or phone_number_id.startswith("mock-"):
+        return "wamid.mock-template"
+    components: list[dict] = []
+    if body_parameters:
+        components.append(
+            {
+                "type": "body",
+                "parameters": [{"type": "text", "text": value} for value in body_parameters],
+            }
+        )
+    payload: dict = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "template",
+        "template": {
+            "name": name,
+            "language": {"code": language},
+        },
+    }
+    if components:
+        payload["template"]["components"] = components
+    response = await _graph_request("POST", _graph_url(f"{phone_number_id}/messages"), access_token, json=payload)
+    if response.status_code >= 400:
+        raise HTTPException(status_code=502, detail=f"WhatsApp could not send the template: {_graph_error(response)}")
+    try:
+        messages = response.json().get("messages") or []
+        return messages[0].get("id") if messages else None
+    except ValueError:
+        return None

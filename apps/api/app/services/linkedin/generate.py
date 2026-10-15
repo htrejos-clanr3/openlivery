@@ -263,7 +263,7 @@ About: first two lines name the reader's problem. Second person. Under 1400 char
     payload["about"] = cleaned
     payload["audit"] = audit
     payload["humanize"] = {"panel": panel}
-    payload["copy_note"] = "Paste into LinkedIn. OpenLivery does not write the live profile."
+    payload["copy_note"] = "Paste into LinkedIn. Fast Livery does not write the live profile."
     return payload
 
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-OpenLivery is a multi-tenant platform where agencies create and manage AI agents for their clients, with a chat playground, a client portal, and WhatsApp integration. Three services + PostgreSQL:
+Fast Livery is a multi-tenant platform where agencies create and manage AI agents for their clients, with a chat playground, a client portal, and WhatsApp integration. Three services + PostgreSQL:
 
 - `apps/api/` — FastAPI (Python 3.12) + SQLAlchemy + Alembic
 - `apps/web/` — Next.js 16 (App Router) + React 19 + TypeScript + Tailwind

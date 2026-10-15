@@ -1,4 +1,4 @@
-# ClanR3 × OpenLivery — Manual de configuración y publicación
+# ClanR3 × Fast Livery — Manual de configuración y publicación
 
 Fecha: 2026-10-13  
 Audience: operador ClanR3 / Hernando  
@@ -26,7 +26,7 @@ Para publicar de verdad hay que: apagar mocks, completar credenciales de proveed
 
 ---
 
-## 1. Mapa de “paquetes” OpenLivery
+## 1. Mapa de “paquetes” Fast Livery
 
 Cada fila es un paquete que ClanR3 puede activar. “Listo en código” ≠ “listo en producción”.
 

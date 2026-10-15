@@ -20,6 +20,14 @@ class WhatsAppCloudAgentUpdate(BaseModel):
     agent_id: uuid.UUID
 
 
+class WhatsAppWebhookRegistrationOut(BaseModel):
+    ok: bool
+    code: str
+    message: str
+    host: str | None = None
+    app_without_webhook: bool = False
+
+
 class WhatsAppCloudChannelOut(BaseModel):
     id: uuid.UUID
     client_id: uuid.UUID
@@ -41,6 +49,35 @@ class WhatsAppCloudChannelOut(BaseModel):
     last_connected_at: datetime | None
     created_at: datetime
     updated_at: datetime
+    webhook_registration: WhatsAppWebhookRegistrationOut | None = None
+
+
+class WhatsAppTemplateOut(BaseModel):
+    id: str | None = None
+    name: str
+    language: str | None = None
+    status: str | None = None
+    category: str | None = None
+    components: list[dict] = Field(default_factory=list)
+
+
+class WhatsAppTemplateListOut(BaseModel):
+    templates: list[WhatsAppTemplateOut]
+    count: int
+
+
+class WhatsAppTemplateSendIn(BaseModel):
+    to: str = Field(min_length=5, max_length=32)
+    name: str = Field(min_length=1, max_length=512)
+    language: str = Field(default="en_US", min_length=2, max_length=16)
+    body_parameters: list[str] = Field(default_factory=list, max_length=20)
+
+
+class WhatsAppTemplateSendOut(BaseModel):
+    wamid: str | None = None
+    to: str
+    name: str
+    language: str
 
 
 class WhatsAppCloudHealthOut(BaseModel):

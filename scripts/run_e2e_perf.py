@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local E2E + performance smoke suite against a running OpenLivery stack."""
+"""Local E2E + performance smoke suite against a running Fast Livery stack."""
 
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-# Manual de usuario — OpenLivery
+# Manual de usuario — Fast Livery
 
 La guía viva está **dentro de la app**, en **Playground → Manual**.
 

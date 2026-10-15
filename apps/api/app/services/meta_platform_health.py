@@ -1,4 +1,4 @@
-"""Consolidate Meta DevTools MCP into OpenLivery DTOs (platform health)."""
+"""Consolidate Meta DevTools MCP into Fast Livery DTOs (platform health)."""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from .meta_devtools_mcp import (
 
 logger = logging.getLogger("openlivery.meta_platform_health")
 
-# WhatsApp Cloud webhook fields OpenLivery expects (do not invent message quotas).
+# WhatsApp Cloud webhook fields Fast Livery expects (do not invent message quotas).
 EXPECTED_WHATSAPP_WEBHOOK_FIELDS = ("messages", "message_statuses")
 
 _cache: dict[str, tuple[float, Any]] = {}

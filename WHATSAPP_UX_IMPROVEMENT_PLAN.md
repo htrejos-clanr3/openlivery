@@ -130,7 +130,7 @@ process_inbound → AI o human → send_text Graph
 
 El webhook POST valida `X-Hub-Signature-256` con el **App Secret de la Meta App** que firma los eventos. Cada canal BYO trae su propia Meta App → cada cliente pega su secret.
 
-**Modo administrado:** OpenLivery usa `META_APP_SECRET` del servidor; el canal puede no guardar app secret propio. El webhook cae al secret de plataforma si el canal no tiene uno.
+**Modo administrado:** Fast Livery usa `META_APP_SECRET` del servidor; el canal puede no guardar app secret propio. El webhook cae al secret de plataforma si el canal no tiene uno.
 
 ## Cambios propuestos → estado
 

@@ -1,9 +1,9 @@
-# Self-hosting OpenLivery
+# Self-hosting Fast Livery
 
-Run and operate your own OpenLivery instance. For a feature overview see the
+Run and operate your own Fast Livery instance. For a feature overview see the
 [README](../README.md).
 
-OpenLivery is orchestrated by Docker Compose, with a `Makefile` wrapping the
+Fast Livery is orchestrated by Docker Compose, with a `Makefile` wrapping the
 common commands. A lightweight **gateway** (Caddy) is the single public entry
 point: it serves the app and routes `/api/*` to the backend, so the frontend and
 API share one origin.
@@ -111,7 +111,7 @@ bridge stay on the private Compose network.
 
 ## Secure your install
 
-Do this before exposing OpenLivery to anyone else.
+Do this before exposing Fast Livery to anyone else.
 
 - **Secrets.** `generate-docker-env.sh` fills `SECRET_KEY`, `ENCRYPTION_KEY`,
   `WHATSAPP_BRIDGE_TOKEN` and `POSTGRES_PASSWORD` with random values. If you set

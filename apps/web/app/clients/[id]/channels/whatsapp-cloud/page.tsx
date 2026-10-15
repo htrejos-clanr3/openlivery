@@ -11,7 +11,15 @@ import { ChannelConnectConsentModal, buildChannelConsent } from "@/components/ch
 import { Alert } from "@/components/ui";
 import { api, ApiError, messageFrom } from "@/lib/api";
 import { useT, type I18nKey } from "@/lib/i18n";
-import type { Client, WhatsAppCloudChannel, WhatsAppCloudHealth, WhatsAppSignupOptions, WhatsAppSignupSession } from "@/types";
+import type {
+  Client,
+  WhatsAppCloudChannel,
+  WhatsAppCloudHealth,
+  WhatsAppCloudTemplate,
+  WhatsAppSignupOptions,
+  WhatsAppSignupSession,
+  WhatsAppWebhookRegistration,
+} from "@/types";
 
 type ProgressStep = { id: string; label: string; done: boolean };
 
@@ -108,6 +116,10 @@ function WhatsAppCloudChannelPageInner() {
   const [progress, setProgress] = useState<ProgressStep[] | null>(null);
   const [offerAgentHelp, setOfferAgentHelp] = useState(false);
   const [consentOpen, setConsentOpen] = useState(false);
+  const [webhookReg, setWebhookReg] = useState<WhatsAppWebhookRegistration | null>(null);
+  const [templates, setTemplates] = useState<WhatsAppCloudTemplate[]>([]);
+  const [templateTo, setTemplateTo] = useState("");
+  const [templateNote, setTemplateNote] = useState("");
 
   const refreshHealth = useCallback(async () => {
     try {
@@ -119,6 +131,7 @@ function WhatsAppCloudChannelPageInner() {
 
   const applyChannel = useCallback((current: WhatsAppCloudChannel) => {
     setChannel(current);
+    if (current.webhook_registration) setWebhookReg(current.webhook_registration);
     setAgentId(current.agent_id);
     setPhoneNumberId(current.phone_number_id);
     setWabaId(current.waba_id || "");
@@ -213,8 +226,53 @@ function WhatsAppCloudChannelPageInner() {
       applyChannel(saved);
       setAccessToken("");
       setAppSecret("");
-      setChannel(await api<WhatsAppCloudChannel>(`/whatsapp-cloud/channels/${id}/connect`, { method: "POST" }));
+      const connectedChannel = await api<WhatsAppCloudChannel>(`/whatsapp-cloud/channels/${id}/connect`, { method: "POST" });
+      applyChannel(connectedChannel);
       await refreshHealth();
+    } catch (err) {
+      setError(messageFrom(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function registerWebhookInMeta() {
+    setBusy(true); setError("");
+    try {
+      const result = await api<WhatsAppWebhookRegistration>(`/whatsapp-cloud/channels/${id}/register-webhook`, { method: "POST" });
+      setWebhookReg(result);
+    } catch (err) {
+      setError(messageFrom(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function refreshTemplates() {
+    setBusy(true); setError(""); setTemplateNote("");
+    try {
+      const result = await api<{ templates: WhatsAppCloudTemplate[]; count: number }>(`/whatsapp-cloud/channels/${id}/templates`);
+      setTemplates(result.templates);
+      if (!result.count) setTemplateNote(t("clients.whatsappCloud.templatesEmpty"));
+    } catch (err) {
+      setError(messageFrom(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendTemplateTest(name: string, language: string) {
+    if (!templateTo.trim()) {
+      setError(t("clients.whatsappCloud.templatesSendTo"));
+      return;
+    }
+    setBusy(true); setError(""); setTemplateNote("");
+    try {
+      await api(`/whatsapp-cloud/channels/${id}/templates/send`, {
+        method: "POST",
+        body: JSON.stringify({ to: templateTo.trim(), name, language: language || "en_US" }),
+      });
+      setTemplateNote(t("clients.whatsappCloud.templatesSent"));
     } catch (err) {
       setError(messageFrom(err));
     } finally {
@@ -423,12 +481,64 @@ function WhatsAppCloudChannelPageInner() {
                   )}
                 </div>
               )}
+              {webhookReg && (
+                <Alert type={webhookReg.ok ? "info" : "info"}>
+                  <strong>
+                    {webhookReg.ok
+                      ? webhookReg.code === "skipped_waba_override"
+                        ? t("clients.whatsappCloud.webhookRegisterSkipped")
+                        : t("clients.whatsappCloud.webhookRegisterOk")
+                      : t("clients.whatsappCloud.webhookRegisterFailed")}
+                  </strong>
+                  <p>{webhookReg.message}</p>
+                </Alert>
+              )}
               <div className="wa-actions">
                 <button className="button primary" onClick={testConnection} disabled={busy}>
                   {busy ? <LoaderCircle className="spin" size={17} /> : <Plug size={17} />} {t("clients.whatsappCloud.testConnection")}
                 </button>
+                <button className="button secondary" onClick={registerWebhookInMeta} disabled={busy}>
+                  {busy ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />} {t("clients.whatsappCloud.registerWebhook")}
+                </button>
                 <Link className="button secondary" href="/inbox"><Inbox size={17} /> {t("clients.whatsappCloud.openInbox")}</Link>
                 <button className="button danger" onClick={disconnect} disabled={busy}><Power size={17} /> {t("clients.whatsappCloud.disconnect")}</button>
+              </div>
+              <div className="wa-panel" style={{ marginTop: 16, padding: 0, border: "none", boxShadow: "none" }}>
+                <div className="wa-panel-head">
+                  <div>
+                    <h3>{t("clients.whatsappCloud.templatesTitle")}</h3>
+                    <p>{t("clients.whatsappCloud.templatesCopy")}</p>
+                  </div>
+                </div>
+                <label>
+                  {t("clients.whatsappCloud.templatesSendTo")}
+                  <input value={templateTo} onChange={(e) => setTemplateTo(e.target.value)} placeholder="573001112233" />
+                </label>
+                <div className="wa-actions">
+                  <button type="button" className="button secondary" onClick={refreshTemplates} disabled={busy}>
+                    {t("clients.whatsappCloud.templatesRefresh")}
+                  </button>
+                </div>
+                {templateNote && <p className="hint">{templateNote}</p>}
+                {templates.length > 0 && (
+                  <ul className="wa-progress">
+                    {templates.slice(0, 12).map((tpl) => (
+                      <li key={`${tpl.name}-${tpl.language}-${tpl.id || ""}`}>
+                        <span>
+                          <strong>{tpl.name}</strong> · {tpl.language || "—"} · {tpl.status || "—"}
+                        </span>
+                        <button
+                          type="button"
+                          className="text-button"
+                          disabled={busy || (tpl.status || "").toUpperCase() !== "APPROVED"}
+                          onClick={() => sendTemplateTest(tpl.name, tpl.language || "en_US")}
+                        >
+                          {t("clients.whatsappCloud.templatesSend")}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </section>
           ) : (

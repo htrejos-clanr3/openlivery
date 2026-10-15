@@ -273,6 +273,14 @@ export type WhatsAppChannel = {
   updated_at: string;
 };
 
+export type WhatsAppWebhookRegistration = {
+  ok: boolean;
+  code: string;
+  message: string;
+  host?: string | null;
+  app_without_webhook?: boolean;
+};
+
 export type WhatsAppCloudChannel = {
   id: string;
   client_id: string;
@@ -294,6 +302,16 @@ export type WhatsAppCloudChannel = {
   last_connected_at: string | null;
   created_at: string;
   updated_at: string;
+  webhook_registration?: WhatsAppWebhookRegistration | null;
+};
+
+export type WhatsAppCloudTemplate = {
+  id?: string | null;
+  name: string;
+  language?: string | null;
+  status?: string | null;
+  category?: string | null;
+  components?: Record<string, unknown>[];
 };
 
 export type MetaPlatformNote = {

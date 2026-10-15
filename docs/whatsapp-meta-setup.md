@@ -1,8 +1,8 @@
-# WhatsApp Meta setup (OpenLivery)
+# WhatsApp Meta setup (Fast Livery)
 
-**Audience:** each **client** in OpenLivery usually configures their **own** Meta WhatsApp credentials.
+**Audience:** each **client** in Fast Livery usually configures their **own** Meta WhatsApp credentials.
 
-There is **no official QR** for Cloud API. QR in OpenLivery is a separate unofficial channel. Cloud API = Meta App + IDs + token + webhook (once per client).
+There is **no official QR** for Cloud API. QR in Fast Livery is a separate unofficial channel. Cloud API = Meta App + IDs + token + webhook (once per client).
 
 Domain model: **Client → WhatsAppCloudChannel → Agent → Conversations → Inbox**.
 
@@ -23,18 +23,35 @@ Do this **for every client** that should use Cloud API:
 
 Official overview: [Cloud API Get Started](https://developers.facebook.com/docs/whatsapp/cloud-api/get-started/).
 
-### B. In OpenLivery (that client)
+### B. In Fast Livery (that client)
 
 1. Clients → client → **WhatsApp Cloud**.
 2. Assign the agent that will answer.
 3. Open **Advanced settings**.
-4. Paste Phone Number ID, WABA, token, App Secret → **Save and verify**.
-5. In the **Webhook** section, copy **Callback URL** + **Verify token**.
-6. In Meta → WhatsApp → **Configuration**, paste them, subscribe to **messages**, save.
+4. Paste Phone Number ID, WABA, token, App Secret → **Save**.
+5. **Connect / verify** — Fast Livery validates the token and **tries to register the webhook in Meta** (`override_callback_uri` on the phone number). Retry with `POST …/register-webhook` if Meta rejects it (usually missing `whatsapp_business_management`).
+6. If auto-register fails or the Meta app has never had a webhook: paste **Callback URL** + **Verify token** once in Meta → WhatsApp → **Configuration**, subscribe to **messages** (and `message_template_status_update` if you use templates).
 
 Each client has a **unique** webhook URL (`…/channels/{channel_id}/webhook`).
 
+If a WABA already has an **agency/brain override**, Fast Livery **does not** overwrite it (same safety as Vocero).
+
+**Templates:** `GET /api/whatsapp-cloud/channels/{client_id}/templates` lists WABA templates; `POST …/templates/send` sends an approved template (outside the 24h window).
+
 In the product UI, the accordion **Cómo conectar este cliente** mirrors this guide (collapsed by default).
+
+## Instagram on the same Meta App
+
+WhatsApp Cloud and Instagram Content Publishing can share **one** Meta Business App:
+
+| Product | Needs on the Meta App | Fast Livery env |
+|---------|----------------------|-----------------|
+| WhatsApp Cloud | WhatsApp product + WABA + System User token (or Embedded Signup config) | per-client token **or** `META_APP_ID` + `META_WHATSAPP_CONFIG_ID` |
+| Instagram publishing | Instagram / Facebook Login + Page linked to IG Business + App Review for publish scopes | same `META_APP_ID` + `META_APP_SECRET`; redirect `INSTAGRAM_OAUTH_REDIRECT_PATH` |
+
+Additional for Instagram (not covered by WhatsApp alone): Facebook Page, Instagram professional account linked to that Page, and scopes such as `instagram_content_publish` / `pages_show_list`. WhatsApp messaging tokens do **not** grant Instagram publish by themselves — OAuth (or BYO IG token) is still required per client.
+
+Equipia’s OAuth pattern (signed `state`, code exchange, secrets in a vault, frontend return query) matches Fast Livery’s WhatsApp Embedded Signup + Instagram OAuth helpers; Equipia itself uses Baileys/Cloud BYO for WhatsApp more than Embedded Signup.
 
 ## Optional path — one Meta App for the whole platform
 
@@ -78,7 +95,7 @@ Keep QR for demos if it works; use Cloud API per client for production.
 
 ## Meta Developer Tools MCP
 
-[MCP DevTools](https://developers.facebook.com/documentation/mcp/devtools-mcp) helps **developers** manage Meta Apps from an IDE (webhooks, docs, health). It does **not** replace the per-client form in OpenLivery.
+[MCP DevTools](https://developers.facebook.com/documentation/mcp/devtools-mcp) helps **developers** manage Meta Apps from an IDE (webhooks, docs, health). It does **not** replace the per-client form in Fast Livery.
 
 ## Environment variables
 

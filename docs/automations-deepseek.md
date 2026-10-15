@@ -1,4 +1,4 @@
-# DeepSeek automations (OpenLivery)
+# DeepSeek automations (Fast Livery)
 
 Five sales automations from the “$1k–$5k” playbook, **only the parts DeepSeek can do in-app**.
 
@@ -6,7 +6,7 @@ Open **Automatizaciones** in the sidebar. Requires a DeepSeek key in Settings (`
 
 Runs are **per signed-in user**, not per agency. History lives in `user_automation_runs` and `GET /api/automations/runs` only returns the current user’s rows. Another login on the same agency does not see those results.
 
-| # | Playbook | In OpenLivery | Not in this slice |
+| # | Playbook | In Fast Livery | Not in this slice |
 |---|----------|---------------|-------------------|
 | 1 | Form → CRM → Slack | Clean/normalize messy form JSON | HubSpot, Airtable, Slack send |
 | 2 | Lead scoring | Extract fields with DeepSeek + rubric in Python | Auto-assign in a CRM |

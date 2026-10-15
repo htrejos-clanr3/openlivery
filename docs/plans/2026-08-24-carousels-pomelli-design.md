@@ -1,4 +1,4 @@
-# Diseño — Carruseles tipo Pomelli (OpenLivery)
+# Diseño — Carruseles tipo Pomelli (Fast Livery)
 
 Fecha: 2026-08-24  
 Fuente de referencia UX: Google Pomelli (generar → revisar → decidir → publicar)

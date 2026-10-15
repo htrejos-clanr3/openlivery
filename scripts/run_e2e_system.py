@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end system smoke against a running OpenLivery Docker stack.
+"""End-to-end system smoke against a running Fast Livery Docker stack.
 
 Covers: health → register/legal → client/agent → LinkedIn/Instagram mock connect
 → carousel agency/portal approval → multi-network publish → logout/login → UI pages.

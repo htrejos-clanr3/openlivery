@@ -2,7 +2,7 @@
 
 **Branch:** `meta-devtools-mcp`  
 **Date:** 2026-08-25  
-**Official product note:** Meta renamed this surface to **Meta Social Technologies MCP** (as of 2026-08-18). Endpoint and tool namespace remain DevTools-oriented (`https://mcp.facebook.com/devtools`, `devtools_*`). OpenLivery docs keep the familiar “Developer Tools MCP” name and mention the rename.
+**Official product note:** Meta renamed this surface to **Meta Social Technologies MCP** (as of 2026-08-18). Endpoint and tool namespace remain DevTools-oriented (`https://mcp.facebook.com/devtools`, `devtools_*`). Fast Livery docs keep the familiar “Developer Tools MCP” name and mention the rename.
 
 Official docs: [developers.facebook.com/documentation/mcp/devtools-mcp](https://developers.facebook.com/documentation/mcp/devtools-mcp) (page fetch timed out during planning; tool inventory cross-checked against Meta’s June 2026 announcement + secondary technical write-ups). **If Meta’s live docs differ, prefer the live docs.**
 
@@ -39,7 +39,7 @@ Mensajería productiva **no** pasa por MCP.
 
 Endpoint: `https://mcp.facebook.com/devtools` · Transport: **Streamable HTTP** · Auth: **OAuth** (cuenta developer Meta) · Scopes por app: **Read** / **Manage**.
 
-| Tool | Scope | Uso en OpenLivery |
+| Tool | Scope | Uso en Fast Livery |
 |------|-------|-------------------|
 | `devtools_discovery` | none | Docs (opcional, no MVP UI) |
 | `devtools_api_changelog` | none | Deprecations complementarias |
@@ -54,7 +54,7 @@ Endpoint: `https://mcp.facebook.com/devtools` · Transport: **Streamable HTTP** 
 
 \*Write surface is webhook manage/test only.
 
-**Diferencia vs prompt:** no hardcodear schemas de respuesta; normalizar a DTOs OpenLivery. Auth interactiva OAuth no encaja 1:1 en backend headless → soportar token opcional + **mock mode** + degradación si MCP off/unavailable.
+**Diferencia vs prompt:** no hardcodear schemas de respuesta; normalizar a DTOs Fast Livery. Auth interactiva OAuth no encaja 1:1 en backend headless → soportar token opcional + **mock mode** + degradación si MCP off/unavailable.
 
 ---
 

@@ -19,7 +19,7 @@ Todo lo siguiente se monta **encima** del modelo actual:
 
 **No se propone:** automatizar login de redes, cookies, scraping de perfiles, ni publicar sin aprobación humana.
 
-## 2. Qué ya existe en Fast Livery / OpenLivery
+## 2. Qué ya existe en Fast Livery / Fast Livery
 
 - Imagen: `IMAGE_PROVIDER=openai|flux|ollama|placeholder` (`apps/api/app/services/image_generation.py`)
 - Flux Schnell local (sidecar HTTP, $0 marginal de API)
