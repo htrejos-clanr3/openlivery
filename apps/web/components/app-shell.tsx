@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
-import { Bell, Bot, Building2, CreditCard, Inbox, Images, LayoutDashboard, LogOut, Menu, MessageSquareText, Radio, Settings, Sparkles, Wallet, Workflow, X } from "lucide-react";
+import { Bell, BookOpen, Bot, Building2, CreditCard, Inbox, Images, LayoutDashboard, LogOut, Menu, MessageSquareText, Radio, Settings, Sparkles, Wallet, Workflow, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { useCarouselGeneration } from "@/lib/carousel-generation-context";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -20,6 +20,7 @@ const navigation: { href: string; labelKey: I18nKey; icon: typeof LayoutDashboar
   { href: "/playground", labelKey: "nav.playground", icon: MessageSquareText },
   { href: "/channels", labelKey: "nav.channels", icon: Radio },
   { href: "/settings", labelKey: "nav.settings", icon: Settings },
+  { href: "/manual", labelKey: "nav.manual", icon: BookOpen },
 ];
 
 // Extra path prefixes served without a session (comma-separated, baked at

@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
@@ -47,7 +48,17 @@ def _get_or_create_channel(db: Session, user: User, client_id: uuid.UUID) -> Lin
         return channel
     channel = LinkedInChannel(agency_id=user.agency_id, client_id=client.id, display_name=client.name)
     db.add(channel)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Two concurrent page loads can both find no channel and both insert.
+        # The unique constraint on client_id wins; return the row the other
+        # request created instead of failing the page with a 500.
+        db.rollback()
+        existing = db.scalar(select(LinkedInChannel).where(LinkedInChannel.client_id == client.id))
+        if existing is not None:
+            return existing
+        raise
     db.refresh(channel)
     return channel
 

@@ -36,6 +36,7 @@ const en = {
     carousels: "Carousels",
     automations: "Automations",
     settings: "Settings",
+    manual: "Manual",
   },
   shell: {
     loading: "Loading Fast Livery…",
@@ -148,6 +149,7 @@ const es: typeof en = {
     carousels: "Carruseles",
     automations: "Automatizaciones",
     settings: "Configuración",
+    manual: "Manual",
   },
   shell: {
     loading: "Cargando Fast Livery…",
