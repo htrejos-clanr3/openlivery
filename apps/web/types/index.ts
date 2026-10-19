@@ -738,6 +738,33 @@ export type LeadStats = {
   total_count: number;
 };
 
+export type IdealCustomerProfile = {
+  client_id: string;
+  sectors: string[];
+  cities: string[];
+  keywords: string[];
+  disqualifiers: string[];
+  size_min: number | null;
+  size_max: number | null;
+  hot_min: number;
+  warm_min: number;
+  auto_qualify: boolean;
+  updated_at: string;
+};
+
+export type LeadQualification = {
+  score: number;
+  band: string;
+  reasons: string[];
+  lead: LeadRecord;
+};
+
+export type LeadImportResult = {
+  created: number;
+  skipped: number;
+  errors: { row: number; error: string }[];
+};
+
 export type LeadCaptureSettings = {
   id: string;
   client_id: string;

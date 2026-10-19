@@ -1,13 +1,19 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { LoaderCircle, Plus, Save, UserRound } from "lucide-react";
+import { LoaderCircle, Plus, Save, Sparkles, Target, Upload, UserRound } from "lucide-react";
 import { EmptyState } from "@/components/ui";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
 import { useT, type I18nKey } from "@/lib/i18n";
-import type { LeadCaptureSettings, LeadRecord, LeadStats } from "@/types";
+import type {
+  IdealCustomerProfile,
+  LeadCaptureSettings,
+  LeadImportResult,
+  LeadRecord,
+  LeadStats,
+} from "@/types";
 
 const SIMPLE_SOURCES: { id: string; label: I18nKey }[] = [
   { id: "whatsapp", label: "leads.sourceWhatsapp" },
@@ -33,6 +39,26 @@ function when(iso?: string | null) {
   return date.toLocaleString();
 }
 
+function scoreColor(score: number | null | undefined, icp: IdealCustomerProfile | null) {
+  if (score == null || !icp) return "#94a3b8";
+  if (score <= 0) return "#dc2626";
+  if (score >= icp.hot_min) return "#16a34a";
+  if (score >= icp.warm_min) return "#d97706";
+  return "#64748b";
+}
+
+function splitTerms(value: string) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function numberOrNull(value: string) {
+  const parsed = Number(value);
+  return value.trim() && Number.isFinite(parsed) ? parsed : null;
+}
+
 export function LeadsPanel({ clientId }: { clientId: string }) {
   const t = useT();
   const toast = useToast();
@@ -45,6 +71,9 @@ export function LeadsPanel({ clientId }: { clientId: string }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<LeadRecord | null>(null);
   const [creating, setCreating] = useState(false);
+  const [icp, setIcp] = useState<IdealCustomerProfile | null>(null);
+  const [qualifying, setQualifying] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -61,13 +90,73 @@ export function LeadsPanel({ clientId }: { clientId: string }) {
       api<LeadCaptureSettings>(`/clients/${clientId}/lead-capture`),
       api<LeadStats>(`/clients/${clientId}/leads/stats`),
       api<LeadRecord[]>(`/clients/${clientId}/leads${query}`),
+      api<IdealCustomerProfile>(`/clients/${clientId}/leads/icp`).catch(() => null),
     ])
-      .then(([nextSettings, nextStats, nextLeads]) => {
+      .then(([nextSettings, nextStats, nextLeads, nextIcp]) => {
         setSettings(nextSettings);
         setStats(nextStats);
         setLeadsList(nextLeads);
+        setIcp(nextIcp);
       })
       .catch((err) => toast.error(messageFrom(err)));
+  }
+
+  async function qualifyAll() {
+    if (!icp) {
+      toast.error(t("leads.icpNeedsProfile"));
+      return;
+    }
+    setQualifying(true);
+    try {
+      const result = await api<{ qualified: number; skipped: number }>(`/clients/${clientId}/leads/qualify`, {
+        method: "POST",
+      });
+      toast.success(`${t("leads.qualifyAll")}: ${result.qualified}`);
+      loadList();
+    } catch (err) {
+      toast.error(messageFrom(err));
+    } finally {
+      setQualifying(false);
+    }
+  }
+
+  async function onImport(event: ChangeEvent<HTMLInputElement>) {    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const form = new FormData();
+    form.append("file", file);
+    setImporting(true);
+    try {
+      const result = await api<LeadImportResult>(`/clients/${clientId}/leads/import`, {
+        method: "POST",
+        body: form,
+      });
+      toast.success(
+        `${result.created} ${t("leads.importCreated")} · ${result.skipped} ${t("leads.importSkipped")} · ${result.errors.length} ${t("leads.importErrors")}`,
+      );
+      loadList();
+    } catch (err) {
+      toast.error(messageFrom(err));
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function qualifyOne(leadId: string) {
+    if (!icp) {
+      toast.error(t("leads.icpNeedsProfile"));
+      return;
+    }
+    try {
+      await api(`/clients/${clientId}/leads/${leadId}/qualify`, { method: "POST" });
+      loadList();
+      if (detail?.id === leadId) {
+        const next = await api<LeadRecord>(`/clients/${clientId}/leads/${leadId}`);
+        setDetail(next);
+      }
+    } catch (err) {
+      toast.error(messageFrom(err));
+    }
   }
 
   useEffect(() => {
@@ -125,6 +214,19 @@ export function LeadsPanel({ clientId }: { clientId: string }) {
             <button type="button" className="button primary" onClick={() => { setCreating(true); setSelectedId(null); }}>
               <Plus size={16} /> {t("leads.newLead")}
             </button>
+            <button type="button" className="button" onClick={qualifyAll} disabled={!icp || qualifying}>
+              {qualifying ? <LoaderCircle className="spin" size={16} /> : <Sparkles size={16} />} {t("leads.qualifyAll")}
+            </button>
+            <label className="button">
+              {importing ? <LoaderCircle className="spin" size={16} /> : <Upload size={16} />} {t("leads.importCsv")}
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                disabled={importing}
+                onChange={onImport}
+              />
+            </label>
           </div>
           {stats && (
             <div className="metrics-grid">
@@ -136,6 +238,8 @@ export function LeadsPanel({ clientId }: { clientId: string }) {
           )}
         </div>
       </section>
+
+      <IcpPanel clientId={clientId} icp={icp} onSaved={setIcp} />
 
       {creating && (
         <CreateLeadForm
@@ -185,7 +289,37 @@ export function LeadsPanel({ clientId }: { clientId: string }) {
                     <div className="field-help">{lead.contact.email || lead.contact.phone || lead.contact.company}</div>
                   </td>
                   <td>{lead.stage_name || t("leads.none")}</td>
-                  <td>{lead.score == null ? t("leads.noScore") : lead.score}</td>
+                  <td>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                      {lead.score == null ? (
+                        t("leads.noScore")
+                      ) : (
+                        <>
+                          <span
+                            style={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: 999,
+                              background: scoreColor(lead.score, icp),
+                              display: "inline-block",
+                            }}
+                          />
+                          {lead.score}
+                        </>
+                      )}
+                      <button
+                        type="button"
+                        className="button"
+                        title={t("leads.qualify")}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void qualifyOne(lead.id);
+                        }}
+                      >
+                        <Sparkles size={14} />
+                      </button>
+                    </span>
+                  </td>
                   <td>{t(SOURCE_LABELS[lead.source] || "leads.sourceForm")}</td>
                   <td>{lead.assignee_name || t("leads.noOwner")}</td>
                   <td>{when(lead.last_activity_at)}</td>
@@ -556,5 +690,129 @@ function LeadDetail({
         </div>
       </section>
     </form>
+  );
+}
+
+function IcpPanel({
+  clientId,
+  icp,
+  onSaved,
+}: {
+  clientId: string;
+  icp: IdealCustomerProfile | null;
+  onSaved: (next: IdealCustomerProfile) => void;
+}) {
+  const t = useT();
+  const toast = useToast();
+  const [open, setOpen] = useState(!icp);
+  const [busy, setBusy] = useState(false);
+  const [sectors, setSectors] = useState("");
+  const [cities, setCities] = useState("");
+  const [keywords, setKeywords] = useState("");
+  const [disqualifiers, setDisqualifiers] = useState("");
+  const [sizeMin, setSizeMin] = useState("");
+  const [sizeMax, setSizeMax] = useState("");
+  const [hotMin, setHotMin] = useState("75");
+  const [warmMin, setWarmMin] = useState("45");
+  const [auto, setAuto] = useState(false);
+
+  useEffect(() => {
+    setSectors((icp?.sectors || []).join(", "));
+    setCities((icp?.cities || []).join(", "));
+    setKeywords((icp?.keywords || []).join(", "));
+    setDisqualifiers((icp?.disqualifiers || []).join(", "));
+    setSizeMin(icp?.size_min == null ? "" : String(icp.size_min));
+    setSizeMax(icp?.size_max == null ? "" : String(icp.size_max));
+    setHotMin(String(icp?.hot_min ?? 75));
+    setWarmMin(String(icp?.warm_min ?? 45));
+    setAuto(Boolean(icp?.auto_qualify));
+  }, [icp]);
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      const next = await api<IdealCustomerProfile>(`/clients/${clientId}/leads/icp`, {
+        method: "PUT",
+        body: JSON.stringify({
+          sectors: splitTerms(sectors),
+          cities: splitTerms(cities),
+          keywords: splitTerms(keywords),
+          disqualifiers: splitTerms(disqualifiers),
+          size_min: numberOrNull(sizeMin),
+          size_max: numberOrNull(sizeMax),
+          hot_min: Number(hotMin) || 75,
+          warm_min: Number(warmMin) || 45,
+          auto_qualify: auto,
+        }),
+      });
+      onSaved(next);
+      toast.success(t("leads.icpSaved"));
+    } catch (err) {
+      toast.error(messageFrom(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="form-section">
+      <div className="section-copy">
+        <h2>
+          <Target size={16} /> {t("leads.icpTitle")}
+        </h2>
+        <p>{t("leads.icpHint")}</p>
+      </div>
+      <div className="form-fields">
+        <button type="button" className="button" onClick={() => setOpen((value) => !value)}>
+          {open ? t("leads.cancel") : t("leads.icpTitle")}
+        </button>
+        {open && (
+          <form onSubmit={save} className="form-fields">
+            <div className="form-grid">
+              <label>
+                {t("leads.icpSectors")}
+                <input value={sectors} onChange={(e) => setSectors(e.target.value)} placeholder="inmobiliaria, constructora" />
+              </label>
+              <label>
+                {t("leads.icpCities")}
+                <input value={cities} onChange={(e) => setCities(e.target.value)} placeholder="bogota, medellin" />
+              </label>
+              <label>
+                {t("leads.icpKeywords")}
+                <input value={keywords} onChange={(e) => setKeywords(e.target.value)} />
+              </label>
+              <label>
+                {t("leads.icpDisqualifiers")}
+                <input value={disqualifiers} onChange={(e) => setDisqualifiers(e.target.value)} />
+              </label>
+              <label>
+                {t("leads.icpSizeMin")}
+                <input value={sizeMin} onChange={(e) => setSizeMin(e.target.value)} inputMode="numeric" />
+              </label>
+              <label>
+                {t("leads.icpSizeMax")}
+                <input value={sizeMax} onChange={(e) => setSizeMax(e.target.value)} inputMode="numeric" />
+              </label>
+              <label>
+                {t("leads.icpHot")}
+                <input value={hotMin} onChange={(e) => setHotMin(e.target.value)} inputMode="numeric" />
+              </label>
+              <label>
+                {t("leads.icpWarm")}
+                <input value={warmMin} onChange={(e) => setWarmMin(e.target.value)} inputMode="numeric" />
+              </label>
+            </div>
+            <label className="switch-row">
+              <span>{t("leads.icpAuto")}</span>
+              <input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
+            </label>
+            <button className="button primary" type="submit" disabled={busy}>
+              {busy ? <LoaderCircle className="spin" size={16} /> : <Save size={16} />} {t("leads.icpSave")}
+            </button>
+          </form>
+        )}
+      </div>
+    </section>
   );
 }

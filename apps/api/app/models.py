@@ -961,6 +961,31 @@ class LeadActivity(Base):
     lead: Mapped[Lead] = relationship(back_populates="activities")
 
 
+class IdealCustomerProfile(Base):
+    """The client's ideal customer, used to score leads deterministically."""
+
+    __tablename__ = "ideal_customer_profiles"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("clients.id", ondelete="CASCADE"), unique=True, index=True
+    )
+    sectors: Mapped[list] = mapped_column(JSON, default=list)
+    cities: Mapped[list] = mapped_column(JSON, default=list)
+    keywords: Mapped[list] = mapped_column(JSON, default=list)
+    disqualifiers: Mapped[list] = mapped_column(JSON, default=list)
+    size_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    size_max: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    hot_min: Mapped[int] = mapped_column(Integer, default=75, server_default="75")
+    warm_min: Mapped[int] = mapped_column(Integer, default=45, server_default="45")
+    auto_qualify: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship()
+
+
 class LeadCaptureEvent(Base):
     """Audit row for each capture attempt. Failed rows can be retried."""
 

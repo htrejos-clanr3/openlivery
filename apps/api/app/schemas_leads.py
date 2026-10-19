@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class LeadStageOut(BaseModel):
@@ -190,3 +190,55 @@ class PublicLeadIn(BaseModel):
     company: str | None = None
     channel_identifier: str | None = None
     extra: dict[str, Any] = Field(default_factory=dict)
+
+
+class ICPIn(BaseModel):
+    """Editable shape of the ideal customer profile."""
+
+    sectors: list[str] = Field(default_factory=list)
+    cities: list[str] = Field(default_factory=list)
+    keywords: list[str] = Field(default_factory=list)
+    disqualifiers: list[str] = Field(default_factory=list)
+    size_min: int | None = Field(default=None, ge=0, le=1_000_000)
+    size_max: int | None = Field(default=None, ge=0, le=1_000_000)
+    hot_min: int = Field(default=75, ge=1, le=100)
+    warm_min: int = Field(default=45, ge=0, le=99)
+    auto_qualify: bool = False
+
+    @model_validator(mode="after")
+    def _validate_ranges(self):
+        if self.warm_min >= self.hot_min:
+            raise ValueError("warm_min must be lower than hot_min")
+        if self.size_min is not None and self.size_max is not None and self.size_min > self.size_max:
+            raise ValueError("size_min must not be greater than size_max")
+        return self
+
+
+class ICPOut(ICPIn):
+    client_id: UUID
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class QualificationOut(BaseModel):
+    score: int
+    band: str
+    reasons: list[str] = Field(default_factory=list)
+    lead: LeadOut
+
+
+class BulkQualifyOut(BaseModel):
+    qualified: int
+    skipped: int
+
+
+class LeadImportRowError(BaseModel):
+    row: int
+    error: str
+
+
+class LeadImportOut(BaseModel):
+    created: int
+    skipped: int
+    errors: list[LeadImportRowError] = Field(default_factory=list)

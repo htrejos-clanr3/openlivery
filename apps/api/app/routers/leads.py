@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import csv
+import io
+import re
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_, select
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from ..database import get_db
@@ -13,6 +16,7 @@ from ..deps import get_current_user
 from ..models import (
     Client,
     Contact,
+    IdealCustomerProfile,
     Lead,
     LeadActivity,
     LeadCaptureEvent,
@@ -26,20 +30,27 @@ from ..models import (
 from ..ratelimit import lead_ingest_rate_limit
 from ..schemas_leads import (
     AssigneeOut,
+    BulkQualifyOut,
+    ICPIn,
+    ICPOut,
     LeadActivityIn,
     LeadActivityOut,
     LeadCaptureEventOut,
     LeadCaptureSettingsOut,
     LeadCaptureSettingsUpdate,
     LeadCreateIn,
+    LeadImportOut,
+    LeadImportRowError,
     LeadNotificationOut,
     LeadOut,
     LeadPipelineOut,
     LeadStatsOut,
     LeadUpdateIn,
     PublicLeadIn,
+    QualificationOut,
 )
 from ..services import lead_capture as capture
+from ..services import qualification as qualifier
 from ..services.lead_capture import SOURCES
 
 
@@ -333,8 +344,236 @@ def create_lead(
         next_action=payload.next_action,
         user_id=user.id,
     )
+    qualifier.maybe_auto_qualify(db, lead)
     db.commit()
     return _lead_out(_scoped_lead(db, client, lead.id, with_activities=True), include_activities=True)
+
+
+MAX_IMPORT_BYTES = 5 * 1024 * 1024
+MAX_IMPORT_ROWS = 5000
+MAX_QUALIFY_BATCH = 500
+CSV_COLUMNS = {
+    "name": {"name", "nombre", "contacto", "contact"},
+    "email": {"email", "correo", "mail"},
+    "phone": {"phone", "telefono", "celular", "whatsapp", "mobile"},
+    "company": {"company", "empresa", "organizacion", "negocio"},
+    "source": {"source", "fuente", "origen"},
+    "tags": {"tags", "etiquetas"},
+    "notes": {"notes", "notas", "comentarios"},
+    "sector": {"sector", "industria", "industry", "rubro"},
+    "city": {"city", "ciudad", "location", "ubicacion"},
+    "employees": {"employees", "empleados", "headcount", "tamano"},
+    "website": {"website", "web", "sitio", "url"},
+}
+EXTRA_FIELDS = ("sector", "city", "employees", "website")
+
+
+def _csv_header_map(fieldnames: list[str] | None) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    for header in fieldnames or []:
+        key = qualifier.normalize(header)
+        for field, aliases in CSV_COLUMNS.items():
+            if key in aliases and field not in mapping:
+                mapping[field] = header
+                break
+    return mapping
+
+
+def _csv_value(row: dict[str, str], mapping: dict[str, str], field: str) -> str:
+    header = mapping.get(field)
+    if not header:
+        return ""
+    return str(row.get(header) or "").strip()
+
+
+def _decode_csv(raw: bytes) -> str:
+    for encoding in ("utf-8-sig", "utf-8", "latin-1"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    raise HTTPException(status_code=400, detail="CSV must be UTF-8 or Latin-1 encoded.")
+
+
+@leads_router.get("/icp", response_model=ICPOut)
+def get_icp(
+    client_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client = _client(db, user, client_id)
+    icp = qualifier.load_icp(db, client_id=client.id, agency_id=client.agency_id)
+    if not icp:
+        raise HTTPException(status_code=404, detail="Ideal customer profile is not configured.")
+    return icp
+
+
+@leads_router.put("/icp", response_model=ICPOut)
+def put_icp(
+    client_id: uuid.UUID,
+    payload: ICPIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client = _client(db, user, client_id)
+    icp = qualifier.load_icp(db, client_id=client.id, agency_id=client.agency_id)
+    if icp is None:
+        icp = IdealCustomerProfile(agency_id=client.agency_id, client_id=client.id)
+        db.add(icp)
+    icp.sectors = payload.sectors
+    icp.cities = payload.cities
+    icp.keywords = payload.keywords
+    icp.disqualifiers = payload.disqualifiers
+    icp.size_min = payload.size_min
+    icp.size_max = payload.size_max
+    icp.hot_min = payload.hot_min
+    icp.warm_min = payload.warm_min
+    icp.auto_qualify = payload.auto_qualify
+    icp.updated_at = now_utc()
+    db.commit()
+    db.refresh(icp)
+    return icp
+
+
+@leads_router.post("/qualify", response_model=BulkQualifyOut)
+def qualify_all_leads(
+    client_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client = _client(db, user, client_id)
+    icp = qualifier.load_icp(db, client_id=client.id, agency_id=client.agency_id)
+    if not icp:
+        raise HTTPException(status_code=400, detail="Configure the ideal customer profile first.")
+    rows = db.scalars(
+        select(Lead)
+        .where(Lead.agency_id == client.agency_id, Lead.client_id == client.id)
+        .order_by(Lead.created_at.asc())
+        .limit(MAX_QUALIFY_BATCH)
+    ).all()
+    total = db.scalar(
+        select(func.count(Lead.id)).where(Lead.agency_id == client.agency_id, Lead.client_id == client.id)
+    ) or 0
+    for lead in rows:
+        qualifier.qualify_lead(db, lead, icp=icp, user_id=user.id)
+    db.commit()
+    return BulkQualifyOut(qualified=len(rows), skipped=max(0, total - len(rows)))
+
+
+@leads_router.post("/import", response_model=LeadImportOut)
+async def import_leads(
+    client_id: uuid.UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client = _client(db, user, client_id)
+    raw = await file.read()
+    if len(raw) > MAX_IMPORT_BYTES:
+        raise HTTPException(status_code=400, detail="CSV exceeds the 5 MB limit.")
+    reader = csv.DictReader(io.StringIO(_decode_csv(raw)))
+    rows = list(reader)
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV has no data rows.")
+    if len(rows) > MAX_IMPORT_ROWS:
+        raise HTTPException(status_code=400, detail=f"CSV exceeds {MAX_IMPORT_ROWS} rows.")
+    mapping = _csv_header_map(reader.fieldnames)
+    if "name" not in mapping and "email" not in mapping and "phone" not in mapping:
+        raise HTTPException(
+            status_code=400,
+            detail="CSV needs at least one of these columns: name, email, phone.",
+        )
+
+    icp = qualifier.load_icp(db, client_id=client.id, agency_id=client.agency_id)
+    created = 0
+    skipped = 0
+    errors: list[LeadImportRowError] = []
+    for index, row in enumerate(rows, start=2):
+        name = _csv_value(row, mapping, "name")
+        email = _csv_value(row, mapping, "email")
+        phone = _csv_value(row, mapping, "phone")
+        if not (name or email or phone):
+            errors.append(LeadImportRowError(row=index, error="Row has no name, email or phone."))
+            continue
+        company = _csv_value(row, mapping, "company")
+        source = _csv_value(row, mapping, "source").lower()
+        source = source if source in SOURCES else "form"
+        tags = [
+            tag.strip()
+            for tag in re.split(r"[;|]", _csv_value(row, mapping, "tags"))
+            if tag.strip()
+        ]
+        notes = _csv_value(row, mapping, "notes")
+        extra = {field: _csv_value(row, mapping, field) for field in EXTRA_FIELDS}
+        extra = {key: value for key, value in extra.items() if value}
+        try:
+            with db.begin_nested():
+                existing = capture.find_contact(
+                    db,
+                    agency_id=client.agency_id,
+                    client_id=client.id,
+                    channel_identifier=None,
+                    email=capture.normalize_email(email),
+                    phone=capture.normalize_phone(phone),
+                )
+                if existing and capture.find_open_lead(
+                    db,
+                    agency_id=client.agency_id,
+                    client_id=client.id,
+                    contact_id=existing.id,
+                ):
+                    skipped += 1
+                    continue
+                lead = capture.create_manual_lead(
+                    db,
+                    agency_id=client.agency_id,
+                    client_id=client.id,
+                    name=name or email or phone,
+                    email=email or None,
+                    phone=phone or None,
+                    company=company or None,
+                    source=source,
+                    tags=tags,
+                    notes=notes or None,
+                    user_id=user.id,
+                )
+                if extra:
+                    contact = db.get(Contact, lead.contact_id)
+                    if contact is not None:
+                        merged = dict(contact.extra or {})
+                        merged.update(extra)
+                        contact.extra = merged
+                        contact.updated_at = now_utc()
+                if icp is not None and icp.auto_qualify:
+                    qualifier.qualify_lead(db, lead, icp=icp, user_id=user.id)
+                created += 1
+        except Exception as exc:  # noqa: BLE001 — one bad row must not abort the import
+            errors.append(LeadImportRowError(row=index, error=str(exc)[:300]))
+    db.commit()
+    return LeadImportOut(created=created, skipped=skipped, errors=errors)
+
+
+@leads_router.post("/{lead_id}/qualify", response_model=QualificationOut)
+def qualify_one_lead(
+    client_id: uuid.UUID,
+    lead_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client = _client(db, user, client_id)
+    lead = _scoped_lead(db, client, lead_id)
+    try:
+        result = qualifier.qualify_lead(db, lead, user_id=user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    db.commit()
+    fresh = _scoped_lead(db, client, lead_id, with_activities=True)
+    return QualificationOut(
+        score=result.score,
+        band=result.band,
+        reasons=result.reasons,
+        lead=_lead_out(fresh, include_activities=True),
+    )
 
 
 @leads_router.get("/{lead_id}", response_model=LeadOut)
@@ -519,6 +758,10 @@ def public_ingest(token: str, payload: PublicLeadIn, db: Session = Depends(get_d
             trigger=source if source in ("form", "webhook") else "new_contact",
             mark_ingest=True,
         )
+        if event.lead_id:
+            captured_lead = db.get(Lead, event.lead_id)
+            if captured_lead is not None:
+                qualifier.maybe_auto_qualify(db, captured_lead)
         db.commit()
     except Exception as exc:
         db.rollback()
