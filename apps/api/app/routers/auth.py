@@ -24,6 +24,7 @@ from ..schemas import (
     UserOut,
 )
 from ..security import create_access_token, hash_password, verify_password
+from ..services import mailer
 from ..services.auth_identity import (
     consume_password_token,
     generic_forgot_message,
@@ -143,6 +144,15 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
         # Standard path: no password to reset — offer set-password after email proof.
         raw = issue_password_token(db, email=email, audience="agency", purpose="set", user=user)
         db.commit()
+        mailer.send_email(
+            to=user.email,
+            subject="Configura tu contraseña de Fast Livery",
+            text=(
+                "Abre este enlace para crear tu contraseña:\n\n"
+                f"{mailer.password_reset_link(raw, 'set')}\n\n"
+                "El enlace caduca en 2 horas."
+            ),
+        )
         return ForgotPasswordResponse(
             message=message,
             account_kind="google_only",
@@ -154,6 +164,15 @@ def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db
 
     raw = issue_password_token(db, email=email, audience="agency", purpose="reset", user=user)
     db.commit()
+    mailer.send_email(
+        to=user.email,
+        subject="Restablece tu contraseña de Fast Livery",
+        text=(
+            "Abre este enlace para restablecer tu contraseña:\n\n"
+            f"{mailer.password_reset_link(raw, 'reset')}\n\n"
+            "El enlace caduca en 2 horas. Si no lo solicitaste, ignora este mensaje."
+        ),
+    )
     return ForgotPasswordResponse(
         message=message,
         account_kind="reset_sent",

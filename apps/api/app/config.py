@@ -72,6 +72,15 @@ class Settings(BaseSettings):
     google_oauth_client_id: str = ""
     # When true, forgot-password responses include the raw token (local/tests only).
     auth_expose_reset_token: bool = False
+    # Outbound email. With smtp_host empty nothing is sent: the flow still
+    # issues the token, it just cannot be delivered.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+    smtp_use_ssl: bool = False
     # Carousel slide images. openai = gpt-image-* (paid). huggingface = FLUX via
     # Hugging Face Inference Providers (HF_TOKEN). flux = local HTTP sidecar
     # (scripts/flux_schnell_server.py). ollama = experimental image models only
