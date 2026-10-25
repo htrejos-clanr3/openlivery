@@ -107,7 +107,7 @@
       </table>
       <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn">Revalidar todo</button><button class="btn pri">Enviar mensaje de prueba</button></div>
     </div>
-    <div class="banner warn"><b>El wizard no se cierra con pendientes de Meta.</b> Los dos ámbar dependen de su revisión; el rojo sí es corregible por ti.</div>
+    <div class="banner warn"><b>Puedes cerrar la configuración con los dos ámbar.</b> Quedan como <b>pendientes de revisión de Meta</b> y se revalidan solos; lo que no se puede cerrar es un rojo como el de permisos.</div><div class="row" style="justify-content:flex-end"><button class="btn">Cerrar configuración con 2 pendientes de Meta</button></div>
   </div>
 </section>
 
@@ -120,7 +120,7 @@
   <div class="main">
     <div class="top"><div><h1>Paso 6 · Permisos</h1><p class="sub">La validación falló. El paso no avanza hasta corregirlo.</p></div><span class="pill bad">Error de Meta</span></div>
     <div class="card">
-      <div class="banner err"><b>Meta respondió:</b> <span class="mono">(#200) Requires whatsapp_business_management permission</span></div>
+      <div class="banner err"><b>Falta un permiso de Meta.</b> El usuario del sistema no tiene <span class="mono">whatsapp_business_management</span>; añádelo y genera un token nuevo.</div><details style="margin-top:8px"><summary class="tiny" style="cursor:pointer;color:var(--muted)">Ver detalle técnico</summary><p class="mono tiny" style="margin:6px 0 0">(#200) Requires whatsapp_business_management permission</p></details>
       <h2 style="margin:16px 0 6px">Cómo solucionarlo</h2>
       <ol class="fix">
         <li>Entra a <b>business.facebook.com → Configuración del negocio → Usuarios → Usuarios del sistema</b>.</li>
