@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Fast Livery — mockups wizard de Meta</title>
+<style>
+  :root{--bg:#f5f7f9;--card:#fff;--line:#e4e8ee;--ink:#0f172a;--muted:#64748b;--brand:#075985;--ok:#15803d;--warn:#b45309;--bad:#b91c1c}
+  *{box-sizing:border-box}
+  body{margin:0;background:#dfe3e8;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+  .screen{width:1440px;min-height:900px;display:grid;grid-template-columns:232px 1fr;background:var(--bg);margin:0 auto 26px}
+  .side{background:#fff;border-right:1px solid var(--line);padding:22px 16px}
+  .brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:17px;margin-bottom:20px}
+  .logo{width:30px;height:30px;border-radius:9px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:13px}
+  .nav{display:grid;gap:2px}.nav a{display:flex;gap:10px;padding:9px 10px;border-radius:8px;color:#334155;text-decoration:none;font-size:14px}
+  .nav a.on{background:#e6f0f6;color:var(--brand);font-weight:600}
+  .main{padding:24px 34px 34px;display:flex;flex-direction:column;gap:18px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  h1{font-size:23px;margin:0 0 4px}h2{font-size:16px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:#0f172a;cursor:default}
+  .btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600}
+  .pill.ok{background:#dcfce7;color:var(--ok)}.pill.warn{background:#fef3c7;color:var(--warn)}.pill.bad{background:#fee2e2;color:var(--bad)}.pill.mute{background:#eef2f6;color:#475569}
+  .grid{display:grid;gap:16px}.g2{grid-template-columns:300px 1fr}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid #f1f4f7;vertical-align:middle}tr:last-child td{border-bottom:0}
+  .muted{color:var(--muted)}.tiny{font-size:11.5px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .row{display:flex;gap:10px;align-items:center}
+  .step{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:9px;font-size:13.5px}
+  .step.on{background:#e6f0f6;color:var(--brand);font-weight:600}
+  .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:#e2e8f0;color:#475569;flex:none}
+  .n.done{background:var(--ok);color:#fff}.n.cur{background:var(--brand);color:#fff}
+  .copy{display:flex;gap:8px;align-items:center;background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:9px 11px}
+  .copy .mono{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .field input{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit}
+  .field{display:grid;gap:6px;font-size:12.5px;font-weight:600;color:#334155}
+  .banner{border-radius:10px;padding:12px 14px;font-size:13px}
+  .banner.err{background:#fef2f2;border:1px solid #fecaca;color:#7f1d1d}
+  .banner.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#14532d}
+  .banner.warn{background:#fffbeb;border:1px solid #fde68a;color:#78350f}
+  ol.fix{margin:8px 0 0;padding-left:18px;font-size:13px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<!-- A. WIZARD, PASO WEBHOOK -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Configurar Meta</h1><p class="sub">Cliente Demo SAS · paso a paso, con validación al final de cada paso.</p></div><span class="pill mute">Paso 4 de 10</span></div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="step"><span class="n done">✓</span> App de Meta</div>
+        <div class="step"><span class="n done">✓</span> App ID y secret</div>
+        <div class="step"><span class="n done">✓</span> WABA y número</div>
+        <div class="step on"><span class="n cur">4</span> Webhook</div>
+        <div class="step"><span class="n">5</span> Suscripción de la app</div>
+        <div class="step"><span class="n">6</span> Permisos</div>
+        <div class="step"><span class="n">7</span> Instagram</div>
+        <div class="step"><span class="n">8</span> Dominio</div>
+        <div class="step"><span class="n">9</span> Verificación de negocio</div>
+        <div class="step"><span class="n">10</span> Prueba final</div>
+      </div>
+      <div class="card">
+        <h2>Paso 4 · Registrar el webhook en el número</h2>
+        <p class="sub" style="margin:4px 0 14px">Abre el enlace, pega los dos valores y vuelve aquí a validar.</p>
+        <div class="copy"><span class="tiny" style="flex:1">developers.facebook.com/apps → WhatsApp → Configuration</span><button class="btn" style="padding:5px 9px">Abrir</button></div>
+        <div style="margin-top:14px" class="field">Callback URL<div class="copy"><span class="mono">https://fast-livery.r3soluciones.com/api/public/whatsapp-cloud/channels/8f2…/webhook</span><button class="btn" style="padding:5px 9px">Copiar</button></div></div>
+        <div style="margin-top:12px" class="field">Verify token<div class="copy"><span class="mono">vt_9c41b7e2…</span><button class="btn" style="padding:5px 9px">Copiar</button></div></div>
+        <div style="margin-top:12px" class="field">Campo de webhook<div class="copy"><span class="mono">messages</span><button class="btn" style="padding:5px 9px">Copiar</button></div></div>
+        <div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn">Ya lo pegué, validar</button><button class="btn pri">Validar y continuar</button></div>
+        <div class="banner ok" style="margin-top:14px"><b>Webhook verificado.</b> Meta confirma la URL en el número +57 300 123 4567.</div>
+        <p class="tiny muted" style="margin:8px 0 0">Si falla, el paso no avanza y aquí aparece la instrucción exacta para corregirlo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- B. CHECKLIST FINAL -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Checklist de Meta</h1><p class="sub">Cliente Demo SAS · última validación hace 2 minutos.</p></div><div class="row"><span class="pill ok">7 en verde</span><span class="pill warn">2 pendientes</span><span class="pill bad">1 con error</span></div></div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Requisito</th><th>Estado</th><th>Detalle</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>Token del system user</td><td><span class="pill ok">Válido</span></td><td class="tiny muted">App 5123… · expira en 60 días</td><td class="tiny muted">Revalidar</td></tr>
+          <tr><td>WABA y número</td><td><span class="pill ok">Válido</span></td><td class="tiny muted">+57 300 123 4567 · calidad alta</td><td class="tiny muted">Revalidar</td></tr>
+          <tr><td>Webhook registrado</td><td><span class="pill ok">Válido</span></td><td class="tiny muted">URL coincide con la del canal</td><td class="tiny muted">Revalidar</td></tr>
+          <tr><td>App suscrita a la WABA</td><td><span class="pill ok">Válido</span></td><td class="tiny muted">messages</td><td class="tiny muted">Revalidar</td></tr>
+          <tr><td>Permisos</td><td><span class="pill bad">Falta uno</span></td><td class="tiny muted">Falta whatsapp_business_management</td><td><b class="tiny" style="color:var(--brand)">Cómo arreglarlo</b></td></tr>
+          <tr><td>Instagram profesional</td><td><span class="pill ok">Válido</span></td><td class="tiny muted">@demo.store ligado a la Página</td><td class="tiny muted">Revalidar</td></tr>
+          <tr><td>Dominio verificado</td><td><span class="pill ok">Válido</span></td><td class="tiny muted">tienda.demo.com</td><td class="tiny muted">Revalidar</td></tr>
+          <tr><td>Verificación de negocio</td><td><span class="pill warn">Pendiente</span></td><td class="tiny muted">En revisión por Meta · no automatizable</td><td class="tiny muted">Abrir</td></tr>
+          <tr><td>Método de pago</td><td><span class="pill warn">Pendiente</span></td><td class="tiny muted">Necesario para plantillas de pago</td><td class="tiny muted">Abrir</td></tr>
+          <tr><td>Mensaje de prueba</td><td><span class="pill ok">Enviado</span></td><td class="tiny muted">hace 2 min · entregado</td><td class="tiny muted">Reenviar</td></tr>
+        </tbody>
+      </table>
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn">Revalidar todo</button><button class="btn pri">Enviar mensaje de prueba</button></div>
+    </div>
+    <div class="banner warn"><b>El wizard no se cierra con pendientes de Meta.</b> Los dos ámbar dependen de su revisión; el rojo sí es corregible por ti.</div>
+  </div>
+</section>
+
+<!-- C. ERROR CON INSTRUCCION -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Paso 6 · Permisos</h1><p class="sub">La validación falló. El paso no avanza hasta corregirlo.</p></div><span class="pill bad">Error de Meta</span></div>
+    <div class="card">
+      <div class="banner err"><b>Meta respondió:</b> <span class="mono">(#200) Requires whatsapp_business_management permission</span></div>
+      <h2 style="margin:16px 0 6px">Cómo solucionarlo</h2>
+      <ol class="fix">
+        <li>Entra a <b>business.facebook.com → Configuración del negocio → Usuarios → Usuarios del sistema</b>.</li>
+        <li>Selecciona el usuario que generó el token y añade <span class="mono">whatsapp_business_management</span> y <span class="mono">business_management</span>.</li>
+        <li>Genera un token nuevo y pégalo abajo: el anterior no hereda permisos.</li>
+      </ol>
+      <div class="field" style="margin-top:14px">Token nuevo<div class="copy"><span class="mono">EAAG…</span><button class="btn" style="padding:5px 9px">Pegar</button></div></div>
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn">Volver al checklist</button><button class="btn pri">Reintentar validación</button></div>
+    </div>
+    <div class="card"><h2>Qué se comprobó</h2><table><tbody>
+      <tr><td>Token válido</td><td><span class="pill ok">Sí</span></td></tr>
+      <tr><td>Scopes solicitados</td><td><span class="pill ok">3</span></td></tr>
+      <tr><td>Scopes concedidos</td><td><span class="pill bad">2 de 3</span></td></tr>
+    </tbody></table></div>
+  </div>
+</section>
+
+</body>
+</html>
