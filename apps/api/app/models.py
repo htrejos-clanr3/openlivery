@@ -1,7 +1,8 @@
 import uuid
 from datetime import datetime, timezone
+from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import Numeric, Boolean, DateTime, Float, ForeignKey, Integer, JSON, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -984,6 +985,34 @@ class IdealCustomerProfile(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
 
     client: Mapped[Client] = relationship()
+
+
+class Product(Base):
+    """Canonical product of one client. Destinations consume it, never own it."""
+
+    __tablename__ = "products"
+    __table_args__ = (UniqueConstraint("client_id", "sku", name="uq_products_client_sku"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    sku: Mapped[str] = mapped_column(String(120))
+    title: Mapped[str] = mapped_column(String(200), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    price: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    currency: Mapped[str] = mapped_column(String(3), default="")
+    availability: Mapped[str] = mapped_column(String(20), default="in_stock")
+    image_url: Mapped[str] = mapped_column(String(600), default="")
+    url: Mapped[str] = mapped_column(String(600), default="")
+    gtin: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    brand: Mapped[str] = mapped_column(String(120), default="")
+    category: Mapped[str] = mapped_column(String(160), default="")
+    source: Mapped[str] = mapped_column(String(20), default="file")
+    status: Mapped[str] = mapped_column(String(20), default="valid")
+    messages: Mapped[list] = mapped_column(JSON, default=list)
+    raw: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
 
 
 class LeadCaptureEvent(Base):
