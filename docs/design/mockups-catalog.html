@@ -285,5 +285,141 @@
   </div>
 </section>
 
+<!-- 7. GOOGLE UCP -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div><h1>Google UCP</h1><p class="sub">Cliente Demo SAS · vende dentro de experiencias de IA</p></div>
+      <div class="row"><span class="pill warn">Pendiente</span><button class="btn">Verificar conexión</button></div>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h2>Requisitos</h2>
+        <div style="margin:12px 0 4px">
+          <div class="check"><span class="dot">✓</span> Merchant Center vinculado (ID 5123…)</div>
+          <div class="check"><span class="dot">✓</span> Dominio verificado: tienda.demo.com</div>
+          <div class="check"><span class="dot">✓</span> Catálogo con 112 productos listos</div>
+          <div class="check"><span class="dot off">!</span> <span class="muted">Política de envíos y devoluciones</span></div>
+          <div class="check"><span class="dot off">!</span> <span class="muted">URL de checkout sin confirmar</span></div>
+        </div>
+        <p class="tiny muted" style="margin:12px 0 0">3 de 5 completos. Se puede probar el catálogo, no publicar.</p>
+      </div>
+      <div class="card">
+        <h2>Datos del comercio</h2>
+        <div class="grid g2" style="margin-top:12px">
+          <label class="field">ID de Merchant Center<input value="5123 8890 12" /></label>
+          <label class="field">País<select><option>Colombia (CO)</option></select></label>
+          <label class="field">Moneda<select><option>COP — Peso colombiano</option></select></label>
+          <label class="field">Zona horaria<select><option>America/Bogota</option></select></label>
+          <label class="field" style="grid-column:span 2">URL de checkout<input value="https://tienda.demo.com/checkout" /></label>
+          <label class="field">Política de envíos<select><option>Sin declarar</option><option>Tarifa plana</option></select></label>
+          <label class="field">Devoluciones<select><option>30 días</option></select></label>
+        </div>
+        <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn">Guardar borrador</button><button class="btn pri">Conectar</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2>Consulta de prueba</h2><span class="tiny muted">Última: nunca</span></div>
+      <div class="row" style="margin-top:10px"><input style="flex:1;border:1px solid var(--line);border-radius:9px;padding:10px 12px;font:inherit" placeholder="Ej: sillas de madera para comedor" /><button class="btn pri">Probar</button></div>
+      <p class="tiny muted" style="margin:10px 0 0">Devuelve qué producto entregaría el protocolo y por qué, sin publicar nada.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 8. INSTAGRAM SHOPPING -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div><h1>Instagram Shopping</h1><p class="sub">Cliente Demo SAS · catálogo de Meta y etiquetado en carruseles</p></div>
+      <div class="row"><span class="pill ok">Conectado</span><button class="btn">Sincronizar catálogo</button></div>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h2>Requisitos</h2>
+        <div style="margin:12px 0 4px">
+          <div class="check"><span class="dot">✓</span> Cuenta profesional de Instagram</div>
+          <div class="check"><span class="dot">✓</span> Página de Facebook vinculada</div>
+          <div class="check"><span class="dot">✓</span> Cuenta de Commerce aprobada</div>
+          <div class="check"><span class="dot">✓</span> Catálogo conectado (118 productos)</div>
+          <div class="check"><span class="dot">✓</span> Dominio verificado en Meta</div>
+          <div class="check"><span class="dot off">!</span> <span class="muted">2 productos rechazados por imagen</span></div>
+        </div>
+        <div class="tiles" style="grid-template-columns:1fr 1fr;margin-top:14px">
+          <div class="tile">Elegibles<b style="font-size:20px;color:var(--ok)">118</b></div>
+          <div class="tile">Rechazados<b style="font-size:20px;color:var(--warn)">2</b></div>
+        </div>
+      </div>
+      <div class="card">
+        <h2>Configuración del canal</h2>
+        <div class="grid g2" style="margin-top:12px">
+          <label class="field">Catálogo<select><option>Catálogo Demo · 118</option></select></label>
+          <label class="field">Moneda<select><option>COP</option></select></label>
+          <label class="field">Checkout<select><option>En el sitio web</option><option>En Instagram</option></select></label>
+          <label class="field">Etiquetado<select><option>Permitir etiquetas en carruseles</option></select></label>
+        </div>
+        <div class="url" style="margin-top:14px"><span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">https://app/feeds/tk_8f2…/meta.csv</span><button class="btn" style="padding:5px 9px">Copiar</button></div>
+        <p class="tiny muted" style="margin:8px 0 0">Se regenera al importar productos y cada noche.</p>
+        <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn pri">Guardar</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 9. CHATGPT ADS -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div><h1>ChatGPT Ads</h1><p class="sub">Cliente Demo SAS · anuncios dentro de ChatGPT</p></div>
+      <div class="row"><span class="pill mute">No configurado</span><button class="btn pri">Configurar</button></div>
+    </div>
+    <div class="card" style="border-color:#fde68a;background:#fffbeb">
+      <p class="tiny" style="margin:0"><b>Programa en acceso anticipado.</b> La disponibilidad por país la confirma la consola de OpenAI; no se puede prometer cobertura hasta verificarla.</p>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <h2>Cuenta</h2>
+        <div class="grid g2" style="margin-top:12px">
+          <label class="field">Cuenta de OpenAI Ads<select><option>Sin vincular</option><option>Vincular cuenta…</option></select></label>
+          <label class="field">País<select><option>Colombia</option></select></label>
+          <label class="field">Moneda<select><option>COP</option></select></label>
+          <label class="field">Zona horaria<select><option>America/Bogota</option></select></label>
+        </div>
+        <h2 style="margin:18px 0 6px">Presupuesto</h2>
+        <div class="grid g2">
+          <label class="field">Gasto diario<input value="120.000" /></label>
+          <label class="field">Límite mensual<input value="2.400.000" /></label>
+        </div>
+        <div class="check" style="margin-top:12px"><span class="dot off">!</span> <span class="muted">Pausar si el costo por conversión supera 25.000</span></div>
+      </div>
+      <div class="card">
+        <h2>Conversiones</h2>
+        <table style="margin-top:10px">
+          <thead><tr><th>Evento</th><th>Fuente</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td>Impresión</td><td>OpenAI Ads</td><td><span class="pill mute">Automático</span></td></tr>
+            <tr><td>Clic</td><td>OpenAI Ads</td><td><span class="pill mute">Automático</span></td></tr>
+            <tr><td>Conversión</td><td><select style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit"><option>Sin mapear</option><option>Lead creado</option><option>Compra</option></select></td><td><span class="pill warn">Pendiente</span></td></tr>
+          </tbody>
+        </table>
+        <h2 style="margin:18px 0 6px">Creatividades</h2>
+        <div class="row" style="justify-content:space-between"><span class="tiny muted">3 borradores desde carruseles</span><button class="btn">Generar desde carrusel</button></div>
+        <p class="tiny muted" style="margin:10px 0 0">Se envían a revisión por separado; cada una muestra su estado.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 </body>
 </html>
