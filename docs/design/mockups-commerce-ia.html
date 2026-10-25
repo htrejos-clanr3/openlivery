@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Fast Livery — mockups nueva arquitectura de comercio</title>
+<style>
+  :root{--bg:#f5f7f9;--card:#fff;--line:#e4e8ee;--ink:#0f172a;--muted:#64748b;--brand:#075985;--ok:#15803d;--warn:#b45309;--bad:#b91c1c}
+  *{box-sizing:border-box}
+  body{margin:0;background:#dfe3e8;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+  .screen{width:1440px;min-height:900px;display:grid;grid-template-columns:232px 1fr;background:var(--bg);margin:0 auto 26px}
+  .side{background:#fff;border-right:1px solid var(--line);padding:22px 16px}
+  .brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:17px;margin-bottom:20px}
+  .logo{width:30px;height:30px;border-radius:9px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:13px}
+  .nav{display:grid;gap:2px}.nav a{display:flex;gap:10px;padding:9px 10px;border-radius:8px;color:#334155;text-decoration:none;font-size:14px}
+  .nav a.on{background:#e6f0f6;color:var(--brand);font-weight:600}
+  .main{padding:24px 34px 34px;display:flex;flex-direction:column;gap:18px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  h1{font-size:23px;margin:0 0 4px}h2{font-size:16px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0}
+  .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+  .tab{padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;text-decoration:none}
+  .tab.on{color:var(--brand);border-bottom-color:var(--brand)}
+  .grid{display:grid;gap:16px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:#0f172a;cursor:default}
+  .btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600}
+  .pill.ok{background:#dcfce7;color:var(--ok)}.pill.warn{background:#fef3c7;color:var(--warn)}.pill.mute{background:#eef2f6;color:#475569}.pill.info{background:#e0f2fe;color:#0369a1}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid #f1f4f7;vertical-align:middle}tr:last-child td{border-bottom:0}
+  .prod{display:flex;gap:10px;align-items:center}
+  .thumb{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#cbd5e1,#e2e8f0);flex:none}
+  .muted{color:var(--muted)}.tiny{font-size:11.5px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}.tile b{display:block;font-size:24px;margin-top:2px}
+  .row{display:flex;gap:10px;align-items:center}
+  .check{display:flex;gap:8px;align-items:center;font-size:13px;margin:5px 0}
+  .dot{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;background:var(--ok);flex:none}
+  .dot.off{background:#cbd5e1}
+</style>
+</head>
+<body>
+
+<!-- A. CLIENTE / RESUMEN -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Cliente Demo SAS</h1><p class="sub">Espacio aislado con sus agentes, canales, catálogo y comercio.</p></div><button class="btn">Editar cliente</button></div>
+    <div class="tabs"><a class="tab on">Resumen</a><a class="tab">Agentes</a><a class="tab">Canales</a><a class="tab">Catálogo</a><a class="tab">Comercio</a><a class="tab">Leads</a><a class="tab">Portal</a></div>
+    <div class="card" style="border-color:#bfdbfe;background:#eff6ff">
+      <div class="row" style="justify-content:space-between"><div><h2>Siguiente paso: importa el catálogo</h2><p class="sub" style="margin:4px 0 0">Sin productos no hay feeds ni carruseles de venta. Toma 2 minutos con un CSV.</p></div><button class="btn pri">Importar productos</button></div>
+    </div>
+    <div class="grid g4">
+      <div class="tile">Agentes<b>2</b></div><div class="tile">Canales activos<b>1</b></div><div class="tile">Productos<b>0</b></div><div class="tile">Destinos de comercio<b>0 de 3</b></div>
+    </div>
+    <div class="grid g2">
+      <div class="card"><h2>Atención</h2><p class="sub" style="margin-top:4px">WhatsApp Cloud · Conectado</p><p class="tiny muted" style="margin-top:8px">38 conversaciones · última hace 6 min</p><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn">Abrir canales</button></div></div>
+      <div class="card"><h2>Comercio</h2><p class="sub" style="margin-top:4px">Google, Instagram Shopping y ChatGPT Ads</p><p class="tiny muted" style="margin-top:8px">Ningún destino conectado todavía</p><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn">Abrir comercio</button></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- B. CLIENTE / CANALES -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Cliente Demo SAS</h1><p class="sub">Dos cosas distintas: por dónde se conversa y dónde se publica.</p></div></div>
+    <div class="tabs"><a class="tab">Resumen</a><a class="tab">Agentes</a><a class="tab on">Canales</a><a class="tab">Catálogo</a><a class="tab">Comercio</a><a class="tab">Leads</a><a class="tab">Portal</a></div>
+    <div class="card">
+      <h2>Canales de atención</h2><p class="sub" style="margin:4px 0 14px">Por aquí entran conversaciones y las responde un agente.</p>
+      <div class="grid g3">
+        <div class="card" style="box-shadow:none"><div class="row" style="justify-content:space-between"><b>WhatsApp Cloud</b><span class="pill ok">Conectado</span></div><p class="tiny muted" style="margin:8px 0 10px">+57 300 123 4567 · webhook activo</p><button class="btn" style="width:100%">Administrar</button></div>
+        <div class="card" style="box-shadow:none"><div class="row" style="justify-content:space-between"><b>WhatsApp QR</b><span class="pill mute">Sin conectar</span></div><p class="tiny muted" style="margin:8px 0 10px">Requiere escanear el código</p><button class="btn" style="width:100%">Conectar</button></div>
+        <div class="card" style="box-shadow:none"><div class="row" style="justify-content:space-between"><b>Widget web</b><span class="pill info">Activo</span></div><p class="tiny muted" style="margin:8px 0 10px">Código embebido en la web del cliente</p><button class="btn" style="width:100%">Ver código</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Canales de publicación</h2><p class="sub" style="margin:4px 0 14px">Por aquí sale contenido. Vender es otra pestaña: Comercio.</p>
+      <div class="grid g3">
+        <div class="card" style="box-shadow:none"><div class="row" style="justify-content:space-between"><b>Instagram</b><span class="pill ok">Conectado</span></div><p class="tiny muted" style="margin:8px 0 10px">Publicación y campañas</p><button class="btn" style="width:100%">Administrar</button></div>
+        <div class="card" style="box-shadow:none"><div class="row" style="justify-content:space-between"><b>LinkedIn</b><span class="pill warn">Pendiente</span></div><p class="tiny muted" style="margin:8px 0 10px">OAuth de perfil personal</p><button class="btn" style="width:100%">Conectar</button></div>
+        <div class="card" style="box-shadow:none;border-style:dashed;background:#fbfcfd"><div class="row" style="justify-content:space-between"><b class="muted">Más adelante</b></div><p class="tiny muted" style="margin:8px 0 0">TikTok y email no están en el producto todavía.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- C. CLIENTE / CATALOGO -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Cliente Demo SAS</h1><p class="sub">El catálogo es del cliente. Los destinos de comercio lo consumen, no lo poseen.</p></div><div class="row"><button class="btn">Importar desde API</button><button class="btn pri">Importar archivo</button></div></div>
+    <div class="tabs"><a class="tab">Resumen</a><a class="tab">Agentes</a><a class="tab">Canales</a><a class="tab on">Catálogo</a><a class="tab">Comercio</a><a class="tab">Leads</a><a class="tab">Portal</a></div>
+    <div class="grid g4">
+      <div class="tile">Productos<b>120</b></div><div class="tile">Listos para feed<b style="color:var(--ok)">112</b></div><div class="tile">Con avisos<b style="color:var(--warn)">5</b></div><div class="tile">Con errores<b style="color:var(--bad)">3</b></div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Origen</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Silla Loma</b><div class="tiny muted">LOMA-01</div></div></div></td><td>$ 890.000</td><td>En stock</td><td><span class="pill mute">Archivo</span></td><td><span class="pill ok">Válido</span></td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Mesa Raíz</b><div class="tiny muted">MESA-07</div></div></div></td><td>$ 1.240.000</td><td>En stock</td><td><span class="pill mute">Archivo</span></td><td><span class="pill ok">Válido</span></td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Lámpara Horizonte</b><div class="tiny muted">LAMP-12</div></div></div></td><td>$ 320.000</td><td>Agotado</td><td><span class="pill info">API</span></td><td><span class="pill warn">Sin GTIN</span></td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Mesa auxiliar Nexo</b><div class="tiny muted">NEXO-03</div></div></div></td><td>$ 410.000</td><td>En stock</td><td><span class="pill info">API</span></td><td><span class="pill warn">Imagen 404</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- D. CLIENTE / COMERCIO -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Cliente Demo SAS</h1><p class="sub">Destinos comerciales. Todos consumen el catálogo de este cliente.</p></div><span class="pill mute">0 de 3 conectados</span></div>
+    <div class="tabs"><a class="tab">Resumen</a><a class="tab">Agentes</a><a class="tab">Canales</a><a class="tab">Catálogo</a><a class="tab on">Comercio</a><a class="tab">Leads</a><a class="tab">Portal</a></div>
+    <div class="grid g3">
+      <div class="card"><div class="row" style="justify-content:space-between"><h2>Google UCP</h2><span class="pill mute">Sin conectar</span></div><p class="sub" style="margin:6px 0 12px">Vender dentro de experiencias de IA</p>
+        <div class="check"><span class="dot off">✓</span> Merchant Center</div><div class="check"><span class="dot off">✓</span> Dominio verificado</div><div class="check"><span class="dot off">✓</span> Envíos y devoluciones</div>
+        <button class="btn pri" style="width:100%;margin-top:12px">Conectar con Google</button></div>
+      <div class="card"><div class="row" style="justify-content:space-between"><h2>Instagram Shopping</h2><span class="pill mute">Sin conectar</span></div><p class="sub" style="margin:6px 0 12px">Catálogo de Meta y etiquetado en carruseles</p>
+        <div class="check"><span class="dot off">✓</span> Business Manager</div><div class="check"><span class="dot off">✓</span> Instagram profesional</div><div class="check"><span class="dot off">✓</span> Dominio verificado en Meta</div>
+        <button class="btn pri" style="width:100%;margin-top:12px">Conectar con Meta</button></div>
+      <div class="card"><div class="row" style="justify-content:space-between"><h2>ChatGPT Ads</h2><span class="pill warn">Por país</span></div><p class="sub" style="margin:6px 0 12px">Anuncios dentro de ChatGPT</p>
+        <div class="check"><span class="dot off">✓</span> Organización OpenAI</div><div class="check"><span class="dot off">✓</span> Cuenta de anuncios</div><div class="check"><span class="dot off">✓</span> País habilitado</div>
+        <button class="btn" style="width:100%;margin-top:12px">Ver disponibilidad</button></div>
+    </div>
+    <div class="card" style="border-color:#fde68a;background:#fffbeb"><p class="tiny" style="margin:0"><b>Nada se publica al conectar.</b> Primero validamos en solo lectura; publicar se activa cuando el checklist está en verde.</p></div>
+    <div class="card"><h2>Feeds del catálogo</h2><p class="sub" style="margin:4px 0 0">Se generan una vez y los consumen los tres destinos. Google 112 · Meta 118 · ChatGPT Ads 0.</p></div>
+  </div>
+</section>
+
+<!-- E. CANAL INSTAGRAM CON SECCION VENTA -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Canal de Instagram</h1><p class="sub">Cliente Demo SAS · publicar y, aparte, vender.</p></div><span class="pill ok">Conectado</span></div>
+    <div class="grid g2">
+      <div class="card"><h2>Publicación</h2><p class="sub" style="margin:4px 0 12px">Cuenta profesional @demo.store · Página vinculada</p>
+        <div class="check"><span class="dot">✓</span> Token con permiso de publicación</div><div class="check"><span class="dot">✓</span> Campañas y carruseles habilitados</div>
+        <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn">Ver publicaciones</button><button class="btn pri">Publicar carrusel</button></div>
+      </div>
+      <div class="card" style="border-color:#bfdbfe;background:#eff6ff">
+        <h2>Venta</h2><p class="sub" style="margin:4px 0 10px">El catálogo de este Instagram se configura en Comercio, no aquí.</p>
+        <div class="check"><span class="dot off">!</span> <span class="muted">Instagram Shopping sin conectar</span></div>
+        <p class="tiny muted" style="margin:8px 0 0">Productos elegibles 0 · catálogo del cliente 120</p>
+        <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn">Ir a Comercio → Instagram Shopping</button></div>
+      </div>
+    </div>
+    <div class="card"><h2>Por qué está separado</h2><p class="sub" style="margin:4px 0 0">Publicar es un canal de contenido. Vender es un destino comercial que consume el catálogo. Mezclarlos obliga a configurar dos veces lo mismo.</p></div>
+  </div>
+</section>
+
+</body>
+</html>
