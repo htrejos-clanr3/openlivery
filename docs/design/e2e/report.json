@@ -1,0 +1,92 @@
+{
+  "personas": {
+    "anonymous": {
+      "/": {
+        "url": "/login",
+        "login": true
+      },
+      "/clients": {
+        "url": "/login",
+        "login": true
+      },
+      "/inbox": {
+        "url": "/login",
+        "login": true
+      },
+      "/manual": {
+        "url": "/login",
+        "login": true
+      },
+      "/settings": {
+        "url": "/login",
+        "login": true
+      }
+    },
+    "admin": {
+      "register": 201,
+      "screens": {
+        "/clients/7aa444b3-e15b-4b50-b529-7ca633721010": {
+          "ok": true,
+          "errors": []
+        },
+        "/": {
+          "ok": true,
+          "errors": []
+        },
+        "/clients": {
+          "ok": true,
+          "errors": []
+        },
+        "/clients/new": {
+          "ok": true,
+          "errors": []
+        },
+        "/agents": {
+          "ok": true,
+          "errors": []
+        },
+        "/agents/new": {
+          "ok": true,
+          "errors": []
+        },
+        "/settings": {
+          "ok": true,
+          "errors": []
+        },
+        "/settings/meta": {
+          "ok": true,
+          "errors": []
+        },
+        "/playground": {
+          "ok": true,
+          "errors": []
+        },
+        "/inbox": {
+          "ok": true,
+          "errors": []
+        },
+        "/carousels": {
+          "ok": true,
+          "errors": []
+        },
+        "/automations": {
+          "ok": true,
+          "errors": []
+        },
+        "/channels": {
+          "ok": true,
+          "errors": []
+        },
+        "/manual": {
+          "ok": true,
+          "errors": []
+        }
+      }
+    },
+    "public_endpoints": {
+      "widget_config_404": 404,
+      "portal_domain_404": 422
+    }
+  },
+  "issues": []
+}
