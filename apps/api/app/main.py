@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .routers import (
+    meta_setup,
     agency,
     agent_tools,
     agents,
@@ -79,6 +80,7 @@ app.include_router(automations.router, prefix="/api")
 app.include_router(agent_tools.router, prefix="/api")
 app.include_router(providers.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
+app.include_router(meta_setup.router, prefix="/api")
 app.include_router(conversations.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(portal.router, prefix="/api")

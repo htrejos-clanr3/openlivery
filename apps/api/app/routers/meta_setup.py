@@ -1,0 +1,133 @@
+"""Guided Meta setup status for one client.
+
+The wizard shows ten steps. Everything that can be derived from stored state is
+computed here; the two Graph probes are best-effort and degrade to "unknown"
+instead of failing the page.
+"""
+
+from __future__ import annotations
+
+import uuid
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from ..config import get_settings
+from ..database import get_db
+from ..deps import get_current_user
+from ..models import Client, User, WhatsAppCloudChannel
+
+router = APIRouter(prefix="/clients/{client_id}/meta-setup", tags=["Meta setup"])
+REQUIRED_SCOPES = {"whatsapp_business_messaging", "whatsapp_business_management"}
+
+
+def _channel(db: Session, user: User, client_id: uuid.UUID) -> tuple[Client, WhatsAppCloudChannel | None]:
+    client = db.scalar(select(Client).where(Client.id == client_id, Client.agency_id == user.agency_id))
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    channel = db.scalar(select(WhatsAppCloudChannel).where(WhatsAppCloudChannel.client_id == client.id))
+    return client, channel
+
+
+def _graph(path: str, token: str, *, params: dict | None = None) -> dict | None:
+    base = get_settings().meta_graph_base_url.rstrip("/")
+    try:
+        with httpx.Client(timeout=8) as client:
+            response = client.get(f"{base}/{path}", params=params or {}, headers={"Authorization": f"Bearer {token}"})
+        payload = response.json()
+        return payload if isinstance(payload, dict) else None
+    except Exception:  # noqa: BLE001 — a probe must never break the page
+        return None
+
+
+def _step(step_id: str, title: str, status: str, detail: str, link: str = "", value: str = "") -> dict:
+    return {"id": step_id, "title": title, "status": status, "detail": detail, "link": link, "value": value}
+
+
+@router.get("")
+def meta_setup(
+    client_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    settings = get_settings()
+    client, channel = _channel(db, user, client_id)
+    public = settings.frontend_url.rstrip("/")
+    callback = ""
+    verify = ""
+    if channel:
+        callback = f"{public}/api/public/whatsapp-cloud/channels/{channel.id}/webhook"
+        verify = channel.webhook_verify_token or ""
+
+    steps: list[dict] = []
+    has_credentials = bool(channel and channel.phone_number_id and channel.waba_id)
+    has_token = bool(channel and channel.encrypted_access_token)
+    steps.append(_step("app", "App de Meta", "manual" if has_credentials else "todo",
+                       "Necesitas una app en developers.facebook.com con el producto WhatsApp.",
+                       "https://developers.facebook.com/apps"))
+    steps.append(_step("credentials", "App ID y secret",
+                       "done" if channel and channel.encrypted_app_secret else "todo",
+                       "El app secret permite validar la firma de los eventos."))
+    steps.append(_step("waba", "WABA y número",
+                       "done" if has_credentials else "todo",
+                       f"Phone number ID {channel.phone_number_id}" if has_credentials else "Usa Conectar con Meta o pega los IDs."))
+    steps.append(_step("token", "Token del system user",
+                       "done" if has_token else "todo",
+                       "Debe incluir whatsapp_business_messaging y whatsapp_business_management."))
+
+    if channel and has_token:
+        from .. import security as security_module
+        decrypt = (getattr(security_module, "decrypt_secret", None)
+                   or getattr(security_module, "decrypt_text", None)
+                   or getattr(security_module, "decrypt", None))
+        token = decrypt(channel.encrypted_access_token) if decrypt and channel.encrypted_access_token else None
+        webhook_status, webhook_detail = "unknown", "No se pudo comprobar contra Meta."
+        scopes_status, scopes_detail = "unknown", "No se pudieron leer los permisos concedidos."
+        if token:
+            info = _graph(f"{channel.phone_number_id}", token, params={"fields": "webhook_configuration"})
+            if isinstance(info, dict):
+                config = info.get("webhook_configuration") or {}
+                actual = config.get("phone_number") if isinstance(config, dict) else None
+                webhook_status = "done" if actual and actual.rstrip("/") == callback.rstrip("/") else "todo"
+                webhook_detail = "Meta confirma la URL en el número." if webhook_status == "done" else "Meta no tiene registrada esta URL en el número."
+            debug = _graph("debug_token", token, params={"input_token": token})
+            data = (debug or {}).get("data") or {}
+            granted = set(data.get("scopes") or [])
+            if granted:
+                missing = sorted(REQUIRED_SCOPES - granted)
+                scopes_status = "todo" if missing else "done"
+                scopes_detail = f"Falta {', '.join(missing)}" if missing else "Permisos completos."
+        steps.append(_step("webhook", "Webhook registrado", webhook_status, webhook_detail, value=callback))
+        steps.append(_step("scopes", "Permisos concedidos", scopes_status, scopes_detail))
+    else:
+        steps.append(_step("webhook", "Webhook registrado", "todo", "Se registra al conectar el canal.", value=callback))
+        steps.append(_step("scopes", "Permisos concedidos", "todo", "Se comprueban cuando exista un token."))
+
+    steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba."))
+    steps.append(_step("domain", "Dominio público",
+                       "done" if public.startswith("https://") else "todo",
+                       public or "Configura FRONTEND_URL con tu dominio HTTPS."))
+    steps.append(_step("business", "Verificación de negocio", "manual",
+                       "La revisa Meta; no se puede automatizar.", "https://business.facebook.com/settings"))
+    steps.append(_step("test", "Mensaje de prueba",
+                       "done" if channel and channel.status == "connected" else "todo",
+                       "Envía un mensaje real al número conectado."))
+
+    counts = {"green": 0, "amber": 0, "red": 0}
+    for step in steps:
+        if step["status"] == "done":
+            counts["green"] += 1
+        elif step["status"] in ("manual", "unknown"):
+            counts["amber"] += 1
+        else:
+            counts["red"] += 1
+
+    return {
+        "client_id": client.id,
+        "steps": steps,
+        "values": {"callback_url": callback, "verify_token": verify, "webhook_fields": "messages"},
+        "summary": counts,
+        "can_close": counts["red"] == 0,
+    }
