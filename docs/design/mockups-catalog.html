@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Fast Livery — mockups catálogo y feeds</title>
+<style>
+  :root{--bg:#f5f7f9;--card:#fff;--line:#e4e8ee;--ink:#0f172a;--muted:#64748b;--brand:#075985;--ok:#15803d;--warn:#b45309;--bad:#b91c1c}
+  *{box-sizing:border-box}
+  body{margin:0;background:#dfe3e8;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+  .screen{width:1440px;min-height:900px;display:grid;grid-template-columns:232px 1fr;background:var(--bg);margin:0 auto 26px}
+  .side{background:#fff;border-right:1px solid var(--line);padding:22px 16px}
+  .brand{display:flex;gap:10px;align-items:center;font-weight:700;font-size:17px;margin-bottom:20px}
+  .logo{width:30px;height:30px;border-radius:9px;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:13px}
+  .nav{display:grid;gap:2px}
+  .nav a{display:flex;gap:10px;padding:9px 10px;border-radius:8px;color:#334155;text-decoration:none;font-size:14px}
+  .nav a.on{background:#e6f0f6;color:var(--brand);font-weight:600}
+  .nav small{display:block;color:var(--muted);font-size:11px;letter-spacing:.08em;margin:16px 10px 6px;text-transform:uppercase}
+  .main{padding:28px 34px 34px;display:flex;flex-direction:column;gap:18px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  h1{font-size:23px;margin:0 0 4px}
+  h2{font-size:16px;margin:0 0 6px}
+  .sub{color:var(--muted);font-size:13.5px;margin:0}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:9px 14px;font-size:13.5px;font-weight:600;color:#0f172a;cursor:default}
+  .btn.pri{background:var(--brand);border-color:var(--brand);color:#fff}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 9px;font-size:12px;font-weight:600}
+  .pill.ok{background:#dcfce7;color:var(--ok)}.pill.warn{background:#fef3c7;color:var(--warn)}.pill.bad{background:#fee2e2;color:var(--bad)}
+  .pill.mute{background:#eef2f6;color:#475569}.pill.info{background:#e0f2fe;color:#0369a1}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;color:var(--muted);font-weight:600;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:8px 10px;border-bottom:1px solid var(--line)}
+  td{padding:10px;border-bottom:1px solid #f1f4f7;vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  .prod{display:flex;gap:10px;align-items:center}
+  .thumb{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#cbd5e1,#e2e8f0);flex:none}
+  .muted{color:var(--muted)}.tiny{font-size:11.5px}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .tile b{display:block;font-size:24px;margin-top:2px}
+  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:4px}
+  .tab{padding:9px 14px;font-size:13.5px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+  .tab.on{color:var(--brand);border-bottom-color:var(--brand)}
+  .drop{border:2px dashed #c7d2de;border-radius:12px;padding:26px;text-align:center;background:#fbfcfd}
+  .row{display:flex;gap:10px;align-items:center}
+  .check{display:flex;gap:8px;align-items:center;font-size:13px;margin:5px 0}
+  .dot{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:10px;color:#fff;background:var(--ok);flex:none}
+  .dot.off{background:#cbd5e1}
+  .field{display:grid;gap:5px;font-size:12.5px;font-weight:600;color:#334155}
+  .field input,.field select{border:1px solid var(--line);border-radius:8px;padding:9px 11px;font:inherit;font-weight:400;background:#fff}
+  .feed{display:grid;gap:10px}
+  .feed .url{display:flex;gap:8px;align-items:center;background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+  .slide{background:#075985;border-radius:16px;padding:22px;color:#fff;display:flex;flex-direction:column;justify-content:space-between;aspect-ratio:1}
+  .slide .img{background:rgba(255,255,255,.18);border-radius:10px;flex:1;margin-bottom:14px}
+  .slide b{font-size:20px;display:block}
+  .slide span{opacity:.8;font-size:13px}
+  .cta{background:#fff;color:#075985;border-radius:999px;padding:7px 14px;font-size:12.5px;font-weight:700;align-self:flex-start;margin-top:12px}
+</style>
+</head>
+<body>
+
+<!-- 1. INTEGRACIONES -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav">
+      <a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div><h1>Integraciones</h1><p class="sub">Conecta los canales comerciales de Cliente Demo SAS.</p></div>
+      <button class="btn">← Volver al cliente</button>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="row"><div class="thumb" style="border-radius:10px"></div><div><h2>Google UCP</h2><p class="sub">Vende dentro de experiencias de IA</p></div></div>
+          <span class="pill warn">Pendiente</span>
+        </div>
+        <div style="margin:14px 0 6px">
+          <div class="check"><span class="dot">✓</span> Merchant Center vinculado</div>
+          <div class="check"><span class="dot">✓</span> Catálogo con 112/120 productos listos</div>
+          <div class="check"><span class="dot off">!</span> <span class="muted">Faltan 8 GTIN y 3 imágenes rotas</span></div>
+          <div class="check"><span class="dot off">!</span> <span class="muted">Checkout y política de envíos sin declarar</span></div>
+        </div>
+        <div class="row" style="justify-content:space-between;margin-top:14px">
+          <span class="tiny muted">Último sync: nunca</span>
+          <button class="btn pri">Configurar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between">
+          <div class="row"><div class="thumb" style="border-radius:10px"></div><div><h2>ChatGPT Ads</h2><p class="sub">Anuncia dentro de ChatGPT</p></div></div>
+          <span class="pill mute">No configurado</span>
+        </div>
+        <div style="margin:14px 0 6px">
+          <div class="check"><span class="dot off">!</span> <span class="muted">Cuenta de OpenAI Ads para Colombia</span></div>
+          <div class="check"><span class="dot">✓</span> Creatividades desde carruseles</div>
+          <div class="check"><span class="dot off">!</span> <span class="muted">Conversiones sin mapear</span></div>
+        </div>
+        <div class="row" style="justify-content:space-between;margin-top:14px">
+          <span class="tiny muted">Programa en acceso anticipado</span>
+          <button class="btn pri">Configurar</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Salud de la integración</h2>
+      <p class="sub">Google UCP · 2 de 4 requisitos completos</p>
+      <div style="height:10px;background:#eef2f6;border-radius:999px;margin-top:12px;overflow:hidden"><div style="width:50%;height:100%;background:var(--brand)"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- 2. PRODUCTOS -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div><h1>Productos</h1><p class="sub">Catálogo de Cliente Demo SAS · fuente: archivo (CSV)</p></div>
+      <div class="row"><button class="btn">Importar desde API</button><button class="btn pri">Importar archivo</button></div>
+    </div>
+    <div class="tiles">
+      <div class="tile">Productos<b>120</b></div>
+      <div class="tile">Listos para feed<b style="color:var(--ok)">112</b></div>
+      <div class="tile">Con avisos<b style="color:var(--warn)">5</b></div>
+      <div class="tile">Con errores<b style="color:var(--bad)">3</b></div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <input style="border:1px solid var(--line);border-radius:9px;padding:9px 12px;width:320px;font:inherit" placeholder="Buscar por título o SKU" />
+        <div class="row"><select style="border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit"><option>Todos los estados</option></select><select style="border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit"><option>Todas las categorías</option></select></div>
+      </div>
+      <table>
+        <thead><tr><th>Producto</th><th>Precio</th><th>Disponibilidad</th><th>Origen</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Silla Loma</b><div class="tiny muted">SKU LOMA-01</div></div></div></td><td>$ 890.000 COP</td><td>En stock</td><td><span class="pill mute">Archivo</span></td><td><span class="pill ok">Válido</span></td><td class="tiny muted">Editar</td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Mesa Raíz</b><div class="tiny muted">SKU MESA-07</div></div></div></td><td>$ 1.240.000 COP</td><td>En stock</td><td><span class="pill mute">Archivo</span></td><td><span class="pill ok">Válido</span></td><td class="tiny muted">Editar</td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Lámpara Horizonte</b><div class="tiny muted">SKU LAMP-12</div></div></div></td><td>$ 320.000 COP</td><td>Agotado</td><td><span class="pill info">API</span></td><td><span class="pill warn">Sin GTIN</span></td><td class="tiny muted">Editar</td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Mesa auxiliar Nexo</b><div class="tiny muted">SKU NEXO-03</div></div></div></td><td>$ 410.000 COP</td><td>En stock</td><td><span class="pill info">API</span></td><td><span class="pill bad">Imagen 404</span></td><td class="tiny muted">Editar</td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Silla Loma (repetida)</b><div class="tiny muted">SKU LOMA-01</div></div></div></td><td>$ 890.000 COP</td><td>En stock</td><td><span class="pill mute">Archivo</span></td><td><span class="pill bad">SKU duplicado</span></td><td class="tiny muted">Editar</td></tr>
+          <tr><td><div class="prod"><div class="thumb"></div><div><b>Juego de comedor Raíz</b><div class="tiny muted">SKU COM-02</div></div></div></td><td>$ 3.500.000 COP</td><td>Preventa</td><td><span class="pill mute">Archivo</span></td><td><span class="pill ok">Válido</span></td><td class="tiny muted">Editar</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 3. IMPORTAR -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Importar productos</h1><p class="sub">El mapeo se guarda para la próxima importación.</p></div><button class="btn">Cancelar</button></div>
+    <div class="card">
+      <div class="tabs"><div class="tab on">Archivo</div><div class="tab">Desde API</div></div>
+      <div class="grid g2" style="margin-top:16px">
+        <div>
+          <div class="drop"><div style="font-weight:600;margin-bottom:4px">Arrastra tu CSV, XLSX o JSON</div><div class="muted tiny">Hasta 20 MB · 5.000 filas · UTF-8</div><div style="margin-top:12px"><button class="btn">Elegir archivo</button></div></div>
+          <p class="tiny muted" style="margin-top:10px">Archivo cargado: catalogo-demo.csv · 120 filas · 34 KB</p>
+        </div>
+        <div>
+          <h2>Mapeo de columnas</h2>
+          <table>
+            <thead><tr><th>Columna del archivo</th><th>Campo del sistema</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">Item</td><td><select style="border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit"><option>sku</option></select></td></tr>
+              <tr><td class="mono">Nombre</td><td><select style="border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit"><option>title</option></select></td></tr>
+              <tr><td class="mono">Precio COP</td><td><select style="border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit"><option>price</option></select></td></tr>
+              <tr><td class="mono">Existencia</td><td><select style="border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit"><option>availability</option></select></td></tr>
+              <tr><td class="mono">Foto</td><td><select style="border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit"><option>image_url</option></select></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn">Validar sin importar</button><button class="btn pri">Importar 120 productos</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4. VALIDACION -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Resultado de la validación</h1><p class="sub">120 filas leídas · nada se guardó todavía</p></div><button class="btn pri">Reimportar solo los fallidos</button></div>
+    <div class="tiles">
+      <div class="tile">Listas<b style="color:var(--ok)">112</b></div>
+      <div class="tile">Con avisos<b style="color:var(--warn)">5</b></div>
+      <div class="tile">Con errores<b style="color:var(--bad)">3</b></div>
+      <div class="tile">Listas para Google<b>104</b></div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Fila</th><th>SKU</th><th>Campo</th><th>Mensaje</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>12</td><td class="mono">LAMP-12</td><td>gtin</td><td><span class="pill warn">Aviso</span> Sin GTIN: se puede usar en carruseles y WhatsApp, no está listo para Google</td><td class="tiny muted">Corregir</td></tr>
+          <tr><td>27</td><td class="mono">NEXO-03</td><td>image_url</td><td><span class="pill bad">Error</span> La imagen responde 404</td><td class="tiny muted">Corregir</td></tr>
+          <tr><td>31</td><td class="mono">LOMA-01</td><td>sku</td><td><span class="pill bad">Error</span> SKU duplicado (también en la fila 8)</td><td class="tiny muted">Corregir</td></tr>
+          <tr><td>44</td><td class="mono">MESA-07</td><td>gtin</td><td><span class="pill warn">Aviso</span> Dígito verificador inválido: 7701234567898</td><td class="tiny muted">Corregir</td></tr>
+          <tr><td>58</td><td class="mono">COM-02</td><td>title</td><td><span class="pill warn">Aviso</span> Título de 162 caracteres (máximo 150)</td><td class="tiny muted">Corregir</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- 5. FEEDS -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a class="on">Clientes</a><a>Agentes</a><a>Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Feeds</h1><p class="sub">Se regeneran al importar y cada noche. URL firmada y revocable.</p></div><button class="btn">Regenerar todos</button></div>
+    <div class="grid g3">
+      <div class="card feed">
+        <div class="row" style="justify-content:space-between"><h2>Google UCP</h2><span class="pill ok">Activo</span></div>
+        <p class="tiny muted" style="margin:0">XML · generar hace 2 h</p>
+        <div class="tile" style="padding:10px 12px">Productos<b style="font-size:20px">112</b></div>
+        <p class="tiny" style="margin:0"><span class="pill bad">8 rechazados</span></p>
+        <div class="url"><span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">https://app/feeds/tk_8f2…/google.xml</span><button class="btn" style="padding:5px 9px">Copiar</button></div>
+        <p class="tiny muted" style="margin:0">Ver rechazados →</p>
+      </div>
+      <div class="card feed">
+        <div class="row" style="justify-content:space-between"><h2>ChatGPT Ads</h2><span class="pill warn">Pendiente</span></div>
+        <p class="tiny muted" style="margin:0">JSON · no generado</p>
+        <div class="tile" style="padding:10px 12px">Productos<b style="font-size:20px">0</b></div>
+        <p class="tiny" style="margin:0"><span class="pill mute">Sin cuenta vinculada</span></p>
+        <div class="url"><span class="mono muted">—</span></div>
+        <p class="tiny muted" style="margin:0">Configurar →</p>
+      </div>
+      <div class="card feed">
+        <div class="row" style="justify-content:space-between"><h2>Instagram shopping</h2><span class="pill ok">Activo</span></div>
+        <p class="tiny muted" style="margin:0">Catálogo Meta · generar hace 2 h</p>
+        <div class="tile" style="padding:10px 12px">Productos<b style="font-size:20px">118</b></div>
+        <p class="tiny" style="margin:0"><span class="pill warn">2 rechazados</span></p>
+        <div class="url"><span class="mono" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">https://app/feeds/tk_8f2…/meta.csv</span><button class="btn" style="padding:5px 9px">Copiar</button></div>
+        <p class="tiny muted" style="margin:0">Ver rechazados →</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. CARRUSEL DESDE PRODUCTOS -->
+<section class="screen">
+  <aside class="side">
+    <div class="brand"><span class="logo">FL</span> Fast Livery</div>
+    <div class="nav"><a>Inicio</a><a>Clientes</a><a>Agentes</a><a class="on">Carruseles</a><a>Automatizaciones</a><a>Inbox</a><a>Playground</a><a>Canales</a><a>Configuración</a><a>Manual</a></div>
+  </aside>
+  <div class="main">
+    <div class="top"><div><h1>Nuevo carrusel desde productos</h1><p class="sub">Una lámina por producto, con la identidad de marca del cliente.</p></div><button class="btn pri">Generar carrusel</button></div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px"><h2>Elige productos</h2><span class="tiny muted">3 de 6 seleccionados</span></div>
+        <div class="row" style="margin-bottom:10px"><select style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit"><option>Categoría: todas</option></select><select style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit"><option>Estado: válidos</option></select></div>
+        <table>
+          <tbody>
+            <tr><td style="width:26px"><input type="checkbox" checked></td><td><div class="prod"><div class="thumb"></div><div><b>Silla Loma</b><div class="tiny muted">$ 890.000 · En stock</div></div></div></td></tr>
+            <tr><td><input type="checkbox" checked></td><td><div class="prod"><div class="thumb"></div><div><b>Mesa Raíz</b><div class="tiny muted">$ 1.240.000 · En stock</div></div></div></td></tr>
+            <tr><td><input type="checkbox" checked></td><td><div class="prod"><div class="thumb"></div><div><b>Juego de comedor Raíz</b><div class="tiny muted">$ 3.500.000 · Preventa</div></div></div></td></tr>
+            <tr><td><input type="checkbox"></td><td><div class="prod"><div class="thumb"></div><div><b>Lámpara Horizonte</b><div class="tiny muted">$ 320.000 · Agotado</div></div></div></td></tr>
+            <tr><td><input type="checkbox"></td><td><div class="prod"><div class="thumb"></div><div><b>Mesa auxiliar Nexo</b><div class="tiny muted">$ 410.000 · Imagen rota</div></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:12px"><h2>Vista previa</h2><span class="tiny muted">1 / 3</span></div>
+        <div class="slide">
+          <div class="img"></div>
+          <div><b>Silla Loma</b><span>$ 890.000 COP</span></div>
+          <div class="cta">Ver en la tienda</div>
+        </div>
+        <div class="row" style="justify-content:center;gap:8px;margin-top:12px"><span class="dot" style="background:var(--brand)"></span><span class="dot off"></span><span class="dot off"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
