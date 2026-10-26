@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import Client, User, WhatsAppCloudChannel
+from ..models import Agency, Client, User, WhatsAppCloudChannel
 
 router = APIRouter(prefix="/clients/{client_id}/meta-setup", tags=["Meta setup"])
 REQUIRED_SCOPES = {"whatsapp_business_messaging", "whatsapp_business_management"}
@@ -73,8 +73,10 @@ def meta_setup(
         how=["Elige el caso de uso «Conéctate con los clientes a través de WhatsApp».",
              "Si ya la creaste, ábrela en «Mis apps».",
              "Vuelve aquí: el paso se pondrá verde cuando existan credenciales."]))
+    agency = db.get(Agency, user.agency_id)
+    has_app = bool(agency and agency.meta_app_id and agency.encrypted_meta_app_secret)
     steps.append(_step("credentials", "App ID y secret",
-        "done" if channel and channel.encrypted_app_secret else "todo",
+        "done" if has_app else "todo",
         "Sin estos dos datos no se puede validar nada.",
         where="Tu app → Configuración de la app → Básica",
         how=["Copia «Identificador de la app».",

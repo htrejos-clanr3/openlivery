@@ -26,6 +26,8 @@ def now_utc() -> datetime:
 
 class Agency(Base):
     __tablename__ = "agencies"
+    meta_app_id: Mapped[str] = mapped_column(String(64), default="", server_default="")
+    encrypted_meta_app_secret: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
     name: Mapped[str] = mapped_column(String(180))
