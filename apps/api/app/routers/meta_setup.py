@@ -11,15 +11,23 @@ import uuid
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import Agency, Client, User, WhatsAppCloudChannel
+from ..security import encrypt_secret
+from ..models import Agency, Client, User, WhatsAppCloudChannel, now_utc
 
 router = APIRouter(prefix="/clients/{client_id}/meta-setup", tags=["Meta setup"])
+
+
+class ChannelIn(BaseModel):
+    phone_number_id: str | None = None
+    waba_id: str | None = None
+    access_token: str | None = None
 REQUIRED_SCOPES = {"whatsapp_business_messaging", "whatsapp_business_management"}
 
 
@@ -217,4 +225,33 @@ def meta_setup(
         "values": {"callback_url": callback, "verify_token": verify, "webhook_fields": "messages"},
         "summary": counts,
         "can_close": counts["red"] == 0,
+        "channel": {
+            "phone_number_id": channel.phone_number_id if channel else "",
+            "waba_id": (channel.waba_id or "") if channel else "",
+            "has_token": bool(channel and channel.encrypted_access_token),
+        },
     }
+
+
+@router.put("/channel")
+def save_channel(
+    client_id: uuid.UUID,
+    payload: ChannelIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client, channel = _channel(db, user, client_id)
+    if channel is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Create the channel on its page first; this form updates an existing one.",
+        )
+    if payload.phone_number_id is not None:
+        channel.phone_number_id = payload.phone_number_id.strip()[:80]
+    if payload.waba_id is not None:
+        channel.waba_id = payload.waba_id.strip()[:80] or None
+    if payload.access_token:
+        channel.encrypted_access_token = encrypt_secret(payload.access_token.strip())
+    channel.updated_at = now_utc()
+    db.commit()
+    return {"ok": True}

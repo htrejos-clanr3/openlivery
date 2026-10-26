@@ -25,6 +25,7 @@ type Setup = {
   values: { callback_url: string; verify_token: string; webhook_fields: string };
   summary: { green: number; amber: number; red: number };
   can_close: boolean;
+  channel: { phone_number_id: string; waba_id: string; has_token: boolean };
 };
 
 function tone(status: string) {
@@ -46,6 +47,10 @@ export default function MetaSetupPage() {
   const [hasSecret, setHasSecret] = useState(false);
   const [savingApp, setSavingApp] = useState(false);
   const setupRef = useRef<Setup | null>(null);
+  const [phoneId, setPhoneId] = useState("");
+  const [wabaId, setWabaId] = useState("");
+  const [tokenInput, setTokenInput] = useState("");
+  const [savingChannel, setSavingChannel] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -61,6 +66,8 @@ export default function MetaSetupPage() {
       }
       setupRef.current = next;
       setSetup(next);
+      setPhoneId(next.channel.phone_number_id);
+      setWabaId(next.channel.waba_id);
     } catch (err) {
       toast.error(messageFrom(err));
     } finally {
@@ -97,6 +104,23 @@ export default function MetaSetupPage() {
       toast.error(messageFrom(err));
     } finally {
       setSavingApp(false);
+    }
+  }
+
+  async function saveChannel() {
+    setSavingChannel(true);
+    try {
+      await api(`/clients/${clientId}/meta-setup/channel`, {
+        method: "PUT",
+        body: JSON.stringify({ phone_number_id: phoneId, waba_id: wabaId, access_token: tokenInput || null }),
+      });
+      setTokenInput("");
+      toast.success("Guardado en el canal");
+      void load();
+    } catch (err) {
+      toast.error(messageFrom(err));
+    } finally {
+      setSavingChannel(false);
     }
   }
 
@@ -282,18 +306,40 @@ export default function MetaSetupPage() {
                     </button>
                   )}
 
-                  {(step.id === "waba" || step.id === "token") && (
+                  {step.id === "waba" && (
                     <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 14px" }}>
-                      <strong style={{ fontSize: 13 }}>Dónde se guarda este dato</strong>
-                      <p className="field-help" style={{ margin: "4px 0 10px" }}>
-                        En la página del canal, sección «Configuración avanzada»:{" "}
-                        {step.id === "waba"
-                          ? "Phone number ID y WABA ID."
-                          : "Token de acceso permanente (el temporal de 24 h no sirve para operar)."}
-                      </p>
-                      <Link className="button primary" href={`/clients/${clientId}/channels/whatsapp-cloud`}>
-                        Abrir la configuración del canal →
-                      </Link>
+                      <strong style={{ fontSize: 13 }}>Pega aquí los dos identificadores</strong>
+                      <label className="field" style={{ marginTop: 10 }}>
+                        Phone number ID
+                        <input value={phoneId} onChange={(e) => setPhoneId(e.target.value)} placeholder="1234567890" />
+                      </label>
+                      <label className="field" style={{ marginTop: 10 }}>
+                        WABA ID
+                        <input value={wabaId} onChange={(e) => setWabaId(e.target.value)} placeholder="0987654321" />
+                      </label>
+                      <button type="button" className="button primary" style={{ marginTop: 12 }} onClick={saveChannel} disabled={savingChannel}>
+                        {savingChannel ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} Guardar en el canal
+                      </button>
+                    </div>
+                  )}
+
+                  {step.id === "token" && (
+                    <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 14px" }}>
+                      <strong style={{ fontSize: 13 }}>
+                        Pega aquí el token permanente {setup.channel.has_token ? "(ya hay uno guardado)" : ""}
+                      </strong>
+                      <label className="field" style={{ marginTop: 10 }}>
+                        Token de acceso
+                        <input
+                          type="password"
+                          value={tokenInput}
+                          onChange={(e) => setTokenInput(e.target.value)}
+                          placeholder={setup.channel.has_token ? "•••• (vacío = conservar)" : "EAAG…"}
+                        />
+                      </label>
+                      <button type="button" className="button primary" style={{ marginTop: 12 }} onClick={saveChannel} disabled={savingChannel}>
+                        {savingChannel ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} Guardar en el canal
+                      </button>
                     </div>
                   )}
 
