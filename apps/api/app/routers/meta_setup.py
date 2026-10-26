@@ -75,7 +75,12 @@ def meta_setup(
     app_registered = bool(agency_row and agency_row.meta_app_id)
     has_app = bool(agency_row and agency_row.meta_app_id and agency_row.encrypted_meta_app_secret)
     steps: list[dict] = []
-    has_credentials = bool(channel and channel.phone_number_id and channel.waba_id)
+    def _mockish(value: str | None) -> bool:
+        return not value or value.startswith("mock")
+
+    has_credentials = bool(
+        channel and not _mockish(channel.phone_number_id) and not _mockish(channel.waba_id)
+    )
     has_token = bool(channel and channel.encrypted_access_token)
     steps.append(_step("app", "App de Meta", "done" if app_registered else "todo",
         "Crea la app una vez por agencia y registra su App ID en el paso 2.",
@@ -115,6 +120,14 @@ def meta_setup(
         webhook_status, webhook_detail = "unknown", "No se pudo comprobar contra Meta."
         scopes_status, scopes_detail = "unknown", "No se pudieron leer los permisos concedidos."
         if token:
+            if token.startswith("mock"):
+                for entry in steps:
+                    if entry["id"] == "token":
+                        entry["status"] = "todo"
+                        entry["detail"] = (
+                            "El token guardado es de prueba (mock). Genera el token permanente en Meta y pégalo aquí."
+                        )
+                token = None
             info = _graph(f"{channel.phone_number_id}", token, params={"fields": "webhook_configuration"})
             if isinstance(info, dict):
                 config = info.get("webhook_configuration") or {}
