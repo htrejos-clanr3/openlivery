@@ -308,7 +308,7 @@ export default function MetaSetupPage() {
 
                   {step.id === "waba" && (
                     <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 14px" }}>
-                      <strong style={{ fontSize: 13 }}>Pega aquí los dos identificadores</strong>
+                      <strong style={{ fontSize: 13, display: "block", marginBottom: 6 }}>Pega aquí los dos identificadores</strong>
                       <label className="field" style={{ marginTop: 10 }}>
                         Phone number ID
                         <input value={phoneId} onChange={(e) => setPhoneId(e.target.value)} placeholder="1234567890" />
@@ -317,6 +317,15 @@ export default function MetaSetupPage() {
                         Messaging Account ID
                         <input value={wabaId} onChange={(e) => setWabaId(e.target.value)} placeholder="0987654321" />
                       </label>
+                      <button
+                        type="button"
+                        className="button primary"
+                        style={{ marginTop: 12 }}
+                        onClick={saveChannel}
+                        disabled={savingChannel}
+                      >
+                        {savingChannel ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} Guardar en el canal
+                      </button>
                     </div>
                   )}
 
