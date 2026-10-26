@@ -42,8 +42,10 @@ def _graph(path: str, token: str, *, params: dict | None = None) -> dict | None:
         return None
 
 
-def _step(step_id: str, title: str, status: str, detail: str, link: str = "", value: str = "") -> dict:
-    return {"id": step_id, "title": title, "status": status, "detail": detail, "link": link, "value": value}
+def _step(step_id: str, title: str, status: str, detail: str, link: str = "", value: str = "",
+          where: str = "", how: list[str] | None = None) -> dict:
+    return {"id": step_id, "title": title, "status": status, "detail": detail, "link": link,
+            "value": value, "where": where, "how": how or []}
 
 
 @router.get("")
@@ -65,17 +67,31 @@ def meta_setup(
     has_credentials = bool(channel and channel.phone_number_id and channel.waba_id)
     has_token = bool(channel and channel.encrypted_access_token)
     steps.append(_step("app", "App de Meta", "manual" if has_credentials else "todo",
-                       "Necesitas una app en developers.facebook.com con el producto WhatsApp.",
-                       "https://developers.facebook.com/apps"))
+        "Crea la app una vez por agencia. Aquí no hay nada que copiar todavía.",
+        "https://developers.facebook.com/apps",
+        where="developers.facebook.com/apps → Crear app → Nombre y correo → Siguiente → Casos de uso",
+        how=["Elige el caso de uso «Conéctate con los clientes a través de WhatsApp».",
+             "Si ya la creaste, ábrela en «Mis apps».",
+             "Vuelve aquí: el paso se pondrá verde cuando existan credenciales."]))
     steps.append(_step("credentials", "App ID y secret",
-                       "done" if channel and channel.encrypted_app_secret else "todo",
-                       "El app secret permite validar la firma de los eventos."))
-    steps.append(_step("waba", "WABA y número",
-                       "done" if has_credentials else "todo",
-                       f"Phone number ID {channel.phone_number_id}" if has_credentials else "Usa Conectar con Meta o pega los IDs."))
-    steps.append(_step("token", "Token del system user",
-                       "done" if has_token else "todo",
-                       "Debe incluir whatsapp_business_messaging y whatsapp_business_management."))
+        "done" if channel and channel.encrypted_app_secret else "todo",
+        "Sin estos dos datos no se puede validar nada.",
+        where="Tu app → Configuración de la app → Básica",
+        how=["Copia «Identificador de la app».",
+             "Pulsa «Mostrar» en «Clave secreta» y cópiala.",
+             "Pega ambos en Configuración avanzada del canal y guarda."]))
+    steps.append(_step("waba", "WABA y número", "done" if has_credentials else "todo",
+        f"Phone number ID {channel.phone_number_id}" if has_credentials else "Los dos identificadores del número y de la cuenta.",
+        where="Tu app → WhatsApp → Configuración de la API",
+        how=["Copia «Identificador del número de teléfono».",
+             "Copia «Identificador de la cuenta de WhatsApp Business».",
+             "Pégalos en Configuración avanzada del canal y guarda."]))
+    steps.append(_step("token", "Token del system user", "done" if has_token else "todo",
+        "El token temporal dura 24 horas: sirve para probar, no para operar.",
+        where="business.facebook.com → Configuración del negocio → Usuarios → Usuarios del sistema",
+        how=["Crea un usuario del sistema y asígnale la app y la WABA.",
+             "Genera el token con whatsapp_business_messaging y whatsapp_business_management.",
+             "Pega el token en Configuración avanzada del canal."]))
 
     if channel and has_token:
         from .. import security as security_module
@@ -99,21 +115,46 @@ def meta_setup(
                 missing = sorted(REQUIRED_SCOPES - granted)
                 scopes_status = "todo" if missing else "done"
                 scopes_detail = f"Falta {', '.join(missing)}" if missing else "Permisos completos."
-        steps.append(_step("webhook", "Webhook registrado", webhook_status, webhook_detail, value=callback))
-        steps.append(_step("scopes", "Permisos concedidos", scopes_status, scopes_detail))
+        steps.append(_step("webhook", "Webhook registrado", webhook_status, webhook_detail, value=callback,
+            where="Tu app → WhatsApp → Configuración → Webhook → Editar",
+            how=["Pega la URL de callback y el token de verificación de abajo.",
+                 "Pulsa «Verificar y guardar».",
+                 "Suscribe el campo messages."]))
+        steps.append(_step("scopes", "Permisos concedidos", scopes_status, scopes_detail,
+            where="Se comprueba sobre el token, no en una pantalla de Meta",
+            how=["Si falta un permiso, edita el usuario del sistema y genera un token nuevo.",
+                 "El token anterior no hereda permisos."]))
     else:
-        steps.append(_step("webhook", "Webhook registrado", "todo", "Se registra al conectar el canal.", value=callback))
-        steps.append(_step("scopes", "Permisos concedidos", "todo", "Se comprueban cuando exista un token."))
+        steps.append(_step("webhook", "Webhook registrado", "todo", "Se registra cuando exista un token.", value=callback,
+            where="Tu app → WhatsApp → Configuración → Webhook → Editar",
+            how=["Primero completa los pasos 2 a 4.",
+                 "Después pega la URL de callback y el token de verificación."]))
+        steps.append(_step("scopes", "Permisos concedidos", "todo", "Se comprueban cuando exista un token.",
+            how=["Necesitas whatsapp_business_messaging y whatsapp_business_management."]))
 
-    steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba."))
+    steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba.",
+        where="Tu app → WhatsApp → Configuración de la API → Administrar suscripciones de app",
+        how=["Si tu app no aparece suscrita, pulsa «Suscribirse».",
+             "Vuelve aquí y pulsa «Comprobar de nuevo»."]))
     steps.append(_step("domain", "Dominio público",
-                       "done" if public.startswith("https://") else "todo",
-                       public or "Configura FRONTEND_URL con tu dominio HTTPS."))
+        "done" if public.startswith("https://") else "todo",
+        public or "Configura FRONTEND_URL con tu dominio HTTPS.",
+        how=["El dominio debe ser HTTPS y público.",
+             "Es la misma URL que recibe los webhooks."]))
     steps.append(_step("business", "Verificación de negocio", "manual",
-                       "La revisa Meta; no se puede automatizar.", "https://business.facebook.com/settings"))
+        "La revisa Meta; no se puede automatizar.",
+        "https://business.facebook.com/settings",
+        where="business.facebook.com → Configuración del negocio → Centro de seguridad",
+        how=["Completa los documentos del negocio.",
+             "Puede tardar días y no bloquea las pruebas con números de test.",
+             "Para conectar la WABA de tus clientes necesitas además ser proveedor de tecnología."]))
     steps.append(_step("test", "Mensaje de prueba",
-                       "done" if channel and channel.status == "connected" else "todo",
-                       "Envía un mensaje real al número conectado."))
+        "done" if channel and channel.status == "connected" else "todo",
+        "Envía un mensaje real al número conectado.",
+        where="Con el número de prueba Meta limita a 5 destinatarios verificados",
+        how=["Añade tu número en «Para» de la configuración de la API.",
+             "Envía el mensaje de prueba desde Meta y confirma que llega.",
+             "Después pruébalo desde el Playground con este canal."]))
 
     counts = {"green": 0, "amber": 0, "red": 0}
     for step in steps:

@@ -14,6 +14,8 @@ type Step = {
   detail: string;
   link: string;
   value: string;
+  where: string;
+  how: string[];
 };
 
 type Setup = {
@@ -166,6 +168,21 @@ export default function MetaSetupPage() {
                 Abrir en Meta →
               </a>
             )}
+
+            {step.where && (
+              <div style={{ background: "#f8fafc", border: "1px solid #e4e8ee", borderRadius: 10, padding: "12px 14px" }}>
+                <strong style={{ fontSize: 13 }}>Dónde</strong>
+                <p className="field-help" style={{ margin: "4px 0 0" }}>{step.where}</p>
+              </div>
+            )}
+            {step.how?.length ? (
+              <div>
+                <strong style={{ fontSize: 13 }}>Qué hacer</strong>
+                <ol style={{ margin: "6px 0 0", paddingLeft: 20, fontSize: 13.5, lineHeight: 1.7 }}>
+                  {step.how.map((line) => <li key={line}>{line}</li>)}
+                </ol>
+              </div>
+            ) : null}
 
             <h3 style={{ margin: "8px 0 0" }}>Valores para pegar en Meta</h3>
             {values.map((item) => (
