@@ -63,6 +63,8 @@ def meta_setup(
         callback = f"{public}/api/public/whatsapp-cloud/channels/{channel.id}/webhook"
         verify = channel.webhook_verify_token or ""
 
+    agency_row = db.get(Agency, user.agency_id)
+    app_registered = bool(agency_row and agency_row.meta_app_id)
     steps: list[dict] = []
     has_credentials = bool(channel and channel.phone_number_id and channel.waba_id)
     has_token = bool(channel and channel.encrypted_access_token)
