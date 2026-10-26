@@ -433,8 +433,8 @@ function WhatsAppCloudChannelPageInner() {
       <div className="wa-layout">
         <main>
           {progress && (
-            <section className="wa-panel" style={{ borderColor: "#bfdbfe", background: "#eff6ff" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+            <section className="wa-panel">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, marginBottom: 14, flexWrap: "wrap" }}>
                 <div>
                   <strong>Paso a paso guiado</strong>
                   <p className="field-help" style={{ margin: "4px 0 0" }}>
@@ -445,9 +445,7 @@ function WhatsAppCloudChannelPageInner() {
                   Abrir el paso a paso
                 </Link>
               </div>
-            </section>
 
-            <section className="wa-panel">
               <div className="wa-panel-head"><span><Sparkles size={19} /></span><div><h2>{t("clients.whatsappCloud.configuringTitle")}</h2><p>{t("clients.whatsappCloud.configuringCopy")}</p></div></div>
               <ul className="wa-progress">
                 {progress.map((step) => (
