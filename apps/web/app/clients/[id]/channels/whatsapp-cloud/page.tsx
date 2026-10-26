@@ -577,11 +577,14 @@ function WhatsAppCloudChannelPageInner() {
                   {busy ? <LoaderCircle className="spin" size={17} /> : <BadgeCheck size={17} />} {t("clients.whatsappCloud.connectMeta")}
                 </button>
               </div>
-              <p className="wa-advanced-toggle">
+              <div className="wa-advanced-toggle" style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
                 <button type="button" className="text-button" onClick={() => setAdvancedOpen(true)}>
                   {t("clients.whatsappCloud.advancedHint")}
                 </button>
-              </p>
+                <Link className="button primary" href={`/clients/${id}/channels/meta-setup`}>
+                  Abrir el paso a paso guiado
+                </Link>
+              </div>
               <div className="wa-benefits">
                 <h3>{t("clients.whatsappCloud.benefitsTitle")}</h3>
                 <ul>
