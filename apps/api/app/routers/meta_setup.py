@@ -18,7 +18,7 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_user
-from ..security import encrypt_secret
+from ..security import decrypt_secret, encrypt_secret
 from ..models import Agency, Client, User, WhatsAppCloudChannel, now_utc
 
 router = APIRouter(prefix="/clients/{client_id}/meta-setup", tags=["Meta setup"])
@@ -257,3 +257,60 @@ def save_channel(
     channel.updated_at = now_utc()
     db.commit()
     return {"ok": True}
+
+
+def _number(phone: dict, waba_id: str, waba_name: str) -> dict:
+    return {
+        "phone_number_id": phone.get("id", ""),
+        "display_phone_number": phone.get("display_phone_number", ""),
+        "verified_name": phone.get("verified_name", ""),
+        "waba_id": waba_id,
+        "waba_name": waba_name,
+    }
+
+
+@router.get("/discover")
+def discover_numbers(
+    client_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    client, channel = _channel(db, user, client_id)
+    if channel is None or not channel.encrypted_access_token:
+        raise HTTPException(
+            status_code=400,
+            detail="Guarda primero el token del canal: sin token Meta no devuelve nada.",
+        )
+    token = decrypt_secret(channel.encrypted_access_token)
+    numbers: list[dict] = []
+    seen: set[str] = set()
+
+    def add(phone: dict, waba_id: str, waba_name: str) -> None:
+        item = _number(phone, waba_id, waba_name)
+        if item["phone_number_id"] and item["phone_number_id"] not in seen:
+            seen.add(item["phone_number_id"])
+            numbers.append(item)
+
+    businesses = _graph("me/businesses", token, params={"fields": "id,name", "limit": "25"}) or {}
+    for business in businesses.get("data") or []:
+        business_id = (business or {}).get("id")
+        if not business_id:
+            continue
+        wabas = _graph(f"{business_id}/owned_whatsapp_business_accounts", token,
+                       params={"fields": "id,name"}) or {}
+        for waba in wabas.get("data") or []:
+            waba_id = (waba or {}).get("id")
+            if not waba_id:
+                continue
+            phones = _graph(f"{waba_id}/phone_numbers", token,
+                            params={"fields": "id,display_phone_number,verified_name"}) or {}
+            for phone in phones.get("data") or []:
+                add(phone or {}, waba_id, (waba or {}).get("name", ""))
+
+    if not numbers and channel.waba_id and not channel.waba_id.startswith("mock"):
+        phones = _graph(f"{channel.waba_id}/phone_numbers", token,
+                        params={"fields": "id,display_phone_number,verified_name"}) or {}
+        for phone in phones.get("data") or []:
+            add(phone or {}, channel.waba_id, "")
+
+    return {"numbers": numbers, "waba_id": channel.waba_id or ""}

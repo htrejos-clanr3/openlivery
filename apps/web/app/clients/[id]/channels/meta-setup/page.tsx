@@ -51,6 +51,8 @@ export default function MetaSetupPage() {
   const [wabaId, setWabaId] = useState("");
   const [tokenInput, setTokenInput] = useState("");
   const [savingChannel, setSavingChannel] = useState(false);
+  const [numbers, setNumbers] = useState<{ phone_number_id: string; display_phone_number: string; verified_name: string; waba_id: string }[]>([]);
+  const [discovering, setDiscovering] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -104,6 +106,20 @@ export default function MetaSetupPage() {
       toast.error(messageFrom(err));
     } finally {
       setSavingApp(false);
+    }
+  }
+
+  async function discover() {
+    setDiscovering(true);
+    try {
+      const result = await api<{ numbers: typeof numbers }>(`/clients/${clientId}/meta-setup/discover`);
+      setNumbers(result.numbers);
+      if (!result.numbers.length) toast.info("Meta no devolvió números: revisa el token y los permisos.");
+      else toast.success(`${result.numbers.length} número(s) encontrados en Meta`);
+    } catch (err) {
+      toast.error(messageFrom(err));
+    } finally {
+      setDiscovering(false);
     }
   }
 
@@ -317,6 +333,37 @@ export default function MetaSetupPage() {
                         WABA ID
                         <input value={wabaId} onChange={(e) => setWabaId(e.target.value)} placeholder="0987654321" />
                       </label>
+                      <button
+                        type="button"
+                        className="button"
+                        style={{ marginTop: 10 }}
+                        onClick={discover}
+                        disabled={discovering}
+                      >
+                        {discovering ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />} Detectar números en Meta
+                      </button>
+                      {numbers.length > 0 && (
+                        <label className="field" style={{ marginTop: 10 }}>
+                          Números encontrados
+                          <select
+                            defaultValue=""
+                            onChange={(e) => {
+                              const picked = numbers[Number(e.target.value)];
+                              if (picked) {
+                                setPhoneId(picked.phone_number_id);
+                                setWabaId(picked.waba_id);
+                              }
+                            }}
+                          >
+                            <option value="">Elige uno…</option>
+                            {numbers.map((item, index) => (
+                              <option key={item.phone_number_id} value={index}>
+                                {item.display_phone_number} · {item.verified_name || "sin nombre"}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      )}
                       <button type="button" className="button primary" style={{ marginTop: 12 }} onClick={saveChannel} disabled={savingChannel}>
                         {savingChannel ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} Guardar en el canal
                       </button>
