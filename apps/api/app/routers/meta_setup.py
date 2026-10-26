@@ -177,14 +177,6 @@ def meta_setup(
             how=["Primero completa los pasos 2 a 4.",
                  "Después pega la URL de callback y el token de verificación."]))
 
-    steps.append(_step("permisos", "Permisos y funciones", "manual",
-        "Meta revisa estos permisos y no se pueden comprobar desde aquí: este paso no cambia solo. Cuando los agregues en Meta, dalo por hecho tu mismo.",
-        where="Otras herramientas → Permisos y funciones → Agregar",
-        how=["Pulsa «+ Agregar» solo en whatsapp_business_messaging y whatsapp_business_management.",
-             "Si vas a gestionar cuentas de clientes, agrega también business_management.",
-             "Ignora email, public_profile, manage_app_solution y whatsapp_business_manage_events: no hacen falta para responder mensajes.",
-             "En el modal elige el número («Agregar un número nuevo» la primera vez, o «Usar solo un nombre visible»).",
-             "Para producción necesitas acceso avanzado y revisión de Meta; el modo de prueba entrega solo a 5 destinatarios verificados."]))
     steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba.",
         where="Misma página → configuración del número",
         how=["Comprueba que la app aparezca suscrita a la cuenta de WhatsApp Business.",
@@ -217,7 +209,6 @@ def meta_setup(
         "webhook": "client",
         "scopes": "client",
         "subscribed": "client",
-        "permisos": "agency",
         "domain": "agency",
         "business": "agency",
         "test": "client",
