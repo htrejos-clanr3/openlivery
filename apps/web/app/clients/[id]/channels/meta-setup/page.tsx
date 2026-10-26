@@ -77,6 +77,7 @@ export default function MetaSetupPage() {
   }
 
   const step = setup.steps[selected] ?? setup.steps[0];
+  const isWebhook = step.id === "webhook";
   const values = [
     { label: "Callback URL", value: setup.values.callback_url },
     { label: "Verify token", value: setup.values.verify_token },
@@ -195,8 +196,10 @@ export default function MetaSetupPage() {
               </div>
             ) : null}
 
-            <h3 style={{ margin: "8px 0 0" }}>Valores para pegar en Meta</h3>
-            {values.map((item) => (
+            {isWebhook && (
+              <>
+                <h3 style={{ margin: "8px 0 0" }}>Valores para pegar en Meta</h3>
+                {values.map((item) => (
               <label key={item.label}>
                 {item.label}
                 <span style={{ display: "flex", gap: 8 }}>
@@ -208,12 +211,15 @@ export default function MetaSetupPage() {
               </label>
             ))}
 
-            <p className="field-help">
-              Pega cada valor en la pantalla de Meta que abre el botón de arriba, guarda allí y vuelve aquí a
-              pulsar «Comprobar de nuevo».
-            </p>
+                <p className="field-help">
+                  Pega cada valor en la pantalla de Meta que abre el botón de arriba, guarda allí y vuelve aquí a
+                  pulsar «Comprobar de nuevo».
+                </p>
+              </>
+            )}
             <button type="button" className="button primary" onClick={load} disabled={busy}>
-              {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />} Ya lo pegué: comprobar
+              {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{" "}
+              {isWebhook ? "Ya lo pegué: comprobar" : "Comprobar de nuevo"}
             </button>
           </div>
         </section>
