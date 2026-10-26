@@ -102,7 +102,7 @@ def meta_setup(
         how=["En «Registra tu número de teléfono de WhatsApp» pulsa Agregar (o el lápiz).",
              "En el modal elige «Agregar un número nuevo» → Continuar; si ya tienes uno, «Usar solo un nombre visible».",
              "Verifica el número con el código que te envíen.",
-             "Copia el Phone number ID y el WABA ID y pégalos en Configuración avanzada del canal.",
+             "Copia el Phone number ID y el Messaging Account ID (antes WABA ID) y pégalos en el paso 3.",
              "Si Meta responde «already in use by another WhatsApp account», el número ya está en otra cuenta: elimínala desde el teléfono (Ajustes → Cuenta → Eliminar cuenta) o usa otro número. Meta no migra números entre cuentas."]))
     steps.append(_step("token", "Token del system user", "done" if has_token else "todo",
         "El token temporal caduca; el permanente es el que deja el canal estable.",

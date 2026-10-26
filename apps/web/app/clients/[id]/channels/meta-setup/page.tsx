@@ -330,7 +330,7 @@ export default function MetaSetupPage() {
                         <input value={phoneId} onChange={(e) => setPhoneId(e.target.value)} placeholder="1234567890" />
                       </label>
                       <label className="field" style={{ marginTop: 10 }}>
-                        WABA ID
+                        Messaging Account ID
                         <input value={wabaId} onChange={(e) => setWabaId(e.target.value)} placeholder="0987654321" />
                       </label>
                       <button
