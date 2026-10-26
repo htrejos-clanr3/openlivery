@@ -111,6 +111,26 @@ def meta_setup(
                 actual = config.get("phone_number") if isinstance(config, dict) else None
                 webhook_status = "done" if actual and actual.rstrip("/") == callback.rstrip("/") else "todo"
                 webhook_detail = "Meta confirma la URL en el número." if webhook_status == "done" else "Meta no tiene registrada esta URL en el número."
+            if webhook_status != "done" and channel.waba_id:
+                apps = _graph(f"{channel.waba_id}/subscribed_apps", token)
+                for app in (apps or {}).get("data") or []:
+                    uri = (app or {}).get("override_callback_uri")
+                    if isinstance(uri, str) and uri.rstrip("/") == callback.rstrip("/"):
+                        webhook_status, webhook_detail = "done", "Meta confirma la URL a nivel de la cuenta (WABA)."
+                        break
+            if (webhook_status != "done" and agency_row and agency_row.meta_app_id
+                    and agency_row.encrypted_meta_app_secret and decrypt):
+                app_token = f"{agency_row.meta_app_id}|{decrypt(agency_row.encrypted_meta_app_secret)}"
+                subs = _graph(f"{agency_row.meta_app_id}/subscriptions", app_token)
+                for item in (subs or {}).get("data") or []:
+                    url = (item or {}).get("callback_url")
+                    fields = (item or {}).get("fields") or []
+                    if isinstance(url, str) and url.rstrip("/") == callback.rstrip("/"):
+                        webhook_status = "done"
+                        webhook_detail = "Meta confirma la URL a nivel de app." + (
+                            "" if "messages" in fields else " Falta suscribir el campo messages."
+                        )
+                        break
             debug = _graph("debug_token", token, params={"input_token": token})
             data = (debug or {}).get("data") or {}
             granted = set(data.get("scopes") or [])
