@@ -181,11 +181,6 @@ def meta_setup(
         where="Misma página → configuración del número",
         how=["Comprueba que la app aparezca suscrita a la cuenta de WhatsApp Business.",
              "Vuelve aquí y pulsa «Comprobar de nuevo»."]))
-    steps.append(_step("domain", "Dominio público",
-        "done" if public.startswith("https://") else "todo",
-        public or "Configura FRONTEND_URL con tu dominio HTTPS.",
-        how=["El dominio debe ser HTTPS y público.",
-             "Es la misma URL que recibe los webhooks."]))
     steps.append(_step("business", "Verificación de negocio", "manual",
         "La revisa Meta; no se puede automatizar.",
         "https://business.facebook.com/settings",
@@ -209,7 +204,6 @@ def meta_setup(
         "webhook": "client",
         "scopes": "client",
         "subscribed": "client",
-        "domain": "agency",
         "business": "agency",
         "test": "client",
     }
