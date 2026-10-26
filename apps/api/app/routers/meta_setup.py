@@ -138,22 +138,21 @@ def meta_setup(
                 missing = sorted(REQUIRED_SCOPES - granted)
                 scopes_status = "todo" if missing else "done"
                 scopes_detail = f"Falta {', '.join(missing)}" if missing else "Permisos completos."
+        for entry in steps:
+            if entry["id"] == "token":
+                entry["detail"] = f"{entry['detail']} Permisos del token: {scopes_detail}"
+                if scopes_status == "done":
+                    entry["status"] = "done"
         steps.append(_step("webhook", "Webhook registrado", webhook_status, webhook_detail, value=callback,
             where="Misma página → «Configurar webhooks» (arriba del todo)",
             how=["Pega la URL de callback y el token de verificación de abajo.",
                  "Pulsa «Verificar y guardar».",
                  "Suscribe el campo messages."]))
-        steps.append(_step("scopes", "Permisos concedidos", scopes_status, scopes_detail,
-            where="Se comprueba sobre el token, no en una pantalla de Meta",
-            how=["Si falta un permiso, edita el usuario del sistema y genera un token nuevo.",
-                 "El token anterior no hereda permisos."]))
     else:
         steps.append(_step("webhook", "Webhook registrado", "todo", "Se registra cuando exista un token.", value=callback,
             where="Misma página → «Configurar webhooks» (arriba del todo)",
             how=["Primero completa los pasos 2 a 4.",
                  "Después pega la URL de callback y el token de verificación."]))
-        steps.append(_step("scopes", "Permisos concedidos", "todo", "Se comprueban cuando exista un token.",
-            how=["Necesitas whatsapp_business_messaging y whatsapp_business_management."]))
 
     steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba.",
         where="Misma página → configuración del número",
