@@ -86,9 +86,10 @@ def meta_setup(
     steps.append(_step("waba", "WABA y número", "done" if has_credentials else "todo",
         f"Phone number ID {channel.phone_number_id}" if has_credentials else "Los dos identificadores del número y de la cuenta.",
         where="Caso de uso de WhatsApp → Configuración básica → Paso 2: Configuración de producción → Registra tu número de teléfono",
-        how=["Pulsa «Agregar número de teléfono» y verifica el número.",
-             "Copia el Phone number ID y el WABA ID del número registrado.",
-             "Pégalos en Configuración avanzada del canal y guarda."]))
+        how=["En «Registra tu número de teléfono de WhatsApp» pulsa Agregar (o el lápiz).",
+             "En el modal elige «Agregar un número nuevo» → Continuar; si ya tienes uno, «Usar solo un nombre visible».",
+             "Verifica el número con el código que te envíen.",
+             "Copia el Phone number ID y el WABA ID y pégalos en Configuración avanzada del canal."]))
     steps.append(_step("token", "Token del system user", "done" if has_token else "todo",
         "El token temporal caduca; el permanente es el que deja el canal estable.",
         where="Misma página → sección «Enviar mensaje» → Paso 1: Genera un token",
@@ -154,6 +155,12 @@ def meta_setup(
             how=["Primero completa los pasos 2 a 4.",
                  "Después pega la URL de callback y el token de verificación."]))
 
+    steps.append(_step("permisos", "Permisos y funciones", "manual",
+        "Meta pide los permisos por separado y los revisa. Sin ellos la app solo sirve en modo prueba.",
+        where="Otras herramientas → Permisos y funciones → Agregar",
+        how=["Elige el número que quieres usar: «Agregar un número nuevo» la primera vez, o «Usar solo un nombre visible» si ya lo registraste.",
+             "Pulsa Continuar y agrega whatsapp_business_messaging y whatsapp_business_management.",
+             "Para producción necesitas acceso avanzado: el modo de prueba entrega solo a 5 destinatarios verificados."]))
     steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba.",
         where="Misma página → configuración del número",
         how=["Comprueba que la app aparezca suscrita a la cuenta de WhatsApp Business.",
@@ -186,6 +193,7 @@ def meta_setup(
         "webhook": "client",
         "scopes": "client",
         "subscribed": "client",
+        "permisos": "agency",
         "domain": "agency",
         "business": "agency",
         "test": "client",
