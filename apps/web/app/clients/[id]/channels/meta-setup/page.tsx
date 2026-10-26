@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Check, Copy, LoaderCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Copy, LoaderCircle, RefreshCw } from "lucide-react";
 import { api, messageFrom } from "@/lib/api";
 import { useToast } from "@/components/toast";
 
@@ -28,10 +28,10 @@ type Setup = {
 };
 
 function tone(status: string) {
-  if (status === "done") return { cls: "pill ok", mark: "✓", label: "Listo" };
-  if (status === "todo") return { cls: "pill bad", mark: "!", label: "Falta" };
-  if (status === "manual") return { cls: "pill warn", mark: "…", label: "Revisa Meta" };
-  return { cls: "pill warn", mark: "?", label: "Sin comprobar" };
+  if (status === "done") return { cls: "pill ok", mark: "✓" };
+  if (status === "todo") return { cls: "pill bad", mark: "!" };
+  if (status === "manual") return { cls: "pill warn", mark: "…" };
+  return { cls: "pill warn", mark: "?" };
 }
 
 export default function MetaSetupPage() {
@@ -39,7 +39,7 @@ export default function MetaSetupPage() {
   const clientId = params?.id ?? "";
   const toast = useToast();
   const [setup, setSetup] = useState<Setup | null>(null);
-  const [selected, setSelected] = useState(0);
+  const [open, setOpen] = useState<number | null>(0);
   const [busy, setBusy] = useState(false);
   const [appId, setAppId] = useState("");
   const [appSecret, setAppSecret] = useState("");
@@ -64,7 +64,10 @@ export default function MetaSetupPage() {
 
   useEffect(() => {
     api<{ app_id: string; has_secret: boolean }>("/agency/meta-app")
-      .then((value) => { setAppId(value.app_id); setHasSecret(value.has_secret); })
+      .then((value) => {
+        setAppId(value.app_id);
+        setHasSecret(value.has_secret);
+      })
       .catch(() => {});
   }, []);
 
@@ -105,8 +108,6 @@ export default function MetaSetupPage() {
     );
   }
 
-  const step = setup.steps[selected] ?? setup.steps[0];
-  const isWebhook = step.id === "webhook";
   const values = [
     { label: "Callback URL", value: setup.values.callback_url },
     { label: "Verify token", value: setup.values.verify_token },
@@ -122,8 +123,8 @@ export default function MetaSetupPage() {
           </Link>
           <h1 style={{ marginTop: 12 }}>Configurar Meta</h1>
           <p>
-            Sigue los pasos en orden. Los marcados <b>«Una vez por agencia»</b> se hacen solo la primera vez;
-            los marcados <b>«Por cliente»</b> se repiten para cada cliente que conectes.
+            Abre un paso y haz lo que dice. Los marcados <b>«una vez»</b> se hacen solo la primera vez; los
+            marcados <b>«por cliente»</b> se repiten para cada cliente que conectes.
           </p>
         </div>
         <div className="form-fields">
@@ -138,141 +139,150 @@ export default function MetaSetupPage() {
         </div>
       </section>
 
-      <div className="grid" style={{ gridTemplateColumns: "320px 1fr", gap: 18 }}>
-        <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 4 }}>
-          {setup.steps.map((item, index) => {
-            const t = tone(item.status);
-            return (
-              <li key={item.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelected(index)}
+      <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+        {setup.steps.map((step, index) => {
+          const t = tone(step.status);
+          const isOpen = open === index;
+          const isWebhook = step.id === "webhook";
+          return (
+            <li key={step.id} style={{ background: "#fff", border: "1px solid #e4e8ee", borderRadius: 12 }}>
+              <button
+                type="button"
+                onClick={() => setOpen(isOpen ? null : index)}
+                style={{
+                  width: "100%",
+                  display: "flex",
+                  gap: 12,
+                  alignItems: "center",
+                  padding: "14px 16px",
+                  background: isOpen ? "#eef6fb" : "transparent",
+                  border: 0,
+                  borderRadius: isOpen ? "12px 12px 0 0" : 12,
+                  cursor: "pointer",
+                  textAlign: "left",
+                }}
+              >
+                <span
+                  aria-hidden
                   style={{
-                    width: "100%",
-                    textAlign: "left",
-                    display: "flex",
-                    gap: 10,
-                    alignItems: "center",
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    border: "1px solid",
-                    borderColor: index === selected ? "var(--brand, #075985)" : "#e4e8ee",
-                    background: index === selected ? "#e6f0f6" : "#fff",
-                    fontWeight: index === selected ? 700 : 500,
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    display: "grid",
+                    placeItems: "center",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    background: step.status === "done" ? "#15803d" : "#e2e8f0",
+                    color: step.status === "done" ? "#fff" : "#475569",
+                    flex: "none",
                   }}
                 >
-                  <span
-                    aria-hidden
-                    style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "50%",
-                      display: "grid",
-                      placeItems: "center",
-                      fontSize: 11,
-                      fontWeight: 700,
-                      background: item.status === "done" ? "#15803d" : "#e2e8f0",
-                      color: item.status === "done" ? "#fff" : "#475569",
-                      flex: "none",
-                    }}
-                  >
-                    {item.status === "done" ? <Check size={12} /> : index + 1}
-                  </span>
-                  <span style={{ flex: 1 }}>
-                    {item.title}
-                    <small className="field-help" style={{ display: "block", fontSize: 11 }}>
-                      {item.scope === "agency" ? "una vez" : "por cliente"}
-                    </small>
-                  </span>
-                  <span className={t.cls} title={t.label}>
-                    {t.mark}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
-
-        <section className="form-section" style={{ margin: 0 }}>
-          <div className="section-copy">
-            <div className="row" style={{ gap: 8, marginBottom: 6 }}>
-              <span className={step.scope === "agency" ? "pill info" : "pill mute"}>
-                {step.scope === "agency" ? "Una vez por agencia" : "Por cliente"}
-              </span>
-            </div>
-            <h2>{step.title}</h2>
-            <p>{step.detail}</p>
-          </div>
-          <div className="form-fields">
-            {step.link && (
-              <a className="button" href={step.link} target="_blank" rel="noreferrer">
-                Abrir en Meta →
-              </a>
-            )}
-
-            {step.id === "credentials" && (
-              <div style={{ background: "#f8fafc", border: "1px solid #e4e8ee", borderRadius: 10, padding: "14px" }}>
-                <strong style={{ fontSize: 13 }}>Credenciales de la agencia</strong>
-                <p className="field-help" style={{ margin: "4px 0 10px" }}>
-                  Se guardan una vez y sirven para todos los clientes. {hasSecret ? "Ya hay un secret guardado." : "Todavía no hay secret guardado."}
-                </p>
-                <label className="field">
-                  App ID
-                  <input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="1234567890" />
-                </label>
-                <label className="field" style={{ marginTop: 10 }}>
-                  App Secret {hasSecret ? "(déjalo vacío para conservar el actual)" : ""}
-                  <input type="password" value={appSecret} onChange={(e) => setAppSecret(e.target.value)} placeholder="••••••••" />
-                </label>
-                <button type="button" className="button primary" style={{ marginTop: 12 }} onClick={saveApp} disabled={savingApp || !appId}>
-                  {savingApp ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} Guardar en la agencia
-                </button>
-              </div>
-            )}
-
-            {step.where && (
-              <div style={{ background: "#f8fafc", border: "1px solid #e4e8ee", borderRadius: 10, padding: "12px 14px" }}>
-                <strong style={{ fontSize: 13 }}>Dónde</strong>
-                <p className="field-help" style={{ margin: "4px 0 0" }}>{step.where}</p>
-              </div>
-            )}
-            {step.how?.length ? (
-              <div>
-                <strong style={{ fontSize: 13 }}>Qué hacer</strong>
-                <ol style={{ margin: "6px 0 0", paddingLeft: 20, fontSize: 13.5, lineHeight: 1.7 }}>
-                  {step.how.map((line) => <li key={line}>{line}</li>)}
-                </ol>
-              </div>
-            ) : null}
-
-            {isWebhook && (
-              <>
-                <h3 style={{ margin: "8px 0 0" }}>Valores para pegar en Meta</h3>
-                {values.map((item) => (
-              <label key={item.label}>
-                {item.label}
-                <span style={{ display: "flex", gap: 8 }}>
-                  <input readOnly value={item.value || "—"} />
-                  <button type="button" className="button" onClick={() => copy(item.value)} disabled={!item.value}>
-                    <Copy size={14} />
-                  </button>
+                  {step.status === "done" ? <Check size={13} /> : index + 1}
                 </span>
-              </label>
-            ))}
+                <span style={{ flex: 1 }}>
+                  <strong style={{ display: "block" }}>{step.title}</strong>
+                  <small className="field-help" style={{ fontSize: 11.5 }}>
+                    {step.scope === "agency" ? "una vez" : "por cliente"}
+                  </small>
+                </span>
+                <span className={t.cls}>{t.mark}</span>
+                <ChevronDown size={16} style={{ transform: isOpen ? "rotate(180deg)" : "none", opacity: 0.5 }} />
+              </button>
 
-                <p className="field-help">
-                  Pega cada valor en la pantalla de Meta que abre el botón de arriba, guarda allí y vuelve aquí a
-                  pulsar «Comprobar de nuevo».
-                </p>
-              </>
-            )}
-            <button type="button" className="button primary" onClick={load} disabled={busy}>
-              {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{" "}
-              {isWebhook ? "Ya lo pegué: comprobar" : "Comprobar de nuevo"}
-            </button>
-          </div>
-        </section>
-      </div>
+              {isOpen && (
+                <div style={{ padding: "4px 16px 18px 52px", display: "grid", gap: 14 }}>
+                  <p className="field-help" style={{ margin: 0 }}>{step.detail}</p>
+
+                  {step.id === "credentials" && (
+                    <div style={{ background: "#f8fafc", border: "1px solid #e4e8ee", borderRadius: 10, padding: 14 }}>
+                      <strong style={{ fontSize: 13 }}>Credenciales de la agencia</strong>
+                      <p className="field-help" style={{ margin: "4px 0 10px" }}>
+                        Se guardan una vez y sirven para todos los clientes.{" "}
+                        {hasSecret ? "Ya hay un secret guardado." : "Todavía no hay secret guardado."}
+                      </p>
+                      <label className="field">
+                        App ID
+                        <input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="1234567890" />
+                      </label>
+                      <label className="field" style={{ marginTop: 10 }}>
+                        App Secret {hasSecret ? "(vacío = conservar el actual)" : ""}
+                        <input
+                          type="password"
+                          value={appSecret}
+                          onChange={(e) => setAppSecret(e.target.value)}
+                          placeholder="••••••••"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="button primary"
+                        style={{ marginTop: 12 }}
+                        onClick={saveApp}
+                        disabled={savingApp || !appId}
+                      >
+                        {savingApp ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} Guardar en la
+                        agencia
+                      </button>
+                    </div>
+                  )}
+
+                  {step.where && (
+                    <div style={{ background: "#f8fafc", border: "1px solid #e4e8ee", borderRadius: 10, padding: "12px 14px" }}>
+                      <strong style={{ fontSize: 13 }}>Dónde</strong>
+                      <p className="field-help" style={{ margin: "4px 0 0" }}>{step.where}</p>
+                    </div>
+                  )}
+
+                  {step.how?.length ? (
+                    <div>
+                      <strong style={{ fontSize: 13 }}>Qué hacer</strong>
+                      <ol style={{ margin: "6px 0 0", paddingLeft: 20, fontSize: 13.5, lineHeight: 1.7 }}>
+                        {step.how.map((line) => (
+                          <li key={line}>{line}</li>
+                        ))}
+                      </ol>
+                    </div>
+                  ) : null}
+
+                  {isWebhook && (
+                    <>
+                      <strong style={{ fontSize: 13 }}>Valores para pegar en Meta</strong>
+                      {values.map((item) => (
+                        <label key={item.label}>
+                          {item.label}
+                          <span style={{ display: "flex", gap: 8 }}>
+                            <input readOnly value={item.value || "—"} />
+                            <button
+                              type="button"
+                              className="button"
+                              onClick={() => copy(item.value)}
+                              disabled={!item.value}
+                            >
+                              <Copy size={14} />
+                            </button>
+                          </span>
+                        </label>
+                      ))}
+                    </>
+                  )}
+
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                    {step.link && (
+                      <a className="button" href={step.link} target="_blank" rel="noreferrer">
+                        Abrir en Meta →
+                      </a>
+                    )}
+                    <button type="button" className="button primary" onClick={load} disabled={busy}>
+                      {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}{" "}
+                      {isWebhook ? "Ya lo pegué: comprobar" : "Comprobar de nuevo"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
 
       <section className="form-section">
         <div className="section-copy">

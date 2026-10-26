@@ -66,8 +66,10 @@ def meta_setup(
     steps: list[dict] = []
     has_credentials = bool(channel and channel.phone_number_id and channel.waba_id)
     has_token = bool(channel and channel.encrypted_access_token)
-    steps.append(_step("app", "App de Meta", "manual" if has_credentials else "todo",
-        "Crea la app una vez por agencia. Aquí no hay nada que copiar todavía.",
+    agency_row = db.get(Agency, user.agency_id)
+    app_registered = bool(agency_row and agency_row.meta_app_id)
+    steps.append(_step("app", "App de Meta", "done" if app_registered else "todo",
+        "Crea la app una vez por agencia y registra su App ID en el paso 2.",
         "https://developers.facebook.com/apps",
         where="developers.facebook.com/apps → Crear app → Nombre y correo → Siguiente → Casos de uso",
         how=["Elige el caso de uso «Conéctate con los clientes a través de WhatsApp».",
