@@ -178,7 +178,7 @@ def meta_setup(
                  "Después pega la URL de callback y el token de verificación."]))
 
     steps.append(_step("permisos", "Permisos y funciones", "manual",
-        "Meta pide los permisos por separado y los revisa. Sin ellos la app solo sirve en modo prueba.",
+        "Meta revisa estos permisos y no se pueden comprobar desde aquí: este paso no cambia solo. Cuando los agregues en Meta, dalo por hecho tu mismo.",
         where="Otras herramientas → Permisos y funciones → Agregar",
         how=["Pulsa «+ Agregar» solo en whatsapp_business_messaging y whatsapp_business_management.",
              "Si vas a gestionar cuentas de clientes, agrega también business_management.",

@@ -31,7 +31,7 @@ type Setup = {
 function tone(status: string) {
   if (status === "done") return { cls: "pill ok", mark: "✓" };
   if (status === "todo") return { cls: "pill bad", mark: "!" };
-  if (status === "manual") return { cls: "pill warn", mark: "…" };
+  if (status === "manual") return { cls: "pill mute", mark: "i" };
   return { cls: "pill warn", mark: "?" };
 }
 
