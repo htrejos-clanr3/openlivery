@@ -433,6 +433,20 @@ function WhatsAppCloudChannelPageInner() {
       <div className="wa-layout">
         <main>
           {progress && (
+            <section className="wa-panel" style={{ borderColor: "#bfdbfe", background: "#eff6ff" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+                <div>
+                  <strong>Paso a paso guiado</strong>
+                  <p className="field-help" style={{ margin: "4px 0 0" }}>
+                    Los diez pasos con el enlace, el valor a pegar y su comprobación después de cada uno.
+                  </p>
+                </div>
+                <Link className="button primary" href={`/clients/${id}/channels/meta-setup`}>
+                  Abrir el paso a paso
+                </Link>
+              </div>
+            </section>
+
             <section className="wa-panel">
               <div className="wa-panel-head"><span><Sparkles size={19} /></span><div><h2>{t("clients.whatsappCloud.configuringTitle")}</h2><p>{t("clients.whatsappCloud.configuringCopy")}</p></div></div>
               <ul className="wa-progress">
