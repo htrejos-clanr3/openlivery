@@ -74,7 +74,7 @@ def meta_setup(
         where="developers.facebook.com/apps → Crear app → Nombre y correo → Siguiente → Casos de uso",
         how=["Elige el caso de uso «Conéctate con los clientes a través de WhatsApp».",
              "Si ya la creaste, ábrela en «Mis apps».",
-             "Vuelve aquí: el paso se pondrá verde cuando existan credenciales."]))
+             "Registra su App ID y su secret en el paso 2: hasta entonces este paso no puede ponerse verde."]))
     agency = db.get(Agency, user.agency_id)
     has_app = bool(agency and agency.meta_app_id and agency.encrypted_meta_app_secret)
     steps.append(_step("credentials", "App ID y secret",

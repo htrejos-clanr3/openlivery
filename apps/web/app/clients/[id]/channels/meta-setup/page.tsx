@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Check, ChevronDown, Copy, LoaderCircle, RefreshCw } from "lucide-react";
@@ -45,11 +45,21 @@ export default function MetaSetupPage() {
   const [appSecret, setAppSecret] = useState("");
   const [hasSecret, setHasSecret] = useState(false);
   const [savingApp, setSavingApp] = useState(false);
+  const setupRef = useRef<Setup | null>(null);
 
   const load = useCallback(async () => {
     setBusy(true);
     try {
       const next = await api<Setup>(`/clients/${clientId}/meta-setup`);
+      const previous = setupRef.current;
+      const changed = !previous
+        || previous.summary.green !== next.summary.green
+        || previous.summary.red !== next.summary.red;
+      if (previous) {
+        if (changed) toast.success(`Actualizado: ${next.summary.green} listos, ${next.summary.red} por corregir`);
+        else toast.info("Comprobado: sin cambios. Revisa el paso que falta.");
+      }
+      setupRef.current = next;
       setSetup(next);
     } catch (err) {
       toast.error(messageFrom(err));
@@ -264,6 +274,12 @@ export default function MetaSetupPage() {
                         </label>
                       ))}
                     </>
+                  )}
+
+                  {step.id === "app" && (
+                    <button type="button" className="button" onClick={() => setOpen(1)} style={{ justifySelf: "start" }}>
+                      Ir al paso 2: registrar App ID →
+                    </button>
                   )}
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
