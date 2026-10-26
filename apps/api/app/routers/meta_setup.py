@@ -65,6 +65,7 @@ def meta_setup(
 
     agency_row = db.get(Agency, user.agency_id)
     app_registered = bool(agency_row and agency_row.meta_app_id)
+    has_app = bool(agency_row and agency_row.meta_app_id and agency_row.encrypted_meta_app_secret)
     steps: list[dict] = []
     has_credentials = bool(channel and channel.phone_number_id and channel.waba_id)
     has_token = bool(channel and channel.encrypted_access_token)
