@@ -16,6 +16,7 @@ type Step = {
   value: string;
   where: string;
   how: string[];
+  scope: string;
 };
 
 type Setup = {
@@ -91,8 +92,8 @@ export default function MetaSetupPage() {
           </Link>
           <h1 style={{ marginTop: 12 }}>Configurar Meta</h1>
           <p>
-            Sigue los pasos en orden. En cada uno verás el enlace, el valor que debes pegar en Meta y su
-            estado. Nada se publica hasta que todo esté en verde.
+            Sigue los pasos en orden. Los marcados <b>«Una vez por agencia»</b> se hacen solo la primera vez;
+            los marcados <b>«Por cliente»</b> se repiten para cada cliente que conectes.
           </p>
         </div>
         <div className="form-fields">
@@ -147,7 +148,12 @@ export default function MetaSetupPage() {
                   >
                     {item.status === "done" ? <Check size={12} /> : index + 1}
                   </span>
-                  <span style={{ flex: 1 }}>{item.title}</span>
+                  <span style={{ flex: 1 }}>
+                    {item.title}
+                    <small className="field-help" style={{ display: "block", fontSize: 11 }}>
+                      {item.scope === "agency" ? "una vez" : "por cliente"}
+                    </small>
+                  </span>
                   <span className={t.cls} title={t.label}>
                     {t.mark}
                   </span>
@@ -159,6 +165,11 @@ export default function MetaSetupPage() {
 
         <section className="form-section" style={{ margin: 0 }}>
           <div className="section-copy">
+            <div className="row" style={{ gap: 8, marginBottom: 6 }}>
+              <span className={step.scope === "agency" ? "pill info" : "pill mute"}>
+                {step.scope === "agency" ? "Una vez por agencia" : "Por cliente"}
+              </span>
+            </div>
             <h2>{step.title}</h2>
             <p>{step.detail}</p>
           </div>

@@ -79,7 +79,7 @@ def meta_setup(
         where="Tu app → Configuración de la app → Básica",
         how=["Copia «Identificador de la app».",
              "Pulsa «Mostrar» en «Clave secreta» y cópiala.",
-             "Pega ambos en Configuración avanzada del canal y guarda."]))
+             "Pega ambos en Configuración → Meta: se guardan una vez para toda la agencia."]))
     steps.append(_step("waba", "WABA y número", "done" if has_credentials else "todo",
         f"Phone number ID {channel.phone_number_id}" if has_credentials else "Los dos identificadores del número y de la cuenta.",
         where="Tu app → WhatsApp → Configuración de la API",
@@ -155,6 +155,21 @@ def meta_setup(
         how=["Añade tu número en «Para» de la configuración de la API.",
              "Envía el mensaje de prueba desde Meta y confirma que llega.",
              "Después pruébalo desde el Playground con este canal."]))
+
+    scope_by_step = {
+        "app": "agency",
+        "credentials": "agency",
+        "waba": "client",
+        "token": "client",
+        "webhook": "client",
+        "scopes": "client",
+        "subscribed": "client",
+        "domain": "agency",
+        "business": "agency",
+        "test": "client",
+    }
+    for step in steps:
+        step["scope"] = scope_by_step.get(step["id"], "client")
 
     counts = {"green": 0, "amber": 0, "red": 0}
     for step in steps:
