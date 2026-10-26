@@ -190,7 +190,7 @@ export default function MetaSetupPage() {
                   {step.status === "done" ? <Check size={13} /> : index + 1}
                 </span>
                 <span style={{ flex: 1 }}>
-                  <strong style={{ display: "block" }}>{step.title}</strong>
+                  <strong style={{ display: "block" }}>{index + 1}. {step.title}</strong>
                   <small className="field-help" style={{ fontSize: 11.5 }}>
                     {step.scope === "agency" ? "una vez" : "por cliente"}
                   </small>
@@ -280,6 +280,21 @@ export default function MetaSetupPage() {
                     <button type="button" className="button" onClick={() => setOpen(1)} style={{ justifySelf: "start" }}>
                       Ir al paso 2: registrar App ID →
                     </button>
+                  )}
+
+                  {(step.id === "waba" || step.id === "token") && (
+                    <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 10, padding: "12px 14px" }}>
+                      <strong style={{ fontSize: 13 }}>Dónde se guarda este dato</strong>
+                      <p className="field-help" style={{ margin: "4px 0 10px" }}>
+                        En la página del canal, sección «Configuración avanzada»:{" "}
+                        {step.id === "waba"
+                          ? "Phone number ID y WABA ID."
+                          : "Token de acceso permanente (el temporal de 24 h no sirve para operar)."}
+                      </p>
+                      <Link className="button primary" href={`/clients/${clientId}/channels/whatsapp-cloud`}>
+                        Abrir la configuración del canal →
+                      </Link>
+                    </div>
                   )}
 
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
