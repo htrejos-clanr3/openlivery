@@ -87,7 +87,7 @@ def meta_setup(
     steps.append(_step("waba", "WABA y número", "done" if has_credentials else "todo",
         f"Phone number ID {channel.phone_number_id}" if has_credentials else "Los dos identificadores del número y de la cuenta.",
         where="Tu app → WhatsApp → Configuración de la API",
-        how=["Si no ves «WhatsApp» en el menú izquierdo, ve a Panel → Productos → WhatsApp → Configurar.",
+        how=["Si no ves «WhatsApp» en el menú, entra a Panel y pulsa la fila «Personalizar el caso de uso: Conéctate con los clientes a través de WhatsApp», o abre el menú «Casos de uso».",
              "Copia «Identificador del número de teléfono».",
              "Copia «Identificador de la cuenta de WhatsApp Business».",
              "Pégalos en Configuración avanzada del canal y guarda."]))
@@ -122,7 +122,7 @@ def meta_setup(
                 scopes_detail = f"Falta {', '.join(missing)}" if missing else "Permisos completos."
         steps.append(_step("webhook", "Webhook registrado", webhook_status, webhook_detail, value=callback,
             where="Tu app → WhatsApp → Configuración → Webhook → Editar",
-            how=["El menú WhatsApp solo existe si agregaste el producto; si no está, completa el paso 3.",
+            how=["El menú WhatsApp vive dentro de ese caso de uso; si no lo ves, abre «Casos de uso» y pulsa Personalizar en el de WhatsApp.",
                  "Pega la URL de callback y el token de verificación de abajo.",
                  "Pulsa «Verificar y guardar».",
                  "Suscribe el campo messages."]))
@@ -133,7 +133,7 @@ def meta_setup(
     else:
         steps.append(_step("webhook", "Webhook registrado", "todo", "Se registra cuando exista un token.", value=callback,
             where="Tu app → WhatsApp → Configuración → Webhook → Editar",
-            how=["Primero completa los pasos 2 a 4 (incluido agregar el producto WhatsApp).",
+            how=["Primero completa los pasos 2 a 4 (incluido personalizar el caso de uso de WhatsApp).",
                  "Después pega la URL de callback y el token de verificación."]))
         steps.append(_step("scopes", "Permisos concedidos", "todo", "Se comprueban cuando exista un token.",
             how=["Necesitas whatsapp_business_messaging y whatsapp_business_management."]))
