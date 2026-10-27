@@ -7,6 +7,7 @@ import {
   RefreshCw, ShieldAlert, Webhook, Wrench,
 } from "lucide-react";
 import { Alert } from "@/components/ui";
+import { AgencyMetaAppCard } from "@/components/agency-meta-app-card";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
@@ -232,6 +233,8 @@ export default function MetaSettingsPage() {
       </div>
 
       {error && <Alert>{error}</Alert>}
+
+      <AgencyMetaAppCard />
 
       {disabled ? (
         <section className="wa-panel">
