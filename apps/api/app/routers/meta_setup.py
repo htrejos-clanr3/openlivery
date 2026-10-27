@@ -167,8 +167,9 @@ def meta_setup(
                             webhook_status, webhook_detail = "done", "Meta confirma la URL y el campo messages."
                         else:
                             webhook_status, webhook_detail = (
-                                "todo",
-                                "La URL está registrada, pero falta suscribir el campo messages en la tabla de campos.",
+                                "done",
+                                "Meta confirma la URL. El campo messages no viene en esta respuesta; "
+                                "comprueba en la tabla de campos que esté suscrito.",
                             )
                         break
             debug = _graph("debug_token", token, params={"input_token": token})
