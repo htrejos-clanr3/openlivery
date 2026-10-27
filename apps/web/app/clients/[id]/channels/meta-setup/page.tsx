@@ -51,6 +51,8 @@ export default function MetaSetupPage() {
   const [wabaId, setWabaId] = useState("");
   const [tokenInput, setTokenInput] = useState("");
   const [savingChannel, setSavingChannel] = useState(false);
+  const agencyReady =
+    (setupRef.current?.steps ?? []).some((item) => item.id === "credentials" && item.status === "done") || false;
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -179,22 +181,35 @@ export default function MetaSetupPage() {
         </div>
       </section>
 
+      <section className="form-section">
+        <div className="section-copy">
+          <h2 style={{ fontSize: 15 }}>App de la agencia</h2>
+          <p className="field-help">
+            {agencyReady
+              ? "App ID y secret guardados. Este cliente no vuelve a pedirlos."
+              : "Falta la app de Meta de la agencia: sin ella este cliente no puede validarse."}
+          </p>
+        </div>
+        <div className="form-fields">
+          <Link className="button" href="/settings/meta">
+            {agencyReady ? "Ver configuración de la agencia" : "Configurar la app de la agencia"} →
+          </Link>
+        </div>
+      </section>
+
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
-        {setup.steps.map((step, index) => {
+        {setup.steps.filter((item) => item.scope !== "agency").map((step, index) => {
           const t = tone(step.status);
           const isOpen = open === index;
           const isWebhook = step.id === "webhook";
-          const previousScope = index > 0 ? setup.steps[index - 1].scope : null;
           return (
             <Fragment key={step.id}>
-            {step.scope !== previousScope && (
+            {index === 0 && (
               <li
                 className="field-help"
                 style={{ textTransform: "uppercase", letterSpacing: ".04em", fontSize: 11, padding: "14px 4px 2px", fontWeight: 600 }}
               >
-                {step.scope === "agency"
-                  ? "Configuración de la agencia · se hace una vez"
-                  : "Configuración de este cliente"}
+                Configuración de este cliente
               </li>
             )}
             <li key={step.id} style={{ background: "#fff", border: "1px solid #e4e8ee", borderRadius: 12 }}>
