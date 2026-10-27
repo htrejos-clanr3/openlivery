@@ -271,6 +271,10 @@ def save_channel(
         channel.waba_id = payload.waba_id.strip()[:80] or None
     if payload.access_token:
         channel.encrypted_access_token = encrypt_secret(payload.access_token.strip())
+    phone = channel.phone_number_id or ""
+    if phone and not phone.startswith("mock") and channel.encrypted_access_token:
+        channel.is_enabled = True
+        channel.status = "connected"
     channel.updated_at = now_utc()
     db.commit()
     return {"ok": True}
