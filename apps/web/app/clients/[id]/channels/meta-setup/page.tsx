@@ -378,8 +378,13 @@ export default function MetaSetupPage() {
           <h2>¿Puedo cerrar?</h2>
           <p>
             {setup.can_close
-              ? "Sí. Los puntos ámbar dependen de una revisión de Meta y se comprueban solos; no bloquean el uso del canal."
+              ? "Sí. No queda ningún paso en rojo que dependa de ti."
               : "Todavía no: hay puntos en rojo que sí puedes corregir tú. Ábrelos en la lista y sigue la instrucción."}
+          </p>
+          <p className="field-help" style={{ marginTop: 8 }}>
+            La verificación de negocio y el método de pago no son requisitos para responder: con el número
+            conectado puedes atender hasta 1.000 conversaciones de servicio gratis al mes por número. Solo hacen
+            falta para iniciar tú la conversación o para pasar de 2 números.
           </p>
         </div>
       </section>

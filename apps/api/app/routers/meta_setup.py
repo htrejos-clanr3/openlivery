@@ -194,13 +194,6 @@ def meta_setup(
             how=["Primero completa los pasos 2 a 4.",
                  "Después pega la URL de callback y el token de verificación."]))
 
-    steps.append(_step("business", "Verificación de negocio", "manual",
-        "La revisa Meta; no se puede automatizar.",
-        "https://business.facebook.com/settings",
-        where="Caso de uso → Paso 3: Verificación del negocio (en tu panel ya aparece en verde)",
-        how=["Los documentos se suben en business.facebook.com → Centro de seguridad.",
-             "Añade método de pago: hace falta para mensajes iniciados por la empresa; las respuestas de servicio tienen 1.000 gratis al mes por número.",
-             "Para conectar la WABA de tus clientes necesitas además «Conviértete en proveedor de tecnología»."]))
     steps.append(_step("test", "Mensaje de prueba",
         "done" if channel and channel.status == "connected" else "todo",
         "Ningún mensaje ha entrado todavía. El canal pasa a conectado cuando Meta entrega el primero.",
@@ -216,7 +209,6 @@ def meta_setup(
         "token": "client",
         "webhook": "client",
         "scopes": "client",
-        "business": "agency",
         "test": "client",
     }
     for step in steps:
