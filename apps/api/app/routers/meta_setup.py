@@ -275,6 +275,20 @@ def save_channel(
     if phone and not phone.startswith("mock") and channel.encrypted_access_token:
         channel.is_enabled = True
         channel.status = "connected"
+        from ..security import decrypt_secret as _decrypt
+
+        saved_token = channel.encrypted_access_token
+        if saved_token:
+            info = _graph(
+                phone,
+                _decrypt(saved_token),
+                params={"fields": "display_phone_number,verified_name"},
+            )
+            if isinstance(info, dict):
+                if info.get("display_phone_number"):
+                    channel.phone_number = str(info["display_phone_number"])[:40]
+                if info.get("verified_name"):
+                    channel.display_name = str(info["verified_name"])[:120]
     channel.updated_at = now_utc()
     db.commit()
     return {"ok": True}
