@@ -61,8 +61,14 @@ export default function MetaSetupPage() {
         || previous.summary.green !== next.summary.green
         || previous.summary.red !== next.summary.red;
       if (previous) {
-        if (changed) toast.success(`Actualizado: ${next.summary.green} listos, ${next.summary.red} por corregir`);
-        else toast.info("Comprobado: sin cambios. Revisa el paso que falta.");
+        const blocking = next.steps.filter((item) => item.status === "todo").map((item) => item.title);
+        if (changed) {
+          toast.success(`Actualizado: ${next.summary.green} listos, ${next.summary.red} por corregir`);
+        } else if (blocking.length) {
+          toast.info(`Sin cambios. Sigue pendiente: ${blocking.join(" · ")}.`);
+        } else {
+          toast.success("Comprobado: ningún paso en rojo.");
+        }
       }
       setupRef.current = next;
       setSetup(next);

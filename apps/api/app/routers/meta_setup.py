@@ -132,7 +132,7 @@ def meta_setup(
                     else:
                         waba_status, waba_detail = (
                             "manual",
-                            "No se puede confirmar por API. Se activa con «Suscribir webhooks» en la tarjeta del número; si los mensajes llegan, está hecha.",
+                            "Meta no expone este estado por API. Si el interruptor «Suscribir webhooks» está activo en la tarjeta del número, ya está hecho: no requiere más acción.",
                         )
             if token.startswith("mock"):
                 for entry in steps:
@@ -204,7 +204,7 @@ def meta_setup(
              "Para conectar la WABA de tus clientes necesitas además «Conviértete en proveedor de tecnología»."]))
     steps.append(_step("test", "Mensaje de prueba",
         "done" if channel and channel.status == "connected" else "todo",
-        "Envía un mensaje real al número conectado.",
+        "Ningún mensaje ha entrado todavía. El canal pasa a conectado cuando Meta entrega el primero.",
         where="Tu app → Casos de uso → Conectar en WhatsApp → Configuración de producción → Enviar mensaje → Paso 2",
         how=["Añade tu número como destinatario verificado.",
              "Envía el mensaje de prueba desde Meta y confirma que llega.",
