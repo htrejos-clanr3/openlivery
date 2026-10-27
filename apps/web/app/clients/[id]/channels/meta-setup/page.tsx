@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Check, ChevronDown, Copy, LoaderCircle, RefreshCw } from "lucide-react";
@@ -184,7 +184,19 @@ export default function MetaSetupPage() {
           const t = tone(step.status);
           const isOpen = open === index;
           const isWebhook = step.id === "webhook";
+          const previousScope = index > 0 ? setup.steps[index - 1].scope : null;
           return (
+            <Fragment key={step.id}>
+            {step.scope !== previousScope && (
+              <li
+                className="field-help"
+                style={{ textTransform: "uppercase", letterSpacing: ".04em", fontSize: 11, padding: "14px 4px 2px", fontWeight: 600 }}
+              >
+                {step.scope === "agency"
+                  ? "Configuración de la agencia · se hace una vez"
+                  : "Configuración de este cliente"}
+              </li>
+            )}
             <li key={step.id} style={{ background: "#fff", border: "1px solid #e4e8ee", borderRadius: 12 }}>
               <button
                 type="button"
@@ -369,6 +381,7 @@ export default function MetaSetupPage() {
                 </div>
               )}
             </li>
+            </Fragment>
           );
         })}
       </ol>
