@@ -163,10 +163,13 @@ def meta_setup(
                     url = (item or {}).get("callback_url")
                     fields = (item or {}).get("fields") or []
                     if isinstance(url, str) and url.rstrip("/") == callback.rstrip("/"):
-                        webhook_status = "done"
-                        webhook_detail = "Meta confirma la URL a nivel de app." + (
-                            "" if "messages" in fields else " Falta suscribir el campo messages."
-                        )
+                        if "messages" in fields:
+                            webhook_status, webhook_detail = "done", "Meta confirma la URL y el campo messages."
+                        else:
+                            webhook_status, webhook_detail = (
+                                "todo",
+                                "La URL está registrada, pero falta suscribir el campo messages en la tabla de campos.",
+                            )
                         break
             debug = _graph("debug_token", token, params={"input_token": token})
             data = (debug or {}).get("data") or {}
@@ -191,10 +194,6 @@ def meta_setup(
             how=["Primero completa los pasos 2 a 4.",
                  "Después pega la URL de callback y el token de verificación."]))
 
-    steps.append(_step("subscribed", "App suscrita a la WABA", waba_status, waba_detail,
-        where="Tu app → Casos de uso → Conectar en WhatsApp → Configuración de producción → Registra tu número de teléfono → «Suscribir webhooks»",
-        how=["En la tarjeta del número, activa «Suscribir webhooks».",
-             "Después envía un mensaje de prueba: si entra, la suscripción está hecha."]))
     steps.append(_step("business", "Verificación de negocio", "manual",
         "La revisa Meta; no se puede automatizar.",
         "https://business.facebook.com/settings",
@@ -217,7 +216,6 @@ def meta_setup(
         "token": "client",
         "webhook": "client",
         "scopes": "client",
-        "subscribed": "client",
         "business": "agency",
         "test": "client",
     }
