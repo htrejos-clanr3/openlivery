@@ -82,13 +82,32 @@ def _parse_message(message: dict, contacts: dict[str, str]) -> InboundMessage | 
 )
 async def receive_webhook(channel_id: uuid.UUID, request: Request, db: Session = Depends(get_db)):
     channel = _channel(db, channel_id)
-    app_secret = resolve_app_secret_for_channel(channel)
-    if not app_secret:
+    from ..models import Agency, Client
+    from ..security import decrypt_secret
+
+    candidates: list[str] = []
+    channel_secret = resolve_app_secret_for_channel(channel)
+    if channel_secret:
+        candidates.append(channel_secret)
+    owner = db.get(Client, channel.client_id) if getattr(channel, "client_id", None) else None
+    if owner is not None:
+        agency = db.get(Agency, owner.agency_id)
+        if agency is not None and agency.encrypted_meta_app_secret:
+            agency_secret = decrypt_secret(agency.encrypted_meta_app_secret)
+            if agency_secret and agency_secret not in candidates:
+                candidates.append(agency_secret)
+    if not candidates:
         raise HTTPException(status_code=403, detail="Channel is not configured")
     raw = await request.body()
-    expected = "sha256=" + hmac.new(app_secret.encode(), raw, hashlib.sha256).hexdigest()
     signature = request.headers.get("X-Hub-Signature-256") or ""
-    if not hmac.compare_digest(signature, expected):
+    valid = any(
+        hmac.compare_digest(
+            signature,
+            "sha256=" + hmac.new(secret.encode(), raw, hashlib.sha256).hexdigest(),
+        )
+        for secret in candidates
+    )
+    if not valid:
         raise HTTPException(status_code=403, detail="Invalid signature")
 
     # From here on always acknowledge with 200: Meta retries non-2xx responses,
