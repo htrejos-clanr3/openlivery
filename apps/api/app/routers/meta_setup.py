@@ -106,7 +106,7 @@ def meta_setup(
              "Si Meta responde «already in use by another WhatsApp account», el número ya está en otra cuenta: elimínala desde el teléfono (Ajustes → Cuenta → Eliminar cuenta) o usa otro número. Meta no migra números entre cuentas."]))
     steps.append(_step("token", "Token del system user", "done" if has_token else "todo",
         "El token temporal caduca; el permanente es el que deja el canal estable.",
-        where="Misma página → sección «Enviar mensaje» → Paso 1: Genera un token",
+        where="Tu app → Casos de uso → Conectar en WhatsApp → Configuración de producción → Enviar mensaje → Paso 1: Genera un token",
         how=["Pulsa «Generar token»: Meta emite uno permanente para la cuenta.",
              "Cópialo y pégalo en Configuración avanzada del canal.",
              "Alternativa con control total: business.facebook.com → Usuarios del sistema."]))
@@ -167,7 +167,7 @@ def meta_setup(
                 if scopes_status == "done":
                     entry["status"] = "done"
         steps.append(_step("webhook", "Webhook registrado", webhook_status, webhook_detail, value=callback,
-            where="Misma página → «Configurar webhooks» (arriba del todo)",
+            where="Tu app → Casos de uso → Conectar en WhatsApp → Configuración de producción → Configurar webhooks",
             how=["Pega la URL de callback y el token de verificación de abajo.",
                  "Pulsa «Verificar y guardar».",
                  "Suscribe el campo messages."]))
@@ -178,7 +178,7 @@ def meta_setup(
                  "Después pega la URL de callback y el token de verificación."]))
 
     steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba.",
-        where="Misma página → configuración del número",
+        where="WhatsApp Manager → Inicio → Cuenta de WhatsApp Business",
         how=["Comprueba que la app aparezca suscrita a la cuenta de WhatsApp Business.",
              "Vuelve aquí y pulsa «Comprobar de nuevo»."]))
     steps.append(_step("business", "Verificación de negocio", "manual",
@@ -191,7 +191,7 @@ def meta_setup(
     steps.append(_step("test", "Mensaje de prueba",
         "done" if channel and channel.status == "connected" else "todo",
         "Envía un mensaje real al número conectado.",
-        where="Misma página → «Enviar mensaje» → Paso 2: envía un mensaje desde tu número registrado",
+        where="Tu app → Casos de uso → Conectar en WhatsApp → Configuración de producción → Enviar mensaje → Paso 2",
         how=["Añade tu número como destinatario verificado.",
              "Envía el mensaje de prueba desde Meta y confirma que llega.",
              "Después pruébalo desde el Playground con este canal."]))
@@ -209,6 +209,20 @@ def meta_setup(
     }
     for step in steps:
         step["scope"] = scope_by_step.get(step["id"], "client")
+
+    app_url = f"https://developers.facebook.com/apps/{agency_row.meta_app_id}" if agency_row and agency_row.meta_app_id else ""
+    specific_links = {
+        "app": "https://developers.facebook.com/apps",
+        "credentials": f"{app_url}/settings/basic/" if app_url else "https://developers.facebook.com/apps",
+        "waba": "https://business.facebook.com/wa/manage/phone-numbers/",
+        "token": f"{app_url}/use_cases/" if app_url else "https://business.facebook.com/wa/manage/home/",
+        "webhook": f"{app_url}/use_cases/" if app_url else "https://developers.facebook.com/apps",
+        "subscribed": "https://business.facebook.com/wa/manage/home/",
+        "business": "https://business.facebook.com/settings/security_center/",
+        "test": f"{app_url}/use_cases/" if app_url else "https://business.facebook.com/wa/manage/home/",
+    }
+    for entry in steps:
+        entry["link"] = specific_links.get(entry["id"], entry.get("link") or "")
 
     counts = {"green": 0, "amber": 0, "red": 0}
     for step in steps:
