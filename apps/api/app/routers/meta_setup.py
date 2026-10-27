@@ -130,7 +130,10 @@ def meta_setup(
                     if our_app and our_app in ids:
                         waba_status, waba_detail = "done", "Tu app está suscrita a la cuenta."
                     else:
-                        waba_status, waba_detail = "todo", "Tu app no aparece suscrita: pulsa «Suscribirse» en WhatsApp Manager."
+                        waba_status, waba_detail = (
+                            "manual",
+                            "No se puede confirmar por API. Se activa con «Suscribir webhooks» en la tarjeta del número; si los mensajes llegan, está hecha.",
+                        )
             if token.startswith("mock"):
                 for entry in steps:
                     if entry["id"] == "token":
@@ -189,9 +192,9 @@ def meta_setup(
                  "Después pega la URL de callback y el token de verificación."]))
 
     steps.append(_step("subscribed", "App suscrita a la WABA", waba_status, waba_detail,
-        where="WhatsApp Manager → Inicio → Cuenta de WhatsApp Business",
-        how=["Comprueba que la app aparezca suscrita a la cuenta de WhatsApp Business.",
-             "Vuelve aquí y pulsa «Comprobar de nuevo»."]))
+        where="Tu app → Casos de uso → Conectar en WhatsApp → Configuración de producción → Registra tu número de teléfono → «Suscribir webhooks»",
+        how=["En la tarjeta del número, activa «Suscribir webhooks».",
+             "Después envía un mensaje de prueba: si entra, la suscripción está hecha."]))
     steps.append(_step("business", "Verificación de negocio", "manual",
         "La revisa Meta; no se puede automatizar.",
         "https://business.facebook.com/settings",
@@ -228,7 +231,7 @@ def meta_setup(
         "waba": "https://business.facebook.com/wa/manage/phone-numbers/",
         "token": f"{app_url}/use_cases/" if app_url else "https://business.facebook.com/wa/manage/home/",
         "webhook": f"{app_url}/use_cases/" if app_url else "https://developers.facebook.com/apps",
-        "subscribed": "https://business.facebook.com/wa/manage/home/",
+        "subscribed": f"{app_url}/use_cases/" if app_url else "https://business.facebook.com/wa/manage/home/",
         "business": "https://business.facebook.com/settings/security_center/",
         "test": f"{app_url}/use_cases/" if app_url else "https://business.facebook.com/wa/manage/home/",
     }
