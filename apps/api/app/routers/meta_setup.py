@@ -111,6 +111,7 @@ def meta_setup(
              "Cópialo y pégalo en Configuración avanzada del canal.",
              "Alternativa con control total: business.facebook.com → Usuarios del sistema."]))
 
+    waba_status, waba_detail = "unknown", "No se pudo comprobar la suscripción con Meta."
     if channel and has_token:
         from .. import security as security_module
         decrypt = (getattr(security_module, "decrypt_secret", None)
@@ -120,6 +121,16 @@ def meta_setup(
         webhook_status, webhook_detail = "unknown", "No se pudo comprobar contra Meta."
         scopes_status, scopes_detail = "unknown", "No se pudieron leer los permisos concedidos."
         if token:
+            if channel.waba_id and not channel.waba_id.startswith("mock"):
+                subscribed = _graph(f"{channel.waba_id}/subscribed_apps", token)
+                rows = (subscribed or {}).get("data")
+                if isinstance(rows, list):
+                    ids = {str((row or {}).get("id")) for row in rows}
+                    our_app = (agency_row.meta_app_id if agency_row else "") or ""
+                    if our_app and our_app in ids:
+                        waba_status, waba_detail = "done", "Tu app está suscrita a la cuenta."
+                    else:
+                        waba_status, waba_detail = "todo", "Tu app no aparece suscrita: pulsa «Suscribirse» en WhatsApp Manager."
             if token.startswith("mock"):
                 for entry in steps:
                     if entry["id"] == "token":
@@ -177,7 +188,7 @@ def meta_setup(
             how=["Primero completa los pasos 2 a 4.",
                  "Después pega la URL de callback y el token de verificación."]))
 
-    steps.append(_step("subscribed", "App suscrita a la WABA", "unknown", "Se reintenta desde el canal; no bloquea la prueba.",
+    steps.append(_step("subscribed", "App suscrita a la WABA", waba_status, waba_detail,
         where="WhatsApp Manager → Inicio → Cuenta de WhatsApp Business",
         how=["Comprueba que la app aparezca suscrita a la cuenta de WhatsApp Business.",
              "Vuelve aquí y pulsa «Comprobar de nuevo»."]))
