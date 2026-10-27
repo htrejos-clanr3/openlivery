@@ -51,8 +51,7 @@ export default function MetaSetupPage() {
   const [wabaId, setWabaId] = useState("");
   const [tokenInput, setTokenInput] = useState("");
   const [savingChannel, setSavingChannel] = useState(false);
-  const agencyReady =
-    (setupRef.current?.steps ?? []).some((item) => item.id === "credentials" && item.status === "done") || false;
+  const [agencyReady, setAgencyReady] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -74,6 +73,7 @@ export default function MetaSetupPage() {
       }
       setupRef.current = next;
       setSetup(next);
+      setAgencyReady(next.steps.some((item) => item.id === "credentials" && item.status === "done"));
       setPhoneId(next.channel.phone_number_id);
       setWabaId(next.channel.waba_id);
     } catch (err) {
