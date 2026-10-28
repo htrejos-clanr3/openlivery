@@ -166,7 +166,7 @@ def main() -> int:
                 "Documentación disponible:",
                 "- `docs/self-hosting.md` — instalación y operación técnica",
                 "- `README.md` — visión general",
-                "- Sitio externo referenciado en README: https://openlivery.com/docs",
+                "- Sitio externo referenciado en README: https://fast-livery.com/docs",
                 "",
                 "## Corrida real en playground",
                 "",

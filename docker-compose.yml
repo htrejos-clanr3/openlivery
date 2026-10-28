@@ -1,9 +1,9 @@
-name: openlivery
+name: fast-livery
 
 services:
   db:
     image: postgres:17.6-alpine
-    container_name: openlivery_db
+    container_name: fast-livery_db
     env_file:
       - .env.docker
     volumes:
@@ -23,8 +23,8 @@ services:
     build:
       context: ./apps/api
       dockerfile: Dockerfile
-    image: ${OPENLIVERY_IMAGE_PREFIX:-ghcr.io/sarrazola/openlivery}-api:${OPENLIVERY_VERSION:-latest}
-    container_name: openlivery_api
+    image: ${OPENLIVERY_IMAGE_PREFIX:-ghcr.io/sarrazola/fast-livery}-api:${OPENLIVERY_VERSION:-latest}
+    container_name: fast-livery_api
     env_file:
       - .env.docker
     environment:
@@ -59,8 +59,8 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
-    image: ${OPENLIVERY_IMAGE_PREFIX:-ghcr.io/sarrazola/openlivery}-web:${OPENLIVERY_VERSION:-latest}
-    container_name: openlivery_web
+    image: ${OPENLIVERY_IMAGE_PREFIX:-ghcr.io/sarrazola/fast-livery}-web:${OPENLIVERY_VERSION:-latest}
+    container_name: fast-livery_web
     environment:
       # Used server-side by proxy.ts to resolve custom portal domains.
       BACKEND_INTERNAL_URL: http://api:8000
@@ -79,8 +79,8 @@ services:
     build:
       context: ./apps/whatsapp
       dockerfile: Dockerfile
-    image: ${OPENLIVERY_IMAGE_PREFIX:-ghcr.io/sarrazola/openlivery}-whatsapp:${OPENLIVERY_VERSION:-latest}
-    container_name: openlivery_whatsapp
+    image: ${OPENLIVERY_IMAGE_PREFIX:-ghcr.io/sarrazola/fast-livery}-whatsapp:${OPENLIVERY_VERSION:-latest}
+    container_name: fast-livery_whatsapp
     env_file:
       - .env.docker
     environment:
@@ -105,7 +105,7 @@ services:
   # this port for TLS in production.
   proxy:
     image: caddy:2-alpine
-    container_name: openlivery_proxy
+    container_name: fast-livery_proxy
     volumes:
       - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
     ports:

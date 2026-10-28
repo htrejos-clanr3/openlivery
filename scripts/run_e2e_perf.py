@@ -249,7 +249,7 @@ assert 'REGLAS DE SEGURIDAD' in prompt and 'NO CONFIABLE' in prompt
 print('prompt_guards_ok')
 """,
         ],
-        cwd="/Users/user/Documents/R3/ChatbotApp/Sin título/openlivery",
+        cwd="/Users/user/Documents/R3/ChatbotApp/Sin título/fast-livery",
         capture_output=True,
         text=True,
     )
