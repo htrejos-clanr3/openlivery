@@ -190,9 +190,9 @@ def meta_setup(
                  "Pulsa «Verificar y guardar».",
                  "Suscribe el campo messages."]))
     else:
-        steps.append(_step("webhook", "Webhook registrado", "todo", "Se registra cuando exista un token.", value=callback,
-            where="Misma página → «Configurar webhooks» (arriba del todo)",
-            how=["Primero completa los pasos 2 a 4.",
+        steps.append(_step("webhook", "Webhook registrado", "todo", "Necesita el número del paso 1 y el token del paso 2.", value=callback,
+            where="Tu app → Casos de uso → Conectar en WhatsApp → Configuración de producción → Configurar webhooks",
+            how=["Primero registra el número (paso 1) y guarda el token (paso 2).",
                  "Después pega la URL de callback y el token de verificación."]))
 
     steps.append(_step("test", "Mensaje de prueba",
