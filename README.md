@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="apps/web/public/brand/openlivery-logo-original.png" width="88" alt="Fast Livery" />
+  <img src="apps/web/public/brand/fast-livery-logo-original.png" width="88" alt="Fast Livery" />
 </p>
 
 <h1 align="center">Fast Livery</h1>
@@ -9,10 +9,10 @@
 </p>
 
 <p align="center">
-  <a href="https://openlivery.com/docs"><strong>Documentation</strong></a> ·
-  <a href="https://openlivery.com/docs/getting-started">Quick start</a> ·
-  <a href="https://openlivery.com/docs/self-hosting">Self-hosting</a> ·
-  <a href="https://github.com/sarrazola/openlivery/discussions">Discussions</a>
+  <a href="https://fast-livery.com/docs"><strong>Documentation</strong></a> ·
+  <a href="https://fast-livery.com/docs/getting-started">Quick start</a> ·
+  <a href="https://fast-livery.com/docs/self-hosting">Self-hosting</a> ·
+  <a href="https://github.com/sarrazola/fast-livery/discussions">Discussions</a>
 </p>
 
 <p align="center">
@@ -31,37 +31,37 @@ keys and self-host the whole thing with one command.
 
 ## Documentation
 
-Full documentation lives at **[openlivery.com/docs](https://openlivery.com/docs)**.
+Full documentation lives at **[fast-livery.com/docs](https://fast-livery.com/docs)**.
 
 | Guide | What it covers |
 | --- | --- |
-| [Getting started](https://openlivery.com/docs/getting-started) | Run the stack with Docker and create your first agency |
-| [Configuration](https://openlivery.com/docs/configuration) | Environment variables, secrets, ports and the gateway |
-| [Architecture](https://openlivery.com/docs/architecture) | The services, the data model and tenant isolation |
-| [Self-hosting](https://openlivery.com/docs/self-hosting) | Deploy to a server, back up, upgrade and troubleshoot |
-| [Contributing](https://openlivery.com/docs/contributing) | Run the project locally, tests and conventions |
+| [Getting started](https://fast-livery.com/docs/getting-started) | Run the stack with Docker and create your first agency |
+| [Configuration](https://fast-livery.com/docs/configuration) | Environment variables, secrets, ports and the gateway |
+| [Architecture](https://fast-livery.com/docs/architecture) | The services, the data model and tenant isolation |
+| [Self-hosting](https://fast-livery.com/docs/self-hosting) | Deploy to a server, back up, upgrade and troubleshoot |
+| [Contributing](https://fast-livery.com/docs/contributing) | Run the project locally, tests and conventions |
 
 ## Features
 
-**Agents** — [docs](https://openlivery.com/docs/agents)
+**Agents** — [docs](https://fast-livery.com/docs/agents)
 - ✅ Instructions, personality, per-client & per-agent context, timezone, and temperature / max-tokens / memory controls
 - ✅ Multimodal capabilities: **image recognition** (vision) and **audio transcription** for incoming media
 - ✅ Creation wizard with a live token counter and industry starter templates
 
-**Knowledge base** — [docs](https://openlivery.com/docs/knowledge-base)
+**Knowledge base** — [docs](https://fast-livery.com/docs/knowledge-base)
 - ✅ Manual context, structured **Q&A pairs** and PDF upload, with embedding-based semantic retrieval (keyword fallback)
 - ✅ Portable JSON embeddings — no database extension required
 
-**AI providers** — [docs](https://openlivery.com/docs/ai-providers)
+**AI providers** — [docs](https://fast-livery.com/docs/ai-providers)
 - ✅ Bring-your-own **OpenAI** (Responses API) and **Anthropic** (Messages API) keys — agency-level, encrypted, and validated when saved
 - ✅ Any OpenAI-compatible endpoint via per-connection base URL + model
 
-**Custom tools** — [docs](https://openlivery.com/docs/custom-tools)
+**Custom tools** — [docs](https://fast-livery.com/docs/custom-tools)
 - ✅ Per-agent **HTTP tools**: any REST endpoint with path/query/body parameters, encrypted auth headers and an SSRF guard
 - ✅ **MCP servers** (Streamable HTTP or SSE) with test-before-save connection checks and cached tool discovery
 - ✅ Tool usage recorded per reply and surfaced in the playground, including failure details
 
-**Channels** — [WhatsApp](https://openlivery.com/docs/whatsapp) · [Web widget](https://openlivery.com/docs/web-widget) · [Instagram publishing](./docs/instagram-publishing.md) · [LinkedIn desk](./docs/linkedin.md)
+**Channels** — [WhatsApp](https://fast-livery.com/docs/whatsapp) · [Web widget](https://fast-livery.com/docs/web-widget) · [Instagram publishing](./docs/instagram-publishing.md) · [LinkedIn desk](./docs/linkedin.md)
 - ✅ **WhatsApp Cloud API** (official Meta API) — bring your own Meta app credentials, signed webhooks, per-client number
 - ✅ **WhatsApp QR** through Baileys — QR link, per-client number, encrypted persistent session
 - ✅ **Instagram Content Publishing** — connect professional accounts, drafts, schedule, image/carousel/Reel (DM messaging planned later)
@@ -81,7 +81,7 @@ INSTAGRAM_PUBLISHING_MOCK_MODE=true
 
 See [docs/instagram-publishing.md](./docs/instagram-publishing.md).
 
-**Operations** — [Inbox](https://openlivery.com/docs/inbox) · [Client portal](https://openlivery.com/docs/client-portal) · [Dashboard](https://openlivery.com/docs/dashboard)
+**Operations** — [Inbox](https://fast-livery.com/docs/inbox) · [Client portal](https://fast-livery.com/docs/client-portal) · [Dashboard](https://fast-livery.com/docs/dashboard)
 - ✅ Unified **Inbox** with server-side search, filter tabs, unread tracking, pagination and human takeover
 - ✅ Per-client **portal** with its own login and Inbox, optionally served under the client's **own custom domain** (DNS-verified, automatic HTTPS)
 - ✅ **Dashboard** with activity, top agents, token usage by model and a date-range filter
@@ -102,15 +102,15 @@ at rest. Every query is scoped by `agency_id` for tenant isolation, and public
 endpoints (sign-in and the web widget) are rate-limited per client IP. A Caddy
 gateway serves the app and API from a single origin (`/api/*` → backend).
 
-Read more in the [architecture guide](https://openlivery.com/docs/architecture).
+Read more in the [architecture guide](https://fast-livery.com/docs/architecture).
 
 ## Quick start
 
 Requires Docker (Desktop or Engine + Compose plugin).
 
 ```bash
-git clone https://github.com/sarrazola/openlivery.git
-cd openlivery
+git clone https://github.com/sarrazola/fast-livery.git
+cd fast-livery
 ./scripts/generate-docker-env.sh   # random secrets in .env.docker (gitignored)
 make up                            # build, start, migrate
 ```
@@ -120,14 +120,14 @@ Ports clashing? `API_PORT=8001 WEB_PORT=3001 DB_PORT=5433 make up`.
 Prefer not to build? `make pull` runs the prebuilt images published to GHCR.
 
 The full walkthrough — first agency, provider keys, agents, knowledge and
-channels — is in the **[getting started guide](https://openlivery.com/docs/getting-started)**.
+channels — is in the **[getting started guide](https://fast-livery.com/docs/getting-started)**.
 Deploying to a public server (reverse proxy, TLS, backups) is covered in
-**[self-hosting](https://openlivery.com/docs/self-hosting)**.
+**[self-hosting](https://fast-livery.com/docs/self-hosting)**.
 
 ## Community & support
 
-- **[GitHub Discussions](https://github.com/sarrazola/openlivery/discussions)** — questions, ideas and help building with Fast Livery.
-- **[GitHub Issues](https://github.com/sarrazola/openlivery/issues)** — bugs and feature requests.
+- **[GitHub Discussions](https://github.com/sarrazola/fast-livery/discussions)** — questions, ideas and help building with Fast Livery.
+- **[GitHub Issues](https://github.com/sarrazola/fast-livery/issues)** — bugs and feature requests.
 
 ## Project structure
 
@@ -145,7 +145,7 @@ docker-compose.yml
 ## Contributing
 
 Run the project locally, the test suites and the conventions are documented in
-the **[contributing guide](https://openlivery.com/docs/contributing)**. In short:
+the **[contributing guide](https://fast-livery.com/docs/contributing)**. In short:
 all code, identifiers, comments and docs are in English; end-user UI is localized
 (English default, Spanish) through the typed i18n system in `apps/web/lib/i18n`.
 
