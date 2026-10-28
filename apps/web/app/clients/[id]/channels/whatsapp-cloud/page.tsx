@@ -565,11 +565,6 @@ function WhatsAppCloudChannelPageInner() {
                   </div>
                 </Alert>
               )}
-              <div className="wa-actions">
-                <button className="button primary" onClick={requestConnect} disabled={busy || !agentId}>
-                  {busy ? <LoaderCircle className="spin" size={17} /> : <BadgeCheck size={17} />} {t("clients.whatsappCloud.connectMeta")}
-                </button>
-              </div>
               <div className="wa-advanced-toggle" style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
                 <button type="button" className="text-button" onClick={() => setAdvancedOpen(true)}>
                   {t("clients.whatsappCloud.advancedHint")}
