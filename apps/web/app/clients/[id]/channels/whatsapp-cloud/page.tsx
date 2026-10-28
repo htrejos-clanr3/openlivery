@@ -458,6 +458,11 @@ function WhatsAppCloudChannelPageInner() {
               <div className="wa-status-grid">
                 <div><small>{t("clients.whatsapp.connectedNumber")}</small><strong>{channel?.phone_number || channel?.phone_number_id}</strong></div>
                 <div><small>{t("clients.whatsappCloud.accountLabel")}</small><strong>{channel?.display_name || "—"}</strong></div>
+                <div style={{ gridColumn: "1 / -1", marginTop: 6 }}>
+                  <Link className="button primary" href={`/clients/${id}/channels/meta-setup`}>
+                    Ver el paso a paso de la conexión →
+                  </Link>
+                </div>
                 <div><small>{t("clients.whatsapp.assignedAgent")}</small><strong>{client.agents.find((a) => a.id === channel?.agent_id)?.name || "—"}</strong></div>
                 <div><small>{t("clients.whatsappCloud.webhookTitle")}</small><strong>{health?.webhook_configured ? t("clients.whatsappCloud.webhookOk") : t("clients.whatsappCloud.webhookPending")}</strong></div>
                 <div><small>{t("clients.whatsappCloud.lastActivity")}</small><strong>{health?.last_inbound_message_at ? new Date(health.last_inbound_message_at).toLocaleString() : t("clients.whatsappCloud.noActivity")}</strong></div>
