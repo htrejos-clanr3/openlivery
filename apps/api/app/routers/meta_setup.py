@@ -379,7 +379,7 @@ def app_checks(
     perms = _graph(f"{app_id}/permissions", app_token)
     wanted = {"whatsapp_business_messaging", "whatsapp_business_management"}
     granted = {
-        (row or {}).get("permission")
+        str((row or {}).get("permission"))
         for row in (perms or {}).get("data") or []
         if (row or {}).get("status") == "granted"
     }
@@ -399,7 +399,7 @@ def app_checks(
     fields: set[str] = set()
     callbacks: set[str] = set()
     for item in (subs or {}).get("data") or []:
-        fields.update((item or {}).get("fields") or [])
+        fields.update(str(value) for value in (item or {}).get("fields") or [])
         if (item or {}).get("callback_url"):
             callbacks.add(str(item["callback_url"]))
     checks.append({
