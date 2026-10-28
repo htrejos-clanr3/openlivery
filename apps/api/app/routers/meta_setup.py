@@ -349,3 +349,66 @@ def discover_numbers(
             add(phone or {}, channel.waba_id, "")
 
     return {"numbers": numbers, "waba_id": channel.waba_id or ""}
+
+
+@router.get("/app-checks")
+def app_checks(
+    client_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """What Meta itself can confirm about the agency app, in one call."""
+    from ..security import decrypt_secret as _decrypt
+
+    checks: list[dict] = []
+    agency = db.get(Agency, user.agency_id)
+    app_id = (agency.meta_app_id if agency else "") or ""
+    secret = _decrypt(agency.encrypted_meta_app_secret) if agency and agency.encrypted_meta_app_secret else ""
+    if not app_id or not secret:
+        return {"checks": [{"id": "app", "ok": False, "label": "App de la agencia", "detail": "Falta el App ID o el secret."}]}
+
+    app_token = f"{app_id}|{secret}"
+    app = _graph(app_id, app_token, params={"fields": "name"})
+    checks.append({
+        "id": "app",
+        "ok": bool(app and app.get("id")),
+        "label": "App verificada por Meta",
+        "detail": (app or {}).get("name") or "Meta no reconoce el par App ID / secret.",
+    })
+
+    perms = _graph(f"{app_id}/permissions", app_token)
+    wanted = {"whatsapp_business_messaging", "whatsapp_business_management"}
+    granted = {
+        (row or {}).get("permission")
+        for row in (perms or {}).get("data") or []
+        if (row or {}).get("status") == "granted"
+    }
+    missing = sorted(wanted - granted)
+    checks.append({
+        "id": "permissions",
+        "ok": not missing and bool(granted),
+        "label": "Permisos de WhatsApp",
+        "detail": (
+            "Concedidos: " + ", ".join(sorted(granted & wanted))
+            if granted & wanted
+            else "Meta no devolvió permisos de WhatsApp."
+        ) + (f" Falta: {', '.join(missing)}" if missing else ""),
+    })
+
+    subs = _graph(f"{app_id}/subscriptions", app_token)
+    fields: set[str] = set()
+    callbacks: set[str] = set()
+    for item in (subs or {}).get("data") or []:
+        fields.update((item or {}).get("fields") or [])
+        if (item or {}).get("callback_url"):
+            callbacks.add(str(item["callback_url"]))
+    checks.append({
+        "id": "webhook",
+        "ok": "messages" in fields,
+        "label": "Campo messages suscrito",
+        "detail": (
+            "Suscrito en " + ", ".join(sorted(callbacks)) if "messages" in fields
+            else "Meta no lista el campo messages entre los suscritos."
+        ),
+    })
+    return {"checks": checks}

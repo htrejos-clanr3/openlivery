@@ -52,6 +52,7 @@ export default function MetaSetupPage() {
   const [tokenInput, setTokenInput] = useState("");
   const [savingChannel, setSavingChannel] = useState(false);
   const [agencyReady, setAgencyReady] = useState(false);
+  const [checks, setChecks] = useState<{ id: string; ok: boolean; label: string; detail: string }[]>([]);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -88,13 +89,16 @@ export default function MetaSetupPage() {
   }, [clientId, load]);
 
   useEffect(() => {
+    api<{ checks: typeof checks }>(`/clients/${clientId}/meta-setup/app-checks`)
+      .then((value) => setChecks(value.checks))
+      .catch(() => {});
     api<{ app_id: string; has_secret: boolean }>("/agency/meta-app")
       .then((value) => {
         setAppId(value.app_id);
         setHasSecret(value.has_secret);
       })
       .catch(() => {});
-  }, []);
+  }, [clientId]);
 
   async function saveApp() {
     setSavingApp(true);
@@ -196,6 +200,25 @@ export default function MetaSetupPage() {
           </Link>
         </div>
       </section>
+
+      {checks.length > 0 && (
+        <section className="form-section">
+          <div className="section-copy">
+            <h2 style={{ fontSize: 15 }}>Lo que Meta confirma de la app</h2>
+            <ul style={{ listStyle: "none", margin: "8px 0 0", padding: 0, display: "grid", gap: 6 }}>
+              {checks.map((check) => (
+                <li key={check.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13.5 }}>
+                  <span style={{ color: check.ok ? "#15803d" : "#b91c1c", fontWeight: 700 }}>{check.ok ? "OK" : "Falta"}</span>
+                  <span>
+                    <b>{check.label}</b>
+                    <span className="field-help" style={{ display: "block" }}>{check.detail}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
         {setup.steps.filter((item) => item.scope !== "agency").map((step, index) => {
