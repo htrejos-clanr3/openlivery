@@ -63,6 +63,7 @@ app.add_middleware(
 )
 
 
+@app.get("/api/health", tags=["System"])
 @app.get("/health", tags=["System"])
 def health():
     return {"status": "ok"}
