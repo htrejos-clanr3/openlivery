@@ -427,7 +427,7 @@ export type MetaWebhookTestResult = {
   test_id: string;
   status: string;
   meta_request_accepted: boolean;
-  fast-livery_received: boolean;
+  openlivery_received: boolean;
   latency_ms: number | null;
   event_type: string;
   error: string | null;
