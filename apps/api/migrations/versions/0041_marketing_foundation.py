@@ -40,7 +40,7 @@ def upgrade() -> None:
     op.create_index("ix_approval_links_client_id", "approval_links", ["client_id"])
 
     op.create_table(
-        "content_items",
+        "post_pieces",
         sa.Column("id", sa.Uuid(), primary_key=True),
         sa.Column("agency_id", sa.Uuid(), sa.ForeignKey("agencies.id", ondelete="CASCADE"), nullable=False),
         sa.Column("client_id", sa.Uuid(), sa.ForeignKey("clients.id", ondelete="CASCADE"), nullable=False),
@@ -61,9 +61,9 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
-    op.create_index("ix_content_items_agency_id", "content_items", ["agency_id"])
-    op.create_index("ix_content_items_client_id", "content_items", ["client_id"])
-    op.create_index("ix_content_items_status", "content_items", ["status"])
+    op.create_index("ix_post_pieces_agency_id", "post_pieces", ["agency_id"])
+    op.create_index("ix_post_pieces_client_id", "post_pieces", ["client_id"])
+    op.create_index("ix_post_pieces_status", "post_pieces", ["status"])
 
     op.create_table(
         "provider_connections",
@@ -86,6 +86,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table("provider_connections")
-    op.drop_table("content_items")
+    op.drop_table("post_pieces")
     op.drop_table("approval_links")
     op.drop_table("client_phones")

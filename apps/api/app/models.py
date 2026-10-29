@@ -709,10 +709,10 @@ class MediaAsset(Base):
     client: Mapped[Client] = relationship(back_populates="media_assets")
 
 
-class ContentItem(Base):
+class PostPiece(Base):
     """Channel-agnostic editorial unit (Instagram first; Facebook/LinkedIn later)."""
 
-    __tablename__ = "content_items"
+    __tablename__ = "post_pieces"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
     agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
