@@ -19,7 +19,7 @@ from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_user
 from ..security import decrypt_secret, encrypt_secret
-from ..models import Agency, Client, User, WhatsAppCloudChannel, now_utc
+from ..models import Agency, Agent, Client, User, WhatsAppCloudChannel, now_utc
 
 router = APIRouter(prefix="/clients/{client_id}/meta-setup", tags=["Meta setup"])
 
@@ -261,10 +261,25 @@ def save_channel(
 ):
     client, channel = _channel(db, user, client_id)
     if channel is None:
-        raise HTTPException(
-            status_code=400,
-            detail="Create the channel on its page first; this form updates an existing one.",
+        agent = (
+            db.query(Agent)
+            .filter(Agent.client_id == client_id, Agent.agency_id == user.agency_id)
+            .order_by(Agent.created_at)
+            .first()
         )
+        if agent is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Create an agent for this client first: the channel needs one to answer.",
+            )
+        channel = WhatsAppCloudChannel(
+            agency_id=user.agency_id,
+            client_id=client_id,
+            agent_id=agent.id,
+            status="disconnected",
+        )
+        db.add(channel)
+        db.flush()
     if payload.phone_number_id is not None:
         channel.phone_number_id = payload.phone_number_id.strip()[:80]
     if payload.waba_id is not None:
