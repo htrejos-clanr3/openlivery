@@ -154,6 +154,11 @@ async def receive_webhook(channel_id: uuid.UUID, request: Request, db: Session =
                 contact.get("wa_id"): (contact.get("profile") or {}).get("name")
                 for contact in value.get("contacts") or []
             }
+            # A shared Meta app can sign events for many numbers. Never route an
+            # event to a tenant merely because it arrived at that tenant URL.
+            incoming_phone_id = (value.get("metadata") or {}).get("phone_number_id")
+            if not channel.phone_number_id or incoming_phone_id != channel.phone_number_id:
+                continue
             for raw_message in value.get("messages") or []:
                 inbound = _parse_message(raw_message, contacts)
                 if not inbound:
