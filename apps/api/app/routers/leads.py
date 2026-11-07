@@ -771,3 +771,39 @@ def public_ingest(token: str, payload: PublicLeadIn, db: Session = Depends(get_d
     if event.status == "error":
         raise HTTPException(status_code=400, detail=event.error_message or "Lead capture failed")
     return {"ok": True, "status": event.status, "lead_id": str(event.lead_id) if event.lead_id else None}
+
+
+@router.get("/items")
+def list_lead_items(
+    client_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Leads of one client, ordered by score: what the evaluation screen needs."""
+    from ..models import Contact, Lead, LeadStage
+
+    client = _client(db, user, client_id)
+    rows = db.execute(
+        select(Lead, Contact, LeadStage)
+        .join(Contact, Contact.id == Lead.contact_id)
+        .outerjoin(LeadStage, LeadStage.id == Lead.stage_id)
+        .where(Lead.client_id == client.id, Lead.agency_id == client.agency_id)
+        .order_by(Lead.score.desc().nullslast(), Lead.last_activity_at.desc())
+        .limit(200)
+    ).all()
+    return {
+        "items": [
+            {
+                "id": str(lead.id),
+                "name": contact.name or contact.phone or "Sin nombre",
+                "phone": contact.phone or "",
+                "source": lead.source or "",
+                "score": lead.score,
+                "stage": stage.name if stage else "",
+                "notes": lead.notes or "",
+                "created_at": lead.created_at.isoformat() if lead.created_at else None,
+            }
+            for lead, contact, stage in rows
+        ],
+        "total": len(rows),
+    }
