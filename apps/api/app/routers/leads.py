@@ -773,7 +773,7 @@ def public_ingest(token: str, payload: PublicLeadIn, db: Session = Depends(get_d
     return {"ok": True, "status": event.status, "lead_id": str(event.lead_id) if event.lead_id else None}
 
 
-@leads_router.get("/items")
+@leads_router.get("/scored")
 def list_lead_items(
     client_id: uuid.UUID,
     db: Session = Depends(get_db),
