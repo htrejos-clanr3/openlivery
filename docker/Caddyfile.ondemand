@@ -18,6 +18,12 @@
 	handle /api/* {
 		reverse_proxy api:8000
 	}
+	handle /.well-known/ucp {
+		reverse_proxy api:8000
+	}
+	handle /ucp/* {
+		reverse_proxy api:8000
+	}
 	handle {
 		reverse_proxy web:3000
 	}
@@ -31,6 +37,12 @@ https:// {
 		on_demand
 	}
 	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /.well-known/ucp {
+		reverse_proxy api:8000
+	}
+	handle /ucp/* {
 		reverse_proxy api:8000
 	}
 	handle {

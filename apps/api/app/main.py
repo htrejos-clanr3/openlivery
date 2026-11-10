@@ -29,6 +29,8 @@ from .routers import (
     whatsapp_cloud,
     whatsapp_cloud_webhook,
     widget,
+    ucp,
+    ucp_public,
 )
 from .services.scheduled_publications import start_scheduler, stop_scheduler
 
@@ -98,3 +100,5 @@ app.include_router(linkedin.router, prefix="/api")
 app.include_router(meta.router, prefix="/api")
 app.include_router(widget.router, prefix="/api")
 app.include_router(domains.public_router, prefix="/api")
+app.include_router(ucp.router, prefix="/api")
+app.include_router(ucp_public.public_router)

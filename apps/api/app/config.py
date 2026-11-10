@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     meta_whatsapp_config_id: str = ""
     # When true, signup/complete can finish without real Meta credentials.
     meta_mock_mode: bool = False
+    # Mark validated products as sent when there is no Merchant Center
+    # connection yet. Set to false once the Merchant API push is live.
+    ucp_mock_mode: bool = True
     meta_oauth_redirect_path: str = "/api/whatsapp-cloud/oauth/callback"
     # Instagram Content Publishing (reuse META_APP_* for Facebook Login OAuth).
     instagram_publishing_mock_mode: bool = False
