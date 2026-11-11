@@ -526,15 +526,6 @@ function InstagramChannelPageInner() {
                   {t("instagram.openAdvanced")}
                 </button>
               </div>
-              <div className="wa-benefits">
-                <h3>{t("instagram.benefitsTitle")}</h3>
-                <ul>
-                  <li>✓ {t("instagram.benefit1")}</li>
-                  <li>✓ {t("instagram.benefit2")}</li>
-                  <li>✓ {t("instagram.benefit3")}</li>
-                  <li>✓ {t("instagram.benefit4")}</li>
-                </ul>
-              </div>
             </section>
           )}
 
