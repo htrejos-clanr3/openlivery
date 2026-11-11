@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Check, ChevronDown, LoaderCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Instagram, LoaderCircle, RefreshCw } from "lucide-react";
 import { api, messageFrom } from "@/lib/api";
 import { useToast } from "@/components/toast";
 
@@ -63,16 +63,37 @@ export default function InstagramSetupPage() {
 
   return (
     <div className="page-form">
-      <section className="form-section">
+      <section className="form-section" style={{ alignItems: "start" }}>
         <div className="section-copy">
           <Link className="button" href={`/clients/${clientId}/channels/instagram`}>
             <ArrowLeft size={15} /> Volver al canal
           </Link>
-          <h1 style={{ marginTop: 12 }}>Configurar Instagram</h1>
-          <p>
-            Igual que en WhatsApp: los pasos marcados «una vez» se hacen por agencia; los de «por cliente»
-            se repiten con cada cuenta.
-          </p>
+          <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 14 }}>
+            <span
+              aria-hidden
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                display: "grid",
+                placeItems: "center",
+                background: "linear-gradient(135deg,#f9ce34,#ee2a7b 55%,#6228d7)",
+                color: "#fff",
+                flex: "none",
+              }}
+            >
+              <Instagram size={26} />
+            </span>
+            <div>
+              <small className="field-help" style={{ textTransform: "uppercase", letterSpacing: ".05em" }}>
+                Canal de Instagram
+              </small>
+              <h1 style={{ margin: 0 }}>Configurar Instagram</h1>
+              <p className="field-help" style={{ margin: "2px 0 0" }}>
+                Los pasos «una vez» se hacen por agencia; los de «por cliente», una vez por cuenta.
+              </p>
+            </div>
+          </div>
         </div>
         <div className="form-fields">
           <div className="toolbar" style={{ gap: 8, flexWrap: "wrap" }}>
