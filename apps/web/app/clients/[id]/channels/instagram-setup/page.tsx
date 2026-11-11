@@ -61,6 +61,10 @@ export default function InstagramSetupPage() {
     );
   }
 
+  const agencySteps = setup.steps.filter((item) => item.scope === "agency");
+  const clientSteps = setup.steps.filter((item) => item.scope !== "agency");
+  const agencyPending = agencySteps.filter((item) => item.status !== "done");
+
   return (
     <div className="page-form">
       <section
@@ -112,7 +116,9 @@ export default function InstagramSetupPage() {
       <section className="form-section" style={{ padding: "0 4px" }}>
         <div className="section-copy">
           <p className="field-help" style={{ margin: 0 }}>
-            Los pasos «una vez» se hacen por agencia; los de «por cliente», una vez por cuenta.
+            {agencyPending.length === 0
+              ? "La configuración de la agencia está lista. Aquí solo van los datos de este cliente."
+              : "La agencia aún tiene pasos pendientes de su lado. Lo que veas aquí es solo de este cliente."}
           </p>
         </div>
         <div className="form-fields">
@@ -123,7 +129,7 @@ export default function InstagramSetupPage() {
       </section>
 
       <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
-        {setup.steps.map((step, index) => {
+        {clientSteps.map((step, index) => {
           const t = tone(step.status);
           const isOpen = open === step.id;
           return (
