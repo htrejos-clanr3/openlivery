@@ -511,8 +511,15 @@ function InstagramChannelPageInner() {
                 <p className="ig-muted" style={{ marginBottom: 12 }}>{t("instagram.oauthAvailableHint")}</p>
               )}
               <div className="wa-actions">
-                <button className="button primary" type="button" onClick={() => requestConnect(false)} disabled={busy}>
-                  {busy ? <LoaderCircle className="spin" size={17} /> : <Instagram size={17} />} {t("instagram.connectMeta")}
+                <button
+                  className="button primary"
+                  type="button"
+                  onClick={() => {
+                    window.location.href = `/clients/${id}/channels/instagram-setup`;
+                  }}
+                  disabled={busy}
+                >
+                  <Instagram size={17} /> {t("instagram.connectMeta")}
                 </button>
                 {options?.mock_mode && (
                   <button className="button secondary" type="button" onClick={() => requestConnect(true)} disabled={busy}>
