@@ -152,3 +152,5 @@ all code, identifiers, comments and docs are in English; end-user UI is localize
 ## License
 
 [MIT](./LICENSE).
+
+> Fast Livery is the lead generation and commercial scheduling platform: leads, pipeline, WhatsApp, appointment scheduling, client portal and content. Its scheduling engine is its own and shares no code, data or credentials with Equipia.
