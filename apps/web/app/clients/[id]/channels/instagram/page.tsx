@@ -130,11 +130,9 @@ function InstagramChannelPageInner() {
   }, [id, applyChannel, refreshConnectedData]);
 
   function openGuide() {
-    setGuideOpen(true);
-    setGuideByoOpen(true);
-    requestAnimationFrame(() => {
-      document.getElementById("ig-connect-guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    // The guided wizard replaced the inline accordion: same steps, but they are
+    // computed against Meta instead of being static text.
+    window.location.href = `/clients/${id}/channels/instagram-setup`;
   }
 
   function openAdvancedFromGuide() {
