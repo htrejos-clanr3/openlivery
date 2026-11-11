@@ -211,14 +211,37 @@ export default function InstagramSetupPage() {
         })}
       </ol>
 
-      <section className="form-section">
-        <div className="section-copy">
-          <h2>¿Puedo cerrar?</h2>
-          <p>
+      <section
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "flex-start",
+          padding: "14px 16px",
+          borderRadius: 12,
+          border: `1px solid ${setup.can_close ? "#bbf7d0" : "#fecaca"}`,
+          background: setup.can_close ? "#f0fdf4" : "#fef2f2",
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: "50%",
+            marginTop: 7,
+            background: setup.can_close ? "#16a34a" : "#dc2626",
+            flex: "none",
+          }}
+        />
+        <div>
+          <strong style={{ display: "block", fontSize: 14 }}>
+            {setup.can_close ? "Este canal está listo" : "Faltan pasos en este canal"}
+          </strong>
+          <span className="field-help" style={{ display: "block", marginTop: 2 }}>
             {setup.can_close
-              ? "Sí. No queda ningún paso en rojo que dependa de ti."
-              : "Todavía no: hay pasos en rojo. Ábrelos y sigue la instrucción."}
-          </p>
+              ? "No queda ningún paso en rojo que dependa de ti."
+              : "Abre el paso marcado y sigue la instrucción; al terminar pulsa Comprobar."}
+          </span>
         </div>
       </section>
     </div>
