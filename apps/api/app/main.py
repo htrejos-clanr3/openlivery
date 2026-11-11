@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .routers import (
+    instagram_setup,
     agency_meta,
     meta_setup,
     agency,
@@ -95,6 +96,7 @@ app.include_router(whatsapp_cloud.router, prefix="/api")
 app.include_router(whatsapp_cloud_webhook.public_router, prefix="/api")
 app.include_router(legal.router, prefix="/api")
 app.include_router(instagram.router, prefix="/api")
+app.include_router(instagram_setup.router, prefix="/api")
 app.include_router(instagram.public_router, prefix="/api")
 app.include_router(linkedin.router, prefix="/api")
 app.include_router(meta.router, prefix="/api")
