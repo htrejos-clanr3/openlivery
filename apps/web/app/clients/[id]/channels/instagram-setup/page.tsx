@@ -63,47 +63,62 @@ export default function InstagramSetupPage() {
 
   return (
     <div className="page-form">
-      <section className="form-section" style={{ alignItems: "start" }}>
+      <section
+        style={{
+          display: "flex",
+          gap: 20,
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          padding: "18px 20px",
+          border: "1px solid #e4e8ee",
+          borderRadius: 14,
+          background: "#fff",
+        }}
+      >
+        <div style={{ display: "flex", gap: 14, alignItems: "center", minWidth: 0 }}>
+          <span
+            aria-hidden
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 12,
+              display: "grid",
+              placeItems: "center",
+              background: "linear-gradient(135deg,#f9ce34,#ee2a7b 55%,#6228d7)",
+              color: "#fff",
+              flex: "none",
+            }}
+          >
+            <Instagram size={24} />
+          </span>
+          <div style={{ minWidth: 0 }}>
+            <small className="field-help" style={{ textTransform: "uppercase", letterSpacing: ".05em", fontSize: 11 }}>
+              Canal de Instagram
+            </small>
+            <h1 style={{ margin: "2px 0 0", fontSize: 22, whiteSpace: "nowrap" }}>Configurar Instagram</h1>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <span className="pill ok">{setup.summary.green} listos</span>
+          <span className="pill warn">{setup.summary.amber} por revisar</span>
+          <span className="pill bad">{setup.summary.red} por corregir</span>
+          <button type="button" className="button" onClick={load} disabled={busy}>
+            {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />} Comprobar
+          </button>
+        </div>
+      </section>
+
+      <section className="form-section" style={{ padding: "0 4px" }}>
         <div className="section-copy">
+          <p className="field-help" style={{ margin: 0 }}>
+            Los pasos «una vez» se hacen por agencia; los de «por cliente», una vez por cuenta.
+          </p>
+        </div>
+        <div className="form-fields">
           <Link className="button" href={`/clients/${clientId}/channels/instagram`}>
             <ArrowLeft size={15} /> Volver al canal
           </Link>
-          <div style={{ display: "flex", gap: 14, alignItems: "center", marginTop: 14 }}>
-            <span
-              aria-hidden
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                display: "grid",
-                placeItems: "center",
-                background: "linear-gradient(135deg,#f9ce34,#ee2a7b 55%,#6228d7)",
-                color: "#fff",
-                flex: "none",
-              }}
-            >
-              <Instagram size={26} />
-            </span>
-            <div>
-              <small className="field-help" style={{ textTransform: "uppercase", letterSpacing: ".05em" }}>
-                Canal de Instagram
-              </small>
-              <h1 style={{ margin: 0 }}>Configurar Instagram</h1>
-              <p className="field-help" style={{ margin: "2px 0 0" }}>
-                Los pasos «una vez» se hacen por agencia; los de «por cliente», una vez por cuenta.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="form-fields">
-          <div className="toolbar" style={{ gap: 8, flexWrap: "wrap" }}>
-            <span className="pill ok">{setup.summary.green} listos</span>
-            <span className="pill warn">{setup.summary.amber} por revisar</span>
-            <span className="pill bad">{setup.summary.red} por corregir</span>
-            <button type="button" className="button" onClick={load} disabled={busy}>
-              {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />} Comprobar de nuevo
-            </button>
-          </div>
         </div>
       </section>
 
