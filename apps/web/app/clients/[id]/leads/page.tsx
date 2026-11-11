@@ -41,6 +41,10 @@ export default function ClientLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [bucket, setBucket] = useState<Bucket>("all");
   const [busy, setBusy] = useState(false);
+  const [selected, setSelected] = useState<Lead | null>(null);
+  const [note, setNote] = useState("");
+  const [nextAction, setNextAction] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -56,6 +60,31 @@ export default function ClientLeadsPage() {
   useEffect(() => {
     if (clientId) void load();
   }, [clientId, load]);
+
+  async function saveFollowUp() {
+    if (!selected) return;
+    setSaving(true);
+    try {
+      const line = note.trim()
+        ? `${new Date().toLocaleString()} · manual: ${note.trim()}`
+        : "";
+      await api(`/clients/${clientId}/leads/${selected.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          next_action: nextAction.trim(),
+          notes: line ? [selected.notes, line].filter(Boolean).join("\n") : selected.notes,
+        }),
+      });
+      toast.success("Seguimiento guardado");
+      setNote("");
+      setSelected(null);
+      void load();
+    } catch (err) {
+      toast.error(messageFrom(err));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const sorted = useMemo(
     () =>
@@ -129,7 +158,15 @@ export default function ClientLeadsPage() {
                 {sorted.map((lead) => {
                   const b = badge(bucketOf(lead.score));
                   return (
-                    <tr key={lead.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
+                    <tr
+                      key={lead.id}
+                      onClick={() => {
+                        setSelected(selected?.id === lead.id ? null : lead);
+                        setNextAction(lead.next_action || "");
+                        setNote("");
+                      }}
+                      style={{ borderBottom: "1px solid #f1f5f9", cursor: "pointer", background: selected?.id === lead.id ? "#f8fafc" : undefined }}
+                    >
                       <td style={{ padding: "10px 6px" }}>
                         <strong>{lead.contact?.name || "Sin nombre"}</strong>
                         <div className="field-help">{lead.contact?.phone || lead.contact?.email || "—"}</div>
@@ -148,6 +185,30 @@ export default function ClientLeadsPage() {
                 })}
               </tbody>
             </table>
+          )}
+
+          {selected && (
+            <div style={{ marginTop: 16, border: "1px solid #e4e8ee", borderRadius: 10, padding: "14px 16px", display: "grid", gap: 10 }}>
+              <strong>{selected.contact?.name || "Lead"} · seguimiento</strong>
+              <span className="field-help">{selected.contact?.phone || "—"} · origen {selected.source || "—"}</span>
+              <label className="field">
+                Próximo paso
+                <input value={nextAction} onChange={(event) => setNextAction(event.target.value)} placeholder="Llamar el martes" />
+              </label>
+              <label className="field">
+                Registrar contacto
+                <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Se le llamó y pidió propuesta" />
+              </label>
+              {selected.notes ? (
+                <pre className="field-help" style={{ whiteSpace: "pre-wrap", margin: 0 }}>{selected.notes}</pre>
+              ) : null}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button type="button" className="button primary" onClick={saveFollowUp} disabled={saving}>
+                  {saving ? <LoaderCircle className="spin" size={15} /> : null} Guardar seguimiento
+                </button>
+                <button type="button" className="button" onClick={() => setSelected(null)}>Cerrar</button>
+              </div>
+            </div>
           )}
         </div>
       </section>
