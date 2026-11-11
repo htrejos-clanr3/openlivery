@@ -486,9 +486,6 @@ function InstagramChannelPageInner() {
                     <button className="button primary" type="button" onClick={() => requestConnect(false)} disabled={busy}>
                       {busy ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />} {t("instagram.reconnectMeta")}
                     </button>
-                    <button className="button secondary" type="button" onClick={openGuide}>
-                      <BookOpen size={17} /> {t("instagram.openGuide")}
-                    </button>
                   </div>
                 </Alert>
               )}
@@ -526,9 +523,6 @@ function InstagramChannelPageInner() {
                     {t("instagram.connectMock")}
                   </button>
                 )}
-                <button className="button secondary" type="button" onClick={openGuide}>
-                  <BookOpen size={17} /> {t("instagram.openGuide")}
-                </button>
                 <button className="button secondary" type="button" onClick={openAdvancedFromGuide}>
                   {t("instagram.openAdvanced")}
                 </button>
@@ -599,9 +593,6 @@ function InstagramChannelPageInner() {
           ) : (
             <>
               <p>{t("instagram.connectCopy")}</p>
-              <button type="button" className="button secondary" style={{ marginTop: 12 }} onClick={openGuide}>
-                <BookOpen size={16} /> {t("instagram.openGuide")}
-              </button>
             </>
           )}
         </aside>
