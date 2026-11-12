@@ -103,3 +103,69 @@ cd apps/whatsapp && npm test && npm run build
 ```
 
 Each phase ships one commit with its migration and its tests.
+
+## Decision: the agent books, orchestrated by LangGraph
+
+The agent runs the booking inside the conversation; the customer is not sent away
+to a portal link. LangGraph becomes the orchestrator of the reply pipeline.
+
+### Why it changes the estimate
+
+Today the pipeline is a single model call: webhook, save message, one
+`chat_completion`, save reply, send. There is no tool loop and no persisted graph
+state. Booking needs at least one tool round trip, so the pipeline changes shape.
+
+### Graph
+
+```
+webhook -> load_conversation -> classify -> retrieve_knowledge
+        -> decide --(tool needed)--> tools(list_slots | book_slot) -> decide
+                  --(answer)--------> respond -> persist -> send
+                  --(human)---------> handoff (mode="human", interrupt)
+```
+
+- State: `conversation_id`, `client_id`, `agency_id`, `messages`, `lead_id`,
+  `offered_slots`, `chosen_slot`, `mode`.
+- Checkpointer: `langgraph-checkpoint-postgres` on the same database, so the graph
+  survives a restart like the rest of the data. New tables come from its own
+  migration, not from Alembic.
+- `thread_id` is the conversation id. That keeps tenant isolation: a thread cannot
+  span two clients.
+- Handoff: an interrupt sets `mode="human"` and stops the graph, matching today's
+  behaviour.
+
+### Tools exposed to the graph
+
+| Tool | Contract |
+|---|---|
+| `list_slots` | client id, from, to, duration -> free slots in the client zone |
+| `book_slot` | slot start, contact, lead -> appointment, with `idempotency_key` = conversation + start |
+| `reschedule_slot` | appointment, new start |
+| `cancel_appointment` | appointment, reason |
+
+The graph may only book a slot it offered in this thread; the service re-validates
+availability before writing.
+
+### Cost and risk
+
+| Item | Impact |
+|---|---|
+| New dependencies | `langgraph` + `langgraph-checkpoint-postgres`; justified by the decision |
+| Extra latency | Two model calls on booking turns instead of one |
+| Extra cost | Tool turns consume tokens; cap the loop at two rounds per message |
+| Testing | Tests need a scripted fake model, not a real provider |
+| Isolation | `thread_id` = conversation id; never a global thread |
+
+### Revised Phase A
+
+| Block | Days |
+|---|---|
+| Models and migration 0042 (done) | - |
+| Availability service and tests | 3 |
+| API: availability and appointments | 3 |
+| LangGraph pipeline with the four tools | 6-8 |
+| Screens: agenda tab, schedule from lead, portal | 4 |
+| Connectors: fixed link and .ics, then Google Calendar | 4-6 |
+
+Phase A now totals 20-24 days, up from 14-18, because the orchestrator replaces the
+single-call pipeline.
