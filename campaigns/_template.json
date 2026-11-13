@@ -1,0 +1,19 @@
+{
+  "name": "",
+  "channel": "",
+  "audience": "",
+  "offer": "",
+  "budget": 0,
+  "currency": "USD",
+  "from": "",
+  "to": "",
+  "metrics": {
+    "impressions": 0,
+    "clicks": 0,
+    "leads": 0,
+    "demos": 0,
+    "activations": 0,
+    "spend": 0,
+    "revenue": 0
+  }
+}
