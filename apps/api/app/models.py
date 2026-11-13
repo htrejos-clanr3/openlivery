@@ -84,6 +84,7 @@ class Client(Base):
     description: Mapped[str] = mapped_column(Text, default="")
     general_context: Mapped[str] = mapped_column(Text, default="")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    timezone: Mapped[str] = mapped_column(String(64), default="America/Bogota", server_default="America/Bogota")
     portal_slug: Mapped[str] = mapped_column(String(180), unique=True, index=True)
     portal_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     portal_title: Mapped[str] = mapped_column(String(180), default="")
