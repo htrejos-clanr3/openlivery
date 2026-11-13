@@ -1,65 +1,84 @@
-# Release plan: the whole product, not just scheduling
+# Release plan: the agency platform first, capture and scheduling second
 
-Shipping means a pilot client can go from a message to a booked, reminded
-appointment, and the agency can see what happened. Everything else is optional.
+## Objective
 
-## Definition of done
+Fast Livery is the platform an agency uses to run its clients' marketing: plan,
+produce, approve and publish content on the client's social accounts, with the AI
+writing in each brand's voice, and hand the client the result without friction.
 
-1. A stranger writes on WhatsApp or fills the form.
-2. The agent answers within the SLA and qualifies the lead.
-3. The agent offers real slots and books one, or the customer books from the portal.
-4. The customer gets a confirmation and two reminders.
-5. The agency sees the appointment, the lead score and the first-response time.
-6. The client never sees agency administration.
+```
+idea or request -> content in the brand voice -> client approval
+     -> publish on Instagram and Facebook -> monthly report
+```
 
-When those six hold, the product is sellable. Publishing to Instagram, reports
-and content are a second release.
+Lead capture and scheduling are the **complement**: they turn the audience the
+publication generates into conversations and appointments. WhatsApp is the entry
+channel for both.
 
-## Ordered blocks
+## Core release: publishing
 
-| # | Block | Why it blocks shipping | Days |
+| # | Block | Days | Depends on |
 |---|---|---|---|
-| 1 | Portal "Mi cita": book and see own appointment | The customer must finish the cycle without the agency | 2 |
-| 2 | Reminders 24 h and 1 h over WhatsApp templates | No-shows destroy the perceived value | 2 |
-| 3 | Agent booking: LangGraph with list_slots and book_slot, fallback to today's single call | The core promise: speed-to-lead with a real slot | 6-8 |
-| 4 | One vertical playbook (renovation) with script, Q&A, qualification fields and demo data | Without it the agent improvises and the pilot fails | 3 |
-| 5 | First-response SLA on the lead: due time, first response, breach alert | The commercial argument, measured | 2 |
-| 6 | Role separation: who sees agency settings, who sees the client portal | A pilot with several people needs permissions | 2 |
-| 7 | Hide agency steps in the WhatsApp wizard, as done for Instagram | A client must not see the agency app | 1 |
+| 1 | Publish on Instagram and Facebook: image, carousel, reel, story; states, retries, idempotency | 11-17 | Meta permissions approved |
+| 2 | Calendar and grid: schedule per client time zone, queue, cancel | 5-7 | 1 |
+| 3 | Approval: passwordless link valid 30 days, and approval by WhatsApp from a phone linked to the client | 8-11 | 2 |
+| 4 | Monthly report: real metrics per network, PDF, branding chosen by the agency | 8-10 | 1 |
+| 5 | Brand voice: tone, rules and published examples applied to captions | 8-11 | 1 |
+| 6 | Connectors beyond Instagram and Facebook (TikTok, YouTube, LinkedIn) | 15-25 | one Meta/TikTok review per network |
 
-Total: 18-20 days, plus Meta approvals already pending for publishing.
+Core total: 40-56 days, plus the Meta review time, which runs in parallel.
 
-## Explicitly out of this release
+## Complement: capture and scheduling
 
-Google Calendar and Zoom connectors (fixed link and .ics cover the pilot),
-Instagram publishing, reports, brand brain, MCP marketplace, invoicing.
+| # | Block | Days | State |
+|---|---|---|---|
+| 7 | Scheduling: availability, appointments, booking API, agency screen | done | working in production, booking verified |
+| 8 | Portal "my appointment" and booking from the lead | 2 | missing |
+| 9 | Reminders 24 h and 1 h over WhatsApp templates | 2 | missing |
+| 10 | Agent books inside the conversation (LangGraph, flagged, with fallback) | 6-8 | missing |
+| 11 | First-response SLA on the lead | 2 | missing |
+| 12 | Roles: agency staff versus client portal | 2 | missing |
 
-## Verification per block
+## Meta permissions, the real critical path
 
-```
-make test
-cd apps/web && npm run lint && npm run build
-./scripts/verify_production.sh
-```
-
-Plus, for this release, one manual pass of the six points above with a real
-phone number and a real inbox.
-
-## What can go wrong, and the order that limits it
-
-- The graph replacing the single-call pipeline is the riskiest change: it can
-  silence the agent. Ship it behind a flag, keep the current path as fallback,
-  and cap tool rounds at two per message.
-- Reminders need a scheduler. One documented job with an injectable clock, not a
-  queue.
-- Portal booking needs its own auth path; reuse the existing portal session, do
-  not invent a second login.
-
-## Current state
-
-| Piece | State |
+| Permission | Needed for |
 |---|---|
-| WhatsApp Cloud receiving, replying, storing | works in production |
-| Leads with score, evaluation and follow-up panel | works |
-| Scheduling: models, service, API, agency screen | works, verified with a real booking |
-| Agent booking, portal booking, reminders, SLA, roles | do not exist |
+| `instagram_basic`, `instagram_content_publish` | Publish and read the account |
+| `instagram_manage_messages`, `instagram_manage_comments` | Leads from DMs and comments |
+| `pages_show_list`, `pages_manage_posts` | Publish to the client's Facebook page |
+| `business_management` | Manage the client's assets |
+
+Advanced access requires App Review. Accounts belong to each client, so the
+connection is OAuth per client; Tech Provider is only needed to onboard a client's
+WhatsApp numbers through Embedded Signup.
+
+Start the review on day one: without it, block 1 cannot be tested with real
+accounts, and no amount of code fixes that.
+
+## Definition of done for the core release
+
+1. The agency schedules a post for a client and it publishes at the right hour in
+   the client's time zone.
+2. The client approves a piece from a link or from WhatsApp, and the approval
+   shows in the panel.
+3. A failed publication is retryable and never duplicates.
+4. The monthly report shows the same numbers as Meta for the same range.
+5. Captions sound like the brand, not like a template.
+
+## Out of scope for this release
+
+Invoicing, XML, DIAN, inbound email, suppliers, payments, voice, content
+marketplaces, and any Equipia code or database.
+
+## What exists today
+
+- Multi-tenant agency/client isolation, WhatsApp Cloud receiving and replying,
+  leads with score and follow-up, an MCP endpoint for assistants.
+- Scheduling: models, service with tests, API, agency screen. Booking, duplicate
+  rejection and cancellation verified against production.
+- Instagram and LinkedIn OAuth channels, carousels with agency-side approval.
+
+## What does not exist
+
+Publishing to any network, calendar, approval links, reports, brand voice, and the
+complement blocks 8-12.
