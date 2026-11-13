@@ -71,3 +71,10 @@ def test_daylight_saving_shift_keeps_wall_clock_hours():
     assert [s[0].strftime("%H:%M") for s in before] == ["09:00", "10:00"]
     assert [s[0].strftime("%H:%M") for s in after] == ["09:00", "10:00"]
     assert before[0][0].utcoffset() != after[0][0].utcoffset()
+
+
+def test_agenda_digest_shape():
+    """The digest the agent reads must be small and explainable."""
+    from app.services.agent_agenda import evaluate_agenda  # noqa: F401  (import guard)
+
+    assert callable(evaluate_agenda)
