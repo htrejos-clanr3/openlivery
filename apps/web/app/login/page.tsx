@@ -170,7 +170,15 @@ function LoginForm() {
       )}
       {options?.google_enabled && (mode === "login" || mode === "register") && (
         <>
-          <div id="google-btn" style={{ display: "flex", justifyContent: "center", marginBottom: 12 }} />
+          <div id="google-btn" style={{ display: "flex", justifyContent: "center", marginBottom: 8 }} />
+          <button
+            id="google-retry"
+            type="button"
+            className="text-button"
+            style={{ display: "block", margin: "0 auto 12px", fontSize: 12 }}
+          >
+            ¿No funciona? Volver a intentar con Google
+          </button>
           <p style={{ textAlign: "center", opacity: 0.7 }}>{t("auth.orDivider")}</p>
         </>
       )}
