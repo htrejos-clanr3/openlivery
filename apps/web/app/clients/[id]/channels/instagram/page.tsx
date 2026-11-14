@@ -129,6 +129,13 @@ function InstagramChannelPageInner() {
     })();
   }, [id, applyChannel, refreshConnectedData]);
 
+  useEffect(() => {
+    if (search?.get("connect") !== "1") return;
+    const timer = window.setTimeout(() => requestConnect(false), 400);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
   function openGuide() {
     // The guided wizard replaced the inline accordion: same steps, but they are
     // computed against Meta instead of being static text.

@@ -61,6 +61,21 @@ export default function InstagramSetupPage() {
     );
   }
 
+  const stepHref = (id: string): { href: string; label: string; external: boolean } => {
+    switch (id) {
+      case "connect":
+        return { href: `/clients/${clientId}/channels/instagram?connect=1`, label: "Conectar la cuenta ahora →", external: false };
+      case "page":
+        return { href: "https://business.facebook.com/settings/pages", label: "Abrir las Páginas en Meta →", external: true };
+      case "webhook":
+        return { href: `https://developers.facebook.com/apps`, label: "Abrir la app en Meta →", external: true };
+      case "test":
+        return { href: `/clients/${clientId}/channels/instagram`, label: "Ir al canal a publicar →", external: false };
+      default:
+        return { href: `/clients/${clientId}/channels/instagram`, label: "Ir al canal de Instagram →", external: false };
+    }
+  };
+
   const agencySteps = setup.steps.filter((item) => item.scope === "agency");
   const clientSteps = setup.steps.filter((item) => item.scope !== "agency");
   const agencyPending = agencySteps.filter((item) => item.status !== "done");
@@ -197,9 +212,15 @@ export default function InstagramSetupPage() {
                     </div>
                   ) : null}
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <Link className="button primary" href={`/clients/${clientId}/channels/instagram`}>
-                      Ir al canal de Instagram →
-                    </Link>
+                    {stepHref(step.id).external ? (
+                      <a className="button primary" href={stepHref(step.id).href} target="_blank" rel="noreferrer">
+                        {stepHref(step.id).label}
+                      </a>
+                    ) : (
+                      <Link className="button primary" href={stepHref(step.id).href}>
+                        {stepHref(step.id).label}
+                      </Link>
+                    )}
                     <button type="button" className="button" onClick={load} disabled={busy}>
                       {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />} Comprobar
                     </button>
