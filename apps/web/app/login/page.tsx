@@ -77,6 +77,13 @@ function LoginForm() {
         width: 320,
         text: "continue_with",
       });
+      // GIS keeps a failed attempt cached; expose a way to start over.
+      window.setTimeout(() => {
+        const host = document.getElementById("google-retry");
+        if (host) {
+          host.onclick = () => window.location.reload();
+        }
+      }, 600);
     };
     document.body.appendChild(script);
     return () => { script.remove(); };
