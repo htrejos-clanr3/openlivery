@@ -35,7 +35,7 @@ export default function InstagramSetupPage() {
   const clientId = params?.id ?? "";
   const toast = useToast();
   const [setup, setSetup] = useState<Setup | null>(null);
-  const [open, setOpen] = useState<string | null>("app");
+  const [open, setOpen] = useState<string | null>("connect");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
