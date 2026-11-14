@@ -85,15 +85,17 @@ def parse_oauth_state(state_token: str) -> dict:
     return payload
 
 
-def build_oauth_dialog_url(state: str) -> str | None:
+def build_oauth_dialog_url(state: str, app_id: str | None = None) -> str | None:
+    """Uses the platform env app, or the one the agency saved in its settings."""
     settings = get_settings()
-    if not settings.meta_app_id:
+    resolved_app_id = (settings.meta_app_id or (app_id or "").strip()) or None
+    if not resolved_app_id:
         return None
     redirect = f"{settings.frontend_url.rstrip('/')}{settings.instagram_oauth_redirect_path}"
     version = settings.meta_graph_base_url.rstrip("/").split("/")[-1]
     query = urlencode(
         {
-            "client_id": settings.meta_app_id,
+            "client_id": resolved_app_id,
             "redirect_uri": redirect,
             "state": state,
             "response_type": "code",

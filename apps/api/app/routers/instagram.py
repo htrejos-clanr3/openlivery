@@ -253,7 +253,7 @@ def start_oauth_session(
     )
     return InstagramOAuthSessionOut(
         state=state,
-        dialog_url=instagram_oauth.build_oauth_dialog_url(state),
+        dialog_url=instagram_oauth.build_oauth_dialog_url(state, getattr(agency, "meta_app_id", None)),
         mock_mode=bool(options["mock_mode"]),
     )
 
