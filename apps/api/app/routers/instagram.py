@@ -239,7 +239,11 @@ def start_oauth_session(
     if payload.consent.client_id != client_id:
         raise HTTPException(status_code=400, detail="Consent client mismatch")
     record_channel_connect_consent(db, user=user, payload=payload.consent)
-    options = instagram_oauth.oauth_options()
+    agency = db.get(Agency, user.agency_id)
+    options = instagram_oauth.oauth_options(
+        app_id=getattr(agency, "meta_app_id", None),
+        agency_has_secret=bool(agency and agency.encrypted_meta_app_secret),
+    )
     if not options["oauth_available"]:
         raise HTTPException(status_code=400, detail=options["blocked_reason"] or "OAuth unavailable")
     state = instagram_oauth.create_oauth_state(
