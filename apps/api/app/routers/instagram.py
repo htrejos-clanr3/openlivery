@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session, joinedload
 from ..database import get_db
 from ..deps import get_current_user
 from ..models import (
+    Agency,
     Client,
     ContentItem,
     ContentMedia,
@@ -180,8 +181,14 @@ def _apply_account(
 
 
 @router.get("/oauth/options", response_model=InstagramOAuthOptionsOut)
-def oauth_options(user: User = Depends(get_current_user)):
-    return InstagramOAuthOptionsOut(**instagram_oauth.oauth_options())
+def oauth_options(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    agency = db.get(Agency, user.agency_id)
+    return InstagramOAuthOptionsOut(
+        **instagram_oauth.oauth_options(
+            app_id=getattr(agency, "meta_app_id", None),
+            agency_has_secret=bool(agency and agency.encrypted_meta_app_secret),
+        )
+    )
 
 
 @router.get("/channels/{client_id}", response_model=InstagramChannelOut)

@@ -30,19 +30,23 @@ DEFAULT_SCOPES = [
 ]
 
 
-def oauth_options() -> dict:
+def oauth_options(app_id: str | None = None, agency_has_secret: bool = False) -> dict:
+    """OAuth is available when the platform env or the agency row holds the app."""
     settings = get_settings()
-    configured = bool(settings.meta_app_id and (settings.meta_app_secret or mock_enabled()))
+    agency_app_id = (app_id or "").strip() or None
+    env_ready = bool(settings.meta_app_id and settings.meta_app_secret)
+    agency_ready = bool(agency_app_id and agency_has_secret)
+    configured = env_ready or agency_ready or mock_enabled()
     return {
-        "oauth_available": configured or mock_enabled(),
+        "oauth_available": configured,
         "mock_mode": mock_enabled(),
-        "meta_app_id": settings.meta_app_id or None,
+        "meta_app_id": settings.meta_app_id or agency_app_id,
         "graph_version": settings.meta_graph_base_url.rstrip("/").split("/")[-1],
         "scopes": DEFAULT_SCOPES,
         "redirect_path": settings.instagram_oauth_redirect_path,
         "blocked_reason": None
-        if (configured or mock_enabled())
-        else "BLOCKED_BY_EXTERNAL_CONFIGURATION: set META_APP_ID + META_APP_SECRET (or INSTAGRAM_PUBLISHING_MOCK_MODE=true).",
+        if configured
+        else "BLOCKED_BY_EXTERNAL_CONFIGURATION: save the App ID and App Secret in Settings, Meta (or set META_APP_ID + META_APP_SECRET).",
     }
 
 
