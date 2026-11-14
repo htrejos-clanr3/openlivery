@@ -119,9 +119,9 @@ export default function InstagramSetupPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span className="pill ok">{setup.summary.green} listos</span>
-          <span className="pill warn">{setup.summary.amber} por revisar</span>
-          <span className="pill bad">{setup.summary.red} por corregir</span>
+          <span className="pill ok">{clientSteps.filter((item) => item.status === "done").length} listos</span>
+          <span className="pill warn">{clientSteps.filter((item) => item.status === "manual").length} por revisar</span>
+          <span className="pill bad">{clientSteps.filter((item) => item.status === "todo").length} por corregir</span>
           <button type="button" className="button" onClick={load} disabled={busy}>
             {busy ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />} Comprobar
           </button>
