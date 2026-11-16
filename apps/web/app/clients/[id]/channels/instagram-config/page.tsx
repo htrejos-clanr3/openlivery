@@ -192,6 +192,16 @@ export default function InstagramConfigPage() {
         detail="Todavía no existe el publicador: esta función está pendiente de construir. Cuando exista, aquí saldrá el botón para publicar una imagen."
       />
 
+      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
+        <strong style={{ display: "block" }}>2 · Cómo conceder los permisos de Instagram en Meta</strong>
+        <ol style={{ margin: "10px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
+          <li>En Meta, pulsa <b>«Agregar casos de uso»</b> y elige el de <b>Instagram</b>.</li>
+          <li>Abre <b>«Personalizar»</b> en ese caso de uso.</li>
+          <li>En <b>«Permisos y funciones»</b>, pulsa <b>Agregar</b> en: instagram_basic, instagram_content_publish, instagram_manage_messages, instagram_manage_comments, pages_show_list, pages_manage_posts, business_management.</li>
+          <li>Para clientes reales, solicita <b>acceso avanzado</b> y envía la app a revisión.</li>
+        </ol>
+      </section>
+
       <section style={{ display: "flex", gap: 12, padding: "14px 16px", border: "1px solid #fde68a", borderRadius: 12, background: "#fffbeb" }}>
         <div>
           <strong style={{ display: "block", fontSize: 14 }}>Qué falta exactamente ahora</strong>
