@@ -51,6 +51,7 @@ export default function InstagramConfigPage() {
   const connected = channel?.status === "connected";
   const appReady = Boolean(app?.app_id && app.has_secret);
   const appsUrl = app?.app_id ? `https://developers.facebook.com/apps/${app.app_id}/use_cases` : "https://developers.facebook.com/apps";
+  const basicUrl = app?.app_id ? `https://developers.facebook.com/apps/${app.app_id}/settings/basic/` : "https://developers.facebook.com/apps";
 
   if (loading) {
     return <div className="page-loading"><LoaderCircle className="spin" /> Cargando…</div>;
@@ -77,10 +78,27 @@ export default function InstagramConfigPage() {
       <Row
         title="1 · App de Meta de la agencia"
         state={appReady ? "ok" : "todo"}
-        detail={appReady ? `App ID ${app?.app_id} guardado. Es la misma para todos los clientes.` : "Falta el App ID o el App Secret de la agencia."}
+        detail={
+          appReady
+            ? `App ID ${app?.app_id} guardado. Es la misma para todos los clientes.`
+            : "Falta el App ID o el App Secret. Se copian de la pantalla de Meta de abajo y se pegan en Configuración → Meta."
+        }
       >
-        <Link className="button" href="/settings/meta">Abrir Configuración → Meta</Link>
+        <a className="button" href={basicUrl} target="_blank" rel="noreferrer">
+          <ExternalLink size={15} /> Abrir la app en Meta
+        </a>
+        <Link className="button ghost" href="/settings/meta">Pegar en Configuración → Meta</Link>
       </Row>
+
+      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#f8fafc", padding: "14px 16px" }}>
+        <strong style={{ display: "block", fontSize: 13.5 }}>Instrucciones de esa pantalla de Meta</strong>
+        <ol style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 13.5, lineHeight: 1.7 }}>
+          <li>En Meta abre <b>Configuración de la app → Básica</b>.</li>
+          <li><b>Identificador de la app</b>: ese número es el App ID. Cópialo.</li>
+          <li><b>Clave secreta de la app</b>: pulsa <b>Mostrar</b> y cópiala. Meta solo la enseña ahí.</li>
+          <li>Pégalos en <b>Configuración → Meta</b> y pulsa Guardar. Se validan contra Meta al guardar.</li>
+        </ol>
+      </section>
 
       <Row
         title="2 · Permisos de Instagram en la app"
