@@ -27,7 +27,7 @@ export default function ClientChannelsPage() {
     async function load() {
       const base = [
         { id: "whatsapp", name: "WhatsApp Cloud", href: `/clients/${clientId}/channels/whatsapp-cloud`, wizard: `/clients/${clientId}/channels/meta-setup` },
-        { id: "instagram", name: "Instagram", href: `/clients/${clientId}/channels/instagram`, wizard: `/clients/${clientId}/channels/instagram-setup` },
+        { id: "instagram", name: "Instagram", href: `/clients/${clientId}/channels/instagram-config`, wizard: `/clients/${clientId}/channels/instagram-config` },
       ];
       const results: ChannelCard[] = [];
       for (const item of base) {
@@ -88,7 +88,7 @@ export default function ClientChannelsPage() {
                   {card.status === "connected" ? "Conectado" : "Desconectado"}
                 </span>
                 <Link className="button" href={card.href}>Abrir canal</Link>
-                <Link className="button primary" href={card.wizard}>Paso a paso →</Link>
+                <Link className="button primary" href={card.wizard}>{card.id === "instagram" ? "Configurar" : "Paso a paso"} →</Link>
               </div>
             ))
           )}
