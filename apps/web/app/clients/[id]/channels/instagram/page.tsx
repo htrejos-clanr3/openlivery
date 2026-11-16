@@ -7,7 +7,7 @@ import {
   ArrowLeft, BookOpen, CheckCircle2, ChevronDown, Circle, CircleAlert, ExternalLink,
   Instagram, LoaderCircle, Plus, Power, RefreshCw, Sparkles,
 } from "lucide-react";
-import { ChannelConnectConsentModal, buildChannelConsent } from "@/components/channel-connect-consent-modal";
+import { buildChannelConsent } from "@/components/channel-connect-consent-modal";
 import { Alert } from "@/components/ui";
 import { api, messageFrom } from "@/lib/api";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -614,17 +614,7 @@ function InstagramChannelPageInner() {
           )}
         </aside>
       </div>
-      <ChannelConnectConsentModal
-        open={consentOpen}
-        channel="instagram"
-        clientId={id}
-        providerTermsUrl="https://developers.facebook.com/terms/"
-        onClose={() => setConsentOpen(false)}
-        onConfirmed={() => {
-          setConsentOpen(false);
-          void connectWithMeta(pendingMockConnect);
-        }}
-      />
+
     </div>
   );
 }
