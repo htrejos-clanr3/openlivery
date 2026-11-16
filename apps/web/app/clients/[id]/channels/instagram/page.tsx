@@ -199,7 +199,7 @@ function InstagramChannelPageInner() {
 
   function requestConnect(useMock = false) {
     setPendingMockConnect(useMock);
-    setConsentOpen(true);
+    void connectWithMeta(useMock);
   }
 
   async function connectWithMeta(useMock = false) {
