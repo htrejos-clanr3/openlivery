@@ -345,11 +345,11 @@ export default function InstagramConfigPage() {
         </div>
 
         <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
-          <li>Pulsa <b>«Conectar con Instagram»</b>. Se abre una ventana <b>«Antes de conectar»</b> con tres interruptores.</li>
-          <li>Activa los tres: autorización para administrar la cuenta, aviso de que <b>solo se usa OAuth</b> (nunca se guarda la contraseña) y aviso de que los borradores con IA se envían a proveedores de inferencia.</li>
-          <li>Pulsa <b>«Continuar para conectar»</b>. Sale a <b>facebook.com</b>: inicia sesión con la cuenta que administra el Instagram del cliente.</li>
-          <li>Acepta los permisos que pide Meta. Debe ser una cuenta <b>Business o Creator</b> vinculada a una Página; una cuenta personal no puede publicar.</li>
-          <li>Al volver, el bloque queda en verde con el <b>@usuario</b> de la cuenta. Si vuelve igual, el permiso no se concedió: repite el bloque 2.</li>
+          <li>Pulsa <b>«Conectar con Instagram»</b>. Se abre una <b>ventana nueva</b> con el diálogo de Meta; no se cierra esta pantalla.</li>
+          <li>Inicia sesión en Meta con la cuenta que administra el Instagram del cliente. Debe ser <b>Business o Creator</b> vinculada a una Página: una cuenta personal no puede publicar.</li>
+          <li>Acepta los permisos que pide Meta. Si aparece <b>«El dominio de esta URL no está incluido»</b>, falta declarar el dominio en la app: Configuración → Básica → <b>Dominios de la app</b> = <code style={{ fontSize: 12 }}>fast-livery.r3soluciones.com</code>.</li>
+          <li>La ventana vuelve sola a <code style={{ fontSize: 12 }}>/api/instagram/oauth/callback</code>. Puedes cerrarla cuando termine.</li>
+          <li>Vuelve a esta pestaña y pulsa <b>Comprobar estado</b>: el bloque queda en verde con el <b>@usuario</b>. Si sigue en rojo, el permiso no se concedió: repite el bloque 2.</li>
         </ol>
       </section>
 
