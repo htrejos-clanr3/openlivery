@@ -9,6 +9,12 @@ import { api } from "@/lib/api";
 type Channel = { status: string; username: string | null; page_id: string | null };
 type Options = { oauth_available: boolean; mock_mode: boolean };
 type AgencyApp = { app_id: string; has_secret: boolean };
+type CheckOutcome = {
+  level: "ok" | "todo" | "wait";
+  title: string;
+  detail: string;
+  next: string;
+};
 
 function Row({ title, state, detail, children }: { title: string; state: "ok" | "todo" | "wait"; detail: string; children?: React.ReactNode }) {
   const color = state === "ok" ? "#16a34a" : state === "todo" ? "#dc2626" : "#a16207";
@@ -38,6 +44,8 @@ export default function InstagramConfigPage() {
   const [hasSecret, setHasSecret] = useState(false);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [outcome, setOutcome] = useState<CheckOutcome | null>(null);
 
   useEffect(() => {
     if (!clientId) return;
@@ -56,6 +64,57 @@ export default function InstagramConfigPage() {
       setLoading(false);
     });
   }, [clientId]);
+
+  async function runCheck() {
+    setChecking(true);
+    setOutcome(null);
+    try {
+      const [channelResult, optionsResult, appResult] = await Promise.allSettled([
+        api<Channel>(`/instagram/channels/${clientId}`),
+        api<Options>("/instagram/oauth/options"),
+        api<AgencyApp>("/agency/meta-app"),
+      ]);
+      const currentChannel = channelResult.status === "fulfilled" ? channelResult.value : channel;
+      const currentOptions = optionsResult.status === "fulfilled" ? optionsResult.value : options;
+      const currentApp = appResult.status === "fulfilled" ? appResult.value : app;
+
+      if (!currentApp?.app_id || !currentApp.has_secret) {
+        setOutcome({
+          level: "todo",
+          title: "No hay nada que comprobar todavía",
+          detail: "La app de Meta de la agencia no está configurada, así que esta consulta no se envía a Meta.",
+          next: "Guarda el App ID y el App Secret en el bloque 1 y vuelve a pulsar Comprobar estado.",
+        });
+        return;
+      }
+      if (!currentOptions?.oauth_available) {
+        setOutcome({
+          level: "todo",
+          title: "Consulta enviada a Meta sin resultado",
+          detail: "Meta no acepta el App ID con ese secret, o el login guiado está deshabilitado en el servidor.",
+          next: "Revisa el App ID y el secret en el bloque 1, guarda y vuelve a comprobar.",
+        });
+        return;
+      }
+      if (currentChannel?.status !== "connected") {
+        setOutcome({
+          level: "todo",
+          title: "Consulta enviada a Meta sin resultado",
+          detail: "La app está bien configurada, pero no hay una cuenta conectada: sin token no se pueden leer los permisos.",
+          next: "Pulsa «Conectar con Instagram» en el bloque 3. Meta pedirá autorización; al volver, pulsa Comprobar estado otra vez.",
+        });
+        return;
+      }
+      setOutcome({
+        level: "ok",
+        title: "Resultado exitoso",
+        detail: "La cuenta está conectada y la app responde. Meta no expone aquí si los permisos son de prueba o aprobados.",
+        next: "Paso 5: publicar una imagen de prueba. Ese publicador todavía no existe, así que es lo único que queda pendiente.",
+      });
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function saveApp() {
     setSaving(true);
@@ -102,14 +161,42 @@ export default function InstagramConfigPage() {
           <button
             type="button"
             className="button ghost"
-            title="Vuelve a leer el estado desde el servidor"
-            onClick={() => window.location.reload()}
+            title="Consulta el estado y explica el siguiente paso"
+            onClick={runCheck}
+            disabled={checking}
           >
-            <RefreshCw size={15} /> Comprobar estado
+            {checking ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}
+            {checking ? "Comprobando…" : "Comprobar estado"}
           </button>
           <Link className="button" href={`/clients/${clientId}/channels`}><ArrowLeft size={15} /> Canales</Link>
         </div>
       </section>
+
+      {outcome ? (
+        <section
+          role="status"
+          aria-live="polite"
+          style={{
+            display: "flex",
+            gap: 12,
+            padding: "14px 16px",
+            borderRadius: 12,
+            border: `1px solid ${outcome.level === "ok" ? "#bbf7d0" : "#fde68a"}`,
+            background: outcome.level === "ok" ? "#f0fdf4" : "#fffbeb",
+          }}
+        >
+          <span style={{ flex: "none", marginTop: 2 }}>
+            {outcome.level === "ok" ? <Check size={18} color="#16a34a" /> : <AlertTriangle size={18} color="#a16207" />}
+          </span>
+          <div>
+            <strong style={{ display: "block", fontSize: 14 }}>{outcome.title}</strong>
+            <span style={{ display: "block", fontSize: 13, color: "#475569", marginTop: 2 }}>{outcome.detail}</span>
+            <span style={{ display: "block", fontSize: 13, marginTop: 6 }}>
+              <b>Siguiente paso:</b> {outcome.next}
+            </span>
+          </div>
+        </section>
+      ) : null}
 
       <p className="field-help" style={{ margin: 0, padding: "0 4px" }}>
         <b>✓ Listo</b> · <b>✗ Falta</b> · <b>⚠ Pendiente de Meta</b> (no se puede verificar desde aquí) · El botón «Comprobar estado» vuelve a leer el estado desde el servidor.
@@ -179,10 +266,12 @@ export default function InstagramConfigPage() {
           <button
             type="button"
             className="button ghost"
-            title="Vuelve a leer el estado desde el servidor"
-            onClick={() => window.location.reload()}
+            title="Consulta el estado y explica el siguiente paso"
+            onClick={runCheck}
+            disabled={checking}
           >
-            <RefreshCw size={15} /> Comprobar estado
+            {checking ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}
+            {checking ? "Comprobando…" : "Comprobar estado"}
           </button>
         </div>
 
