@@ -150,15 +150,27 @@ export default function InstagramConfigPage() {
           <li>Pégalos arriba y pulsa Guardar. Se validan contra Meta.</li>
         </ol>
       </section>
-      <Row
-        title="2 · Permisos de Instagram en la app"
-        state="wait"
-        detail="Meta no permite comprobarlos desde aquí. Deben estar concedidos: instagram_basic, instagram_content_publish, instagram_manage_messages, instagram_manage_comments, pages_show_list, pages_manage_posts."
-      >
-        <a className="button" href={appsUrl} target="_blank" rel="noreferrer">
-          <ExternalLink size={15} /> Abrir permisos en Meta
-        </a>
-      </Row>
+      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: "#a16207", color: "#fff", flex: "none" }}>·</span>
+            <div>
+              <strong style={{ display: "block" }}>2 · Permisos de Instagram en la app</strong>
+              <span className="field-help">Meta los revisa y no se pueden comprobar desde aquí.</span>
+            </div>
+          </div>
+          <a className="button" href={appsUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} /> Abrir permisos en Meta
+          </a>
+        </div>
+
+        <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
+          <li>En Meta pulsa <b>«Agregar casos de uso»</b> y elige el de <b>Instagram</b>.</li>
+          <li>Abre <b>«Personalizar»</b> en ese caso de uso.</li>
+          <li>En <b>«Permisos y funciones»</b> pulsa <b>Agregar</b> en: instagram_basic, instagram_content_publish, instagram_manage_messages, instagram_manage_comments, pages_show_list, pages_manage_posts, business_management.</li>
+          <li>Para clientes reales, solicita <b>acceso avanzado</b> y envía la app a revisión.</li>
+        </ol>
+      </section>
 
       <Row
         title="3 · Conectar la cuenta del cliente"
