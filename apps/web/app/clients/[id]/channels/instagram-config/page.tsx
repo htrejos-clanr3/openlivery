@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AlertTriangle, ArrowLeft, Check, ExternalLink, Instagram, LoaderCircle, RefreshCw, X } from "lucide-react";
+import { buildChannelConsent } from "@/components/channel-connect-consent-modal";
 import { api } from "@/lib/api";
 
 type Channel = { status: string; username: string | null; page_id: string | null };
@@ -45,6 +46,7 @@ export default function InstagramConfigPage() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState("");
   const [checking, setChecking] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [outcome, setOutcome] = useState<CheckOutcome | null>(null);
 
   useEffect(() => {
@@ -64,6 +66,36 @@ export default function InstagramConfigPage() {
       setLoading(false);
     });
   }, [clientId]);
+
+  async function connect() {
+    setConnecting(true);
+    setOutcome(null);
+    try {
+      const session = await api<{ state: string; dialog_url: string | null; mock_mode: boolean }>(
+        `/instagram/channels/${clientId}/oauth/session`,
+        { method: "POST", body: JSON.stringify(buildChannelConsent("instagram", clientId)) },
+      );
+      if (session.dialog_url) {
+        window.location.href = session.dialog_url;
+        return;
+      }
+      setOutcome({
+        level: "todo",
+        title: "Meta no devolvió una URL de autorización",
+        detail: "El servidor no pudo construir el diálogo de Meta: falta el App ID o el secret, o el servidor tiene el login guiado deshabilitado.",
+        next: "Revisa el bloque 1, guarda los datos y vuelve a intentar.",
+      });
+    } catch {
+      setOutcome({
+        level: "todo",
+        title: "La conexión no se pudo iniciar",
+        detail: "La petición de sesión OAuth falló antes de salir hacia Meta.",
+        next: "Pulsa Comprobar estado para ver qué falta y revisa el bloque 1.",
+      });
+    } finally {
+      setConnecting(false);
+    }
+  }
 
   async function runCheck() {
     setChecking(true);
@@ -302,9 +334,10 @@ export default function InstagramConfigPage() {
               </span>
             </div>
           </div>
-          <Link className="button primary" href={`/clients/${clientId}/channels/instagram?connect=1`}>
-            {connected ? "Reconectar" : "Conectar con Instagram"}
-          </Link>
+          <button type="button" className="button primary" onClick={connect} disabled={connecting}>
+            {connecting ? <LoaderCircle className="spin" size={15} /> : null}
+            {connecting ? "Abriendo Meta…" : connected ? "Reconectar" : "Conectar con Instagram"}
+          </button>
         </div>
 
         <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
