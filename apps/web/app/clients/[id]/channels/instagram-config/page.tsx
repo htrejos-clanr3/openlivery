@@ -76,7 +76,11 @@ export default function InstagramConfigPage() {
         { method: "POST", body: JSON.stringify(buildChannelConsent("instagram", clientId)) },
       );
       if (session.dialog_url) {
-        window.location.href = session.dialog_url;
+        // Meta must open in its own window so this screen stays available to
+        // receive the result and re-check the channel state.
+        const popup = window.open(session.dialog_url, "_blank", "noopener,noreferrer");
+        if (!popup) window.location.href = session.dialog_url;
+        setConnecting(false);
         return;
       }
       setOutcome({
