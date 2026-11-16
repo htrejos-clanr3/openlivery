@@ -165,10 +165,12 @@ export default function InstagramConfigPage() {
         </div>
 
         <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
-          <li>En Meta pulsa <b>«Agregar casos de uso»</b> y elige el de <b>Instagram</b>.</li>
-          <li>Abre <b>«Personalizar»</b> en ese caso de uso.</li>
-          <li>En <b>«Permisos y funciones»</b> pulsa <b>Agregar</b> en: instagram_basic, instagram_content_publish, instagram_manage_messages, instagram_manage_comments, pages_show_list, pages_manage_posts, business_management.</li>
-          <li>Para clientes reales, solicita <b>acceso avanzado</b> y envía la app a revisión.</li>
+          <li><b>No hay botón Guardar en esa pantalla.</b> Meta aplica cada cambio al marcarlo; la confirmación es la columna <b>Estado</b> diciendo «Listo para la prueba».</li>
+          <li>En el desplegable de arriba, el caso de uso correcto es <b>«API de Instagram»</b>.</li>
+          <li>Si falta alguna función, pulsa <b>«Agregar más a este caso de uso»</b> y agrega: <code style={{ fontSize: 12 }}>instagram_basic · instagram_content_publish · instagram_manage_messages · instagram_manage_comments</code></li>
+          <li>Para publicar también en la <b>Página de Facebook</b>, agrega el caso de uso «Administrar todos los aspectos de tu página» con <code style={{ fontSize: 12 }}>pages_show_list · pages_manage_posts · business_management</code></li>
+          <li><b>«Listo para la prueba» no es aprobado:</b> solo funciona con usuarios con rol en la app. Para clientes reales necesitas verificación de negocio, acceso avanzado de cada permiso y la app publicada.</li>
+          <li>Cuando termines, vuelve aquí y pulsa <b>Comprobar</b>: si el bloque sigue en ámbar, Meta no está devolviendo los permisos.</li>
         </ol>
       </section>
 
