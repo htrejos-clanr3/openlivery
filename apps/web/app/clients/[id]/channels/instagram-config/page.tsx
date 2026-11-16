@@ -178,7 +178,7 @@ export default function InstagramConfigPage() {
           </a>
           <button
             type="button"
-            className="button"
+            className="button ghost"
             title="Vuelve a leer el estado desde el servidor"
             onClick={() => window.location.reload()}
           >
