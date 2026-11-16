@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft, BookOpen, CheckCircle2, ChevronDown, Circle, CircleAlert, ExternalLink,
@@ -128,6 +128,16 @@ function InstagramChannelPageInner() {
       }
     })();
   }, [id, applyChannel, refreshConnectedData]);
+
+  const router = useRouter();
+
+  // This screen is legacy: the single configuration page replaced it. Keep the
+  // ?connect=1 entry here because the OAuth flow lives in this component.
+  useEffect(() => {
+    if (search?.get("connect") === "1") return;
+    router.replace(`/clients/${id}/channels/instagram-config`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, id]);
 
   useEffect(() => {
     if (search?.get("connect") !== "1") return;
