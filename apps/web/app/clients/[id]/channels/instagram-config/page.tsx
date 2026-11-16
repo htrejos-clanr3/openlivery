@@ -285,31 +285,62 @@ export default function InstagramConfigPage() {
         </ol>
       </section>
 
-      <Row
-        title="3 · Conectar la cuenta del cliente"
-        state={connected ? "ok" : "todo"}
-        detail={
-          connected
-            ? `Cuenta conectada${channel?.username ? `: @${channel.username}` : ""}.`
-            : options?.oauth_available
-              ? "El cliente autoriza con su cuenta Business. Sin cuenta Business no se puede publicar."
-              : "El login de Meta no está disponible: revisa el App ID y el secret del paso 1."
-        }
-      >
-        <Link className="button primary" href={`/clients/${clientId}/channels/instagram?connect=1`}>
-          {connected ? "Reconectar" : "Conectar con Instagram"}
-        </Link>
-      </Row>
+      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: connected ? "#16a34a" : "#dc2626", color: "#fff", flex: "none" }}>
+              {connected ? <Check size={14} /> : <X size={14} />}
+            </span>
+            <div>
+              <strong style={{ display: "block" }}>3 · Conectar la cuenta del cliente</strong>
+              <span className="field-help">
+                {connected
+                  ? `Cuenta conectada${channel?.username ? `: @${channel.username}` : ""}.`
+                  : options?.oauth_available
+                    ? "El cliente autoriza con su cuenta Business de Instagram."
+                    : "Falta el App ID o el secret del bloque 1: sin eso el botón no puede salir a Meta."}
+              </span>
+            </div>
+          </div>
+          <Link className="button primary" href={`/clients/${clientId}/channels/instagram?connect=1`}>
+            {connected ? "Reconectar" : "Conectar con Instagram"}
+          </Link>
+        </div>
 
-      <Row
-        title="4 · Página de Facebook vinculada"
-        state={channel?.page_id ? "ok" : "todo"}
-        detail={channel?.page_id ? `Página ${channel.page_id}.` : "Instagram exige una Página vinculada. Sin ella la publicación falla."}
-      >
-        <a className="button" href="https://business.facebook.com/settings/pages" target="_blank" rel="noreferrer">
-          <ExternalLink size={15} /> Abrir Páginas en Meta
-        </a>
-      </Row>
+        <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
+          <li>Pulsa <b>«Conectar con Instagram»</b>. Se abre una ventana <b>«Antes de conectar»</b> con tres interruptores.</li>
+          <li>Activa los tres: autorización para administrar la cuenta, aviso de que <b>solo se usa OAuth</b> (nunca se guarda la contraseña) y aviso de que los borradores con IA se envían a proveedores de inferencia.</li>
+          <li>Pulsa <b>«Continuar para conectar»</b>. Sale a <b>facebook.com</b>: inicia sesión con la cuenta que administra el Instagram del cliente.</li>
+          <li>Acepta los permisos que pide Meta. Debe ser una cuenta <b>Business o Creator</b> vinculada a una Página; una cuenta personal no puede publicar.</li>
+          <li>Al volver, el bloque queda en verde con el <b>@usuario</b> de la cuenta. Si vuelve igual, el permiso no se concedió: repite el bloque 2.</li>
+        </ol>
+      </section>
+
+      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: channel?.page_id ? "#16a34a" : "#dc2626", color: "#fff", flex: "none" }}>
+              {channel?.page_id ? <Check size={14} /> : <X size={14} />}
+            </span>
+            <div>
+              <strong style={{ display: "block" }}>4 · Página de Facebook vinculada</strong>
+              <span className="field-help">
+                {channel?.page_id ? `Página ${channel.page_id} vinculada.` : "Instagram exige una Página vinculada. Sin ella la publicación falla."}
+              </span>
+            </div>
+          </div>
+          <a className="button" href="https://business.facebook.com/settings/pages" target="_blank" rel="noreferrer">
+            <ExternalLink size={15} /> Abrir Páginas en Meta
+          </a>
+        </div>
+
+        <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
+          <li>En Meta abre <b>Configuración del negocio → Cuentas → Páginas</b>.</li>
+          <li>Comprueba que exista una <b>Página de Facebook</b> del cliente. Si no existe, créala ahí mismo.</li>
+          <li>Entra en <b>Instagram → Cuentas de Instagram</b> y vincula la cuenta Business a esa Página.</li>
+          <li>Vuelve aquí y pulsa <b>Comprobar estado</b>: el bloque solo se pone en verde cuando el canal devuelve el <b>page_id</b>.</li>
+        </ol>
+      </section>
 
       <Row
         title="5 · Publicación de prueba"
