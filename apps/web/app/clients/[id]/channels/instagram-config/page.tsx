@@ -33,6 +33,11 @@ export default function InstagramConfigPage() {
   const [options, setOptions] = useState<Options | null>(null);
   const [app, setApp] = useState<AgencyApp | null>(null);
   const [loading, setLoading] = useState(true);
+  const [appId, setAppId] = useState("");
+  const [appSecret, setAppSecret] = useState("");
+  const [hasSecret, setHasSecret] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
     if (!clientId) return;
@@ -43,10 +48,33 @@ export default function InstagramConfigPage() {
     ]).then((results) => {
       if (results[0].status === "fulfilled") setChannel(results[0].value);
       if (results[1].status === "fulfilled") setOptions(results[1].value);
-      if (results[2].status === "fulfilled") setApp(results[2].value);
+      if (results[2].status === "fulfilled") {
+        setApp(results[2].value);
+        setAppId(results[2].value.app_id || "");
+        setHasSecret(Boolean(results[2].value.has_secret));
+      }
       setLoading(false);
     });
   }, [clientId]);
+
+  async function saveApp() {
+    setSaving(true);
+    setFeedback("");
+    try {
+      const result = await api<{ verified: boolean | null; has_secret: boolean }>("/agency/meta-app", {
+        method: "PUT",
+        body: JSON.stringify({ app_id: appId, app_secret: appSecret || null }),
+      });
+      setHasSecret(Boolean(result.has_secret));
+      setAppSecret("");
+      setApp({ app_id: appId, has_secret: Boolean(result.has_secret) });
+      setFeedback(result.verified === false ? "Meta no reconoce ese App ID con ese secret." : "Guardado y verificado.");
+    } catch {
+      setFeedback("No se pudo guardar. Revisa los datos.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const connected = channel?.status === "connected";
   const appReady = Boolean(app?.app_id && app.has_secret);
@@ -75,31 +103,53 @@ export default function InstagramConfigPage() {
         </div>
       </section>
 
-      <Row
-        title="1 · App de Meta de la agencia"
-        state={appReady ? "ok" : "todo"}
-        detail={
-          appReady
-            ? `App ID ${app?.app_id} guardado. Es la misma para todos los clientes.`
-            : "Falta el App ID o el App Secret. Se copian de la pantalla de Meta de abajo y se pegan en Configuración → Meta."
-        }
-      >
-        <a className="button" href={basicUrl} target="_blank" rel="noreferrer">
-          <ExternalLink size={15} /> Abrir la app en Meta
-        </a>
-        <Link className="button ghost" href="/settings/meta">Pegar en Configuración → Meta</Link>
-      </Row>
+      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: appReady ? "#16a34a" : "#dc2626", color: "#fff", flex: "none" }}>
+              {appReady ? <Check size={14} /> : <X size={14} />}
+            </span>
+            <div>
+              <strong style={{ display: "block" }}>1 · App de Meta de la agencia</strong>
+              <span className="field-help">
+                {appReady ? "Guardada y compartida por todos los clientes." : "Faltan el App ID o el secret."}
+              </span>
+            </div>
+          </div>
+          <a className="button" href={basicUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} /> Abrir la app en Meta
+          </a>
+        </div>
 
-      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#f8fafc", padding: "14px 16px" }}>
-        <strong style={{ display: "block", fontSize: 13.5 }}>Instrucciones de esa pantalla de Meta</strong>
-        <ol style={{ margin: "8px 0 0", paddingLeft: 20, fontSize: 13.5, lineHeight: 1.7 }}>
+        <div style={{ display: "grid", gap: 10, marginTop: 14, maxWidth: 620 }}>
+          <label className="field">
+            App ID
+            <input value={appId} onChange={(event) => setAppId(event.target.value)} placeholder="1074725462274330" />
+          </label>
+          <label className="field">
+            App Secret {hasSecret ? "(vacío = conservar el actual)" : ""}
+            <input
+              type="password"
+              value={appSecret}
+              onChange={(event) => setAppSecret(event.target.value)}
+              placeholder={hasSecret ? "clave guardada" : "Pega la clave secreta"}
+            />
+          </label>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+            <button type="button" className="button primary" onClick={saveApp} disabled={saving || !appId}>
+              {saving ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} Guardar app de la agencia
+            </button>
+            {feedback ? <span className="field-help">{feedback}</span> : null}
+          </div>
+        </div>
+
+        <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.7, color: "#475569" }}>
           <li>En Meta abre <b>Configuración de la app → Básica</b>.</li>
-          <li><b>Identificador de la app</b>: ese número es el App ID. Cópialo.</li>
-          <li><b>Clave secreta de la app</b>: pulsa <b>Mostrar</b> y cópiala. Meta solo la enseña ahí.</li>
-          <li>Pégalos en <b>Configuración → Meta</b> y pulsa Guardar. Se validan contra Meta al guardar.</li>
+          <li><b>Identificador de la app</b>: ese número es el App ID.</li>
+          <li><b>Clave secreta de la app</b>: pulsa <b>Mostrar</b> y cópiala.</li>
+          <li>Pégalos arriba y pulsa Guardar. Se validan contra Meta.</li>
         </ol>
       </section>
-
       <Row
         title="2 · Permisos de Instagram en la app"
         state="wait"
