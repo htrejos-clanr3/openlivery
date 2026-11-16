@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Check, ExternalLink, Instagram, LoaderCircle, X } from "lucide-react";
+import { AlertTriangle, ArrowLeft, Check, ExternalLink, Instagram, LoaderCircle, RefreshCw, X } from "lucide-react";
 import { api } from "@/lib/api";
 
 type Channel = { status: string; username: string | null; page_id: string | null };
@@ -99,12 +99,21 @@ export default function InstagramConfigPage() {
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <span className={connected ? "pill ok" : "pill bad"}>{connected ? "Conectado" : "Desconectado"}</span>
-          <button type="button" className="button" onClick={() => window.location.reload()}>
-            Comprobar
+          <button
+            type="button"
+            className="button"
+            title="Vuelve a leer el estado desde el servidor"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw size={15} /> Comprobar estado
           </button>
           <Link className="button" href={`/clients/${clientId}/channels`}><ArrowLeft size={15} /> Canales</Link>
         </div>
       </section>
+
+      <p className="field-help" style={{ margin: 0, padding: "0 4px" }}>
+        <b>✓ Listo</b> · <b>✗ Falta</b> · <b>⚠ Pendiente de Meta</b> (no se puede verificar desde aquí) · El botón «Comprobar estado» vuelve a leer el estado desde el servidor.
+      </p>
 
       <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
@@ -156,17 +165,24 @@ export default function InstagramConfigPage() {
       <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-            <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: "#a16207", color: "#fff", flex: "none" }}>·</span>
+            <span title="Pendiente de revisión en Meta" style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: "#fef3c7", color: "#a16207", flex: "none" }}>
+              <AlertTriangle size={14} />
+            </span>
             <div>
               <strong style={{ display: "block" }}>2 · Permisos de Instagram en la app</strong>
-              <span className="field-help">Meta los revisa y no se pueden comprobar desde aquí.</span>
+              <span className="field-help">Meta los revisa y no se pueden comprobar desde aquí. <b>Pendiente de Meta</b>.</span>
             </div>
           </div>
           <a className="button" href={appsUrl} target="_blank" rel="noreferrer">
             <ExternalLink size={15} /> Abrir permisos en Meta
           </a>
-          <button type="button" className="button" onClick={() => window.location.reload()}>
-            Comprobar
+          <button
+            type="button"
+            className="button"
+            title="Vuelve a leer el estado desde el servidor"
+            onClick={() => window.location.reload()}
+          >
+            <RefreshCw size={15} /> Comprobar estado
           </button>
         </div>
 
