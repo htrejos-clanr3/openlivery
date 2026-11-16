@@ -101,7 +101,7 @@ export default function InstagramConfigPage() {
           <span className={connected ? "pill ok" : "pill bad"}>{connected ? "Conectado" : "Desconectado"}</span>
           <button
             type="button"
-            className="button"
+            className="button ghost"
             title="Vuelve a leer el estado desde el servidor"
             onClick={() => window.location.reload()}
           >
