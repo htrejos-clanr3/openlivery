@@ -308,7 +308,7 @@ export default function InstagramConfigPage() {
           <li>Configuración de la app → <b>Básica</b> → <b>Dominios de la app</b>: escribe <code style={{ fontSize: 12 }}>fast-livery.r3soluciones.com</code> (sin https, sin barra final) → Guardar cambios.</li>
           <li>Menú izquierdo → <b>Iniciar sesión con Facebook → Configuración</b> → <b>URI de redirección de OAuth válidos</b>: agrega <code style={{ fontSize: 12 }}>https://fast-livery.r3soluciones.com/api/instagram/oauth/callback</code> → Guardar cambios.</li>
           <li>Activa <b>Inicio de sesión con OAuth del navegador</b> y <b>OAuth web</b> en esa misma pantalla.</li>
-          <li>Menú izquierdo → <b>Roles de la app → Probar</b>: añádete como tester mientras la app no esté publicada.</li>
+          <li>Menú izquierdo → <b>Roles de la app → Probar</b> → botón <b>«Agregar personas»</b>: escribe tu cuenta de Facebook y dale rol de probador. No uses «Crear cuentas de prueba»: esas cuentas no tienen Instagram Business ni Página.</li>
           <li>Espera de 2 a 10 minutos: Meta propaga la configuración antes de aceptar el dominio.</li>
         </ol>
       </section>
