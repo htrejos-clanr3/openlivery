@@ -300,16 +300,6 @@ export default function InstagramConfigPage() {
           <a className="button" href={appsUrl} target="_blank" rel="noreferrer">
             <ExternalLink size={15} /> Abrir permisos en Meta
           </a>
-          <button
-            type="button"
-            className="button ghost"
-            title="Consulta el estado y explica el siguiente paso"
-            onClick={runCheck}
-            disabled={checking}
-          >
-            {checking ? <LoaderCircle className="spin" size={15} /> : <RefreshCw size={15} />}
-            {checking ? "Comprobando…" : "Comprobar estado"}
-          </button>
         </div>
 
         <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
