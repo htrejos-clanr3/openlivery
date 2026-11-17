@@ -175,6 +175,9 @@ export default function InstagramConfigPage() {
   const appReady = Boolean(app?.app_id && app.has_secret);
   const appsUrl = app?.app_id ? `https://developers.facebook.com/apps/${app.app_id}/use_cases` : "https://developers.facebook.com/apps";
   const basicUrl = app?.app_id ? `https://developers.facebook.com/apps/${app.app_id}/settings/basic/` : "https://developers.facebook.com/apps";
+  const loginSettingsUrl = app?.app_id
+    ? `https://developers.facebook.com/apps/${app.app_id}/fb-login/settings/`
+    : "https://developers.facebook.com/apps";
 
   if (loading) {
     return <div className="page-loading"><LoaderCircle className="spin" /> Cargando…</div>;
@@ -338,6 +341,12 @@ export default function InstagramConfigPage() {
               </span>
             </div>
           </div>
+          <a className="button" href={basicUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} /> Dominios de la app
+          </a>
+          <a className="button" href={loginSettingsUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} /> Login de Facebook
+          </a>
           <button type="button" className="button primary" onClick={connect} disabled={connecting}>
             {connecting ? <LoaderCircle className="spin" size={15} /> : null}
             {connecting ? "Abriendo Meta…" : connected ? "Reconectar" : "Conectar con Instagram"}
@@ -345,11 +354,13 @@ export default function InstagramConfigPage() {
         </div>
 
         <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
-          <li>Pulsa <b>«Conectar con Instagram»</b>. Se abre una <b>ventana nueva</b> con el diálogo de Meta; no se cierra esta pantalla.</li>
-          <li>Inicia sesión en Meta con la cuenta que administra el Instagram del cliente. Debe ser <b>Business o Creator</b> vinculada a una Página: una cuenta personal no puede publicar.</li>
-          <li>Acepta los permisos que pide Meta. Si aparece <b>«El dominio de esta URL no está incluido»</b>, falta declarar el dominio en la app: Configuración → Básica → <b>Dominios de la app</b> = <code style={{ fontSize: 12 }}>fast-livery.r3soluciones.com</code>.</li>
-          <li>La ventana vuelve sola a <code style={{ fontSize: 12 }}>/api/instagram/oauth/callback</code>. Puedes cerrarla cuando termine.</li>
-          <li>Vuelve a esta pestaña y pulsa <b>Comprobar estado</b>: el bloque queda en verde con el <b>@usuario</b>. Si sigue en rojo, el permiso no se concedió: repite el bloque 2.</li>
+          <li><b>Antes de conectar</b>, declara el dominio: pulsa <b>«Dominios de la app»</b> → Configuración → Básica → campo <b>Dominios de la app</b> → escribe <code style={{ fontSize: 12 }}>fast-livery.r3soluciones.com</code> → Guardar cambios.</li>
+          <li>Pulsa <b>«Login de Facebook»</b> → <b>Configuración</b> → <b>URI de redirección de OAuth válidos</b> → agrega <code style={{ fontSize: 12 }}>https://fast-livery.r3soluciones.com/api/instagram/oauth/callback</code> → Guardar.</li>
+          <li>En la misma pantalla, activa <b>Inicio de sesión con OAuth del navegador</b> y <b>Inicio de sesión con OAuth web</b>.</li>
+          <li>Añádete como tester: <b>Roles de la app → Probar</b> → agrega tu usuario de Facebook con el rol de probador.</li>
+          <li>Ahora pulsa <b>«Conectar con Instagram»</b>: se abre una <b>ventana nueva</b> con Meta. Inicia sesión con la cuenta que administra el Instagram del cliente, que debe ser <b>Business o Creator</b> vinculada a una Página.</li>
+          <li>Acepta los permisos. La ventana vuelve sola a <code style={{ fontSize: 12 }}>/api/instagram/oauth/callback</code>.</li>
+          <li>Vuelve a esta pestaña y pulsa <b>Comprobar estado</b>: el bloque queda en verde con el <b>@usuario</b>.</li>
         </ol>
       </section>
 
