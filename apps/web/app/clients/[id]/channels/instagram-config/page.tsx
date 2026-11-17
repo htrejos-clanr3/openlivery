@@ -251,9 +251,7 @@ export default function InstagramConfigPage() {
               </span>
             </div>
           </div>
-          <a className="button" href={basicUrl} target="_blank" rel="noreferrer">
-            <ExternalLink size={15} /> Abrir la app en Meta
-          </a>
+
         </div>
 
         <div style={{ display: "grid", gap: 10, marginTop: 14, maxWidth: 620 }}>
@@ -279,7 +277,7 @@ export default function InstagramConfigPage() {
         </div>
 
         <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.7, color: "#475569" }}>
-          <li>En Meta abre <b>Configuración de la app → Básica</b>.</li>
+          <li>En Meta abre <a href={basicUrl} target="_blank" rel="noreferrer">Configuración de la app → Básica</a>.</li>
           <li><b>Identificador de la app</b>: ese número es el App ID.</li>
           <li><b>Clave secreta de la app</b>: pulsa <b>Mostrar</b> y cópiala.</li>
           <li>Pégalos arriba y pulsa Guardar. Se validan contra Meta.</li>
@@ -320,7 +318,7 @@ export default function InstagramConfigPage() {
           <li>Si falta alguna función, pulsa <b>«Agregar más a este caso de uso»</b> y agrega: <code style={{ fontSize: 12 }}>instagram_basic · instagram_content_publish · instagram_manage_messages · instagram_manage_comments</code></li>
           <li>Para publicar también en la <b>Página de Facebook</b> (condicional: solo si vas a publicar ahí), agrega el caso de uso «Administrar todos los aspectos de tu página» con <code style={{ fontSize: 12 }}>pages_show_list · pages_manage_posts · business_management</code></li>
           <li><b>«Listo para la prueba» no es aprobado:</b> solo funciona con usuarios con rol en la app. Para clientes reales necesitas verificación de negocio, acceso avanzado de cada permiso y la app publicada.</li>
-          <li>Cuando termines, pulsa el botón <b>Comprobar</b> de este bloque (o el de arriba a la derecha): si sigue en ámbar, Meta no está devolviendo los permisos.</li>
+          <li>Cuando termines, pulsa <b>Comprobar estado</b> (arriba a la derecha): si sigue en ámbar, Meta no está devolviendo los permisos.</li>
         </ol>
       </section>
 
