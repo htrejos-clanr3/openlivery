@@ -289,11 +289,38 @@ export default function InstagramConfigPage() {
       <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
         <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: "#dc2626", color: "#fff", flex: "none" }}>
+              <X size={14} />
+            </span>
+            <div>
+              <strong style={{ display: "block" }}>2 · Dominios y URI de redirección
+                <span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, textTransform: "uppercase", padding: "2px 6px", borderRadius: 6, background: "#fef3c7", color: "#92400e" }}>Obligatorio</span>
+              </strong>
+              <span className="field-help">Sin esto Meta rechaza el diálogo con «El dominio de esta URL no está incluido».</span>
+            </div>
+          </div>
+          <a className="button" href={basicUrl} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} /> Abrir la app en Meta
+          </a>
+        </div>
+
+        <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
+          <li>Configuración de la app → <b>Básica</b> → <b>Dominios de la app</b>: escribe <code style={{ fontSize: 12 }}>fast-livery.r3soluciones.com</code> (sin https, sin barra final) → Guardar cambios.</li>
+          <li>Menú izquierdo → <b>Iniciar sesión con Facebook → Configuración</b> → <b>URI de redirección de OAuth válidos</b>: agrega <code style={{ fontSize: 12 }}>https://fast-livery.r3soluciones.com/api/instagram/oauth/callback</code> → Guardar cambios.</li>
+          <li>Activa <b>Inicio de sesión con OAuth del navegador</b> y <b>OAuth web</b> en esa misma pantalla.</li>
+          <li>Menú izquierdo → <b>Roles de la app → Probar</b>: añádete como tester mientras la app no esté publicada.</li>
+          <li>Espera de 2 a 10 minutos: Meta propaga la configuración antes de aceptar el dominio.</li>
+        </ol>
+      </section>
+
+      <section style={{ border: "1px solid #e4e8ee", borderRadius: 12, background: "#fff", padding: "14px 16px" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
             <span title="Pendiente de revisión en Meta" style={{ width: 24, height: 24, borderRadius: "50%", display: "grid", placeItems: "center", background: "#fef3c7", color: "#a16207", flex: "none" }}>
               <AlertTriangle size={14} />
             </span>
             <div>
-              <strong style={{ display: "block" }}>2 · Permisos de Instagram en la app<span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 6, background: "#fef3c7", color: "#92400e", verticalAlign: "middle" }}>Obligatorio</span></strong>
+              <strong style={{ display: "block" }}>3 · Permisos de Instagram en la app<span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 6, background: "#fef3c7", color: "#92400e", verticalAlign: "middle" }}>Obligatorio</span></strong>
               <span className="field-help">Meta los revisa y no se pueden comprobar desde aquí. <b>Pendiente de Meta</b>.</span>
             </div>
           </div>
@@ -319,7 +346,7 @@ export default function InstagramConfigPage() {
               {connected ? <Check size={14} /> : <X size={14} />}
             </span>
             <div>
-              <strong style={{ display: "block" }}>3 · Conectar la cuenta del cliente<span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 6, background: "#fef3c7", color: "#92400e", verticalAlign: "middle" }}>Obligatorio</span></strong>
+              <strong style={{ display: "block" }}>4 · Conectar la cuenta del cliente<span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 6, background: "#fef3c7", color: "#92400e", verticalAlign: "middle" }}>Obligatorio</span></strong>
               <span className="field-help">
                 {connected
                   ? `Cuenta conectada${channel?.username ? `: @${channel.username}` : ""}.`
@@ -336,7 +363,7 @@ export default function InstagramConfigPage() {
         </div>
 
         <ol style={{ margin: "14px 0 0", paddingLeft: 20, fontSize: 13, lineHeight: 1.75, color: "#475569" }}>
-          <li><b>Requisito:</b> los datos del bloque 1 ya guardados (dominio, URI de redirección y tu usuario como tester).</li>
+          <li><b>Requisito:</b> los pasos 1 y 2 ya guardados (app, dominio, URI de redirección y tester).</li>
           <li>Pulsa <b>«Conectar con Instagram»</b>: se abre una <b>ventana nueva</b> con Meta; esta pantalla no se cierra.</li>
           <li>Inicia sesión con la cuenta que administra el Instagram del cliente. Debe ser <b>Business o Creator</b> vinculada a una Página.</li>
           <li>Acepta los permisos. La ventana vuelve sola a <code style={{ fontSize: 12 }}>/api/instagram/oauth/callback</code>.</li>
@@ -351,7 +378,7 @@ export default function InstagramConfigPage() {
               {channel?.page_id ? <Check size={14} /> : <X size={14} />}
             </span>
             <div>
-              <strong style={{ display: "block" }}>4 · Página de Facebook vinculada<span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 6, background: "#e2e8f0", color: "#334155", verticalAlign: "middle" }}>Condicional</span></strong>
+              <strong style={{ display: "block" }}>5 · Página de Facebook vinculada<span style={{ marginLeft: 8, fontSize: 10.5, fontWeight: 600, letterSpacing: ".04em", textTransform: "uppercase", padding: "2px 6px", borderRadius: 6, background: "#e2e8f0", color: "#334155", verticalAlign: "middle" }}>Condicional</span></strong>
               <span className="field-help">
                 {channel?.page_id ? `Página ${channel.page_id} vinculada.` : "Instagram exige una Página vinculada. Sin ella la publicación falla."}
               </span>
@@ -371,7 +398,7 @@ export default function InstagramConfigPage() {
       </section>
 
       <Row
-        title="5 · Publicación de prueba"
+        title="6 · Publicación de prueba"
         state="todo"
         detail="Todavía no existe el publicador: esta función está pendiente de construir. Cuando exista, aquí saldrá el botón para publicar una imagen."
       />
