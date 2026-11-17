@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import io
 import os
+from unittest.mock import AsyncMock
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from PIL import Image
 
 os.environ["INSTAGRAM_PUBLISHING_MOCK_MODE"] = "true"
 
@@ -68,6 +71,103 @@ def test_token_not_exposed(authenticated_client, ig_client):
     assert body["access_token_configured"] is True
     assert "access_token" not in body
     assert "EAA_secret" not in str(body)
+
+
+@pytest.mark.parametrize("declined", [None, "pages_read_engagement"])
+def test_real_oauth_persists_only_granted_permissions(authenticated_client, ig_client, monkeypatch, declined):
+    from app.services import instagram_oauth
+
+    channel_url = f"/api/instagram/channels/{ig_client['id']}"
+    session = authenticated_client.post(f"{channel_url}/oauth/session", json=_consent(ig_client["id"]))
+    assert session.status_code == 200
+    old_channel = authenticated_client.put(
+        channel_url,
+        json={"instagram_user_id": "old_ig", "username": "old_account", "access_token": "old_token"},
+    )
+    assert old_channel.status_code == 200
+    monkeypatch.setattr(get_settings(), "instagram_publishing_mock_mode", False)
+    monkeypatch.setattr(instagram_oauth, "exchange_code_for_token", AsyncMock(return_value={"access_token": "short"}))
+    monkeypatch.setattr(
+        instagram_oauth, "exchange_long_lived_user_token", AsyncMock(return_value={"access_token": "long"})
+    )
+    scopes = [scope for scope in instagram_oauth.REQUIRED_PUBLISHING_SCOPES if scope != declined]
+    monkeypatch.setattr(instagram_oauth, "fetch_granted_permissions", AsyncMock(return_value=scopes))
+    discover = AsyncMock(return_value=[
+        {"instagram_user_id": "new_ig", "username": "new_account", "page_id": "page", "page_access_token": "page_token"},
+    ])
+    monkeypatch.setattr(instagram_oauth, "discover_instagram_accounts", discover)
+
+    response = authenticated_client.post(
+        f"{channel_url}/oauth/complete", json={"state": session.json()["state"], "code": "oauth_code"},
+    )
+    if declined:
+        assert response.status_code == 400
+        assert declined in response.json()["detail"]
+        discover.assert_not_called()
+        assert authenticated_client.get(channel_url).json() == old_channel.json()
+    else:
+        assert response.status_code == 200, response.text
+        assert response.json()["granted_scopes"] == scopes
+        assert response.json()["username"] == "new_account"
+
+
+def test_oauth_callback_returns_to_client_after_denied_consent(authenticated_client, ig_client):
+    client_id = ig_client["id"]
+    session = authenticated_client.post(f"/api/instagram/channels/{client_id}/oauth/session", json=_consent(client_id))
+    assert session.status_code == 200
+    callback = authenticated_client.get(
+        "/api/instagram/oauth/callback",
+        params={"state": session.json()["state"], "error": "access_denied"},
+        follow_redirects=False,
+    )
+    location = urlsplit(callback.headers["location"])
+    assert callback.status_code == 307
+    assert location.path == f"/clients/{client_id}/channels/instagram"
+    assert parse_qs(location.query) == {"oauth_error": ["access_denied"]}
+
+
+def test_publish_uses_signed_public_jpeg_and_graph_container(authenticated_client, ig_client, monkeypatch):
+    from app.services import instagram_graph
+
+    channel_url = f"/api/instagram/channels/{ig_client['id']}"
+    channel = authenticated_client.put(
+        channel_url, json={"instagram_user_id": "123", "access_token": "page_token"},
+    )
+    assert channel.status_code == 200
+    png = io.BytesIO()
+    Image.new("RGBA", (320, 320), color=(0, 0, 0, 0)).save(png, format="PNG")
+    upload = authenticated_client.post(
+        f"{channel_url}/media", files={"file": ("shot.png", png.getvalue(), "image/png")},
+    )
+    assert upload.status_code == 200
+    content = authenticated_client.post(
+        f"{channel_url}/content",
+        json={"content_type": "IMAGE", "caption": "Test", "media_ids": [upload.json()["id"]]},
+    )
+    assert content.status_code == 200
+    settings = get_settings()
+    monkeypatch.setattr(settings, "instagram_publishing_mock_mode", False)
+    monkeypatch.setattr(settings, "backend_url", "http://api:8000")
+    monkeypatch.setattr(settings, "frontend_url", "https://fast-livery.example")
+    graph = AsyncMock(side_effect=[
+        {"id": "container"}, {"status_code": "FINISHED"}, {"id": "post"}, {"permalink": "https://example.com/post"},
+    ])
+    monkeypatch.setattr(instagram_graph, "_graph_request", graph)
+
+    result = authenticated_client.post(f"{channel_url}/content/{content.json()['id']}/publish", json=_publish_body())
+    assert result.status_code == 200, result.text
+    assert result.json()["provider_publication_id"] == "post"
+    assert [call.args for call in graph.await_args_list] == [
+        ("POST", "123/media"), ("GET", "container"), ("POST", "123/media_publish"), ("GET", "post"),
+    ]
+    assert graph.await_args_list[2].kwargs["data"] == {"creation_id": "container"}
+    media_url = urlsplit(graph.await_args_list[0].kwargs["data"]["image_url"])
+    assert (media_url.scheme, media_url.netloc) == ("https", "fast-livery.example")
+    media = authenticated_client.get(f"{media_url.path}?{media_url.query}")
+    assert media.status_code == 200
+    assert media.headers["content-type"] == "image/jpeg"
+    with Image.open(io.BytesIO(media.content)) as rendition:
+        assert rendition.format == "JPEG"
 
 
 def test_mock_connect_and_publish_image(authenticated_client, ig_client):

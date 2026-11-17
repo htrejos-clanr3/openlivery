@@ -46,6 +46,7 @@ class InstagramOAuthOptionsOut(BaseModel):
     graph_version: str
     scopes: list[str]
     redirect_path: str
+    redirect_uri: str
     blocked_reason: str | None = None
 
 

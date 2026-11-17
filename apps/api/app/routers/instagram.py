@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import io
 import uuid
 from datetime import datetime, timedelta, timezone
+from urllib.parse import urlencode
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import RedirectResponse, Response
+from PIL import Image, ImageOps
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
@@ -257,11 +260,14 @@ async def complete_oauth(
     client = get_client_or_404(db, user, client_id)
     channel = _ensure_channel(db, user, client)
     state = instagram_oauth.parse_oauth_state(payload.state)
-    if state["client_id"] != str(client.id) or state["agency_id"] != str(user.agency_id):
-        raise HTTPException(status_code=400, detail="OAuth state client mismatch")
+    if (state["client_id"], state["agency_id"], state["user_id"]) != (
+        str(client.id), str(user.agency_id), str(user.id)
+    ):
+        raise HTTPException(status_code=400, detail="OAuth state does not match this session")
 
-    use_mock = payload.use_mock or mock_enabled()
-    if use_mock:
+    if payload.use_mock and not mock_enabled():
+        raise HTTPException(status_code=400, detail="Instagram mock mode is disabled")
+    if mock_enabled():
         accounts = await instagram_oauth.discover_instagram_accounts("mock")
         account = accounts[0]
         _apply_account(
@@ -280,19 +286,26 @@ async def complete_oauth(
     token_payload = await instagram_oauth.exchange_code_for_token(payload.code)
     long_lived = await instagram_oauth.exchange_long_lived_user_token(token_payload["access_token"])
     user_token = long_lived["access_token"]
+    granted_scopes = await instagram_oauth.fetch_granted_permissions(user_token)
+    missing = [scope for scope in instagram_oauth.REQUIRED_PUBLISHING_SCOPES if scope not in granted_scopes]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"instagram_oauth_missing_permissions: {', '.join(missing)}")
     accounts = await instagram_oauth.discover_instagram_accounts(user_token)
     if not accounts:
-        raise HTTPException(status_code=400, detail="No Instagram professional accounts found on your Pages")
-    account = accounts[0]
-    if payload.instagram_user_id:
-        match = next((a for a in accounts if a["instagram_user_id"] == payload.instagram_user_id), None)
-        if not match:
-            raise HTTPException(status_code=400, detail="Selected Instagram account not available")
-        account = match
+        raise HTTPException(status_code=400, detail="instagram_oauth_no_account")
+    account_id = payload.instagram_user_id or (channel.instagram_user_id if len(accounts) > 1 else None)
+    if account_id:
+        account = next((a for a in accounts if a["instagram_user_id"] == account_id), None)
+        if not account:
+            raise HTTPException(status_code=400, detail="instagram_oauth_select_page")
+    elif len(accounts) == 1:
+        account = accounts[0]
+    else:
+        raise HTTPException(status_code=400, detail="instagram_oauth_select_page")
     _apply_account(
         channel,
         account=account,
-        scopes=list(instagram_oauth.DEFAULT_SCOPES),
+        scopes=granted_scopes,
         mode="oauth",
         expires_in=long_lived.get("expires_in"),
     )
@@ -414,9 +427,7 @@ async def oauth_callback(code: str | None = None, state: str | None = None, erro
     """Browser lander: bounce query params to the SPA Instagram channel page."""
     from ..config import get_settings
 
-    settings = get_settings()
-    if error:
-        return RedirectResponse(f"{settings.frontend_url}/channels?instagram_error={error}")
+    origin = get_settings().frontend_url.rstrip("/")
     # State embeds client_id — parse carefully
     client_id = ""
     if state:
@@ -426,9 +437,15 @@ async def oauth_callback(code: str | None = None, state: str | None = None, erro
         except HTTPException:
             client_id = ""
     if not client_id:
-        return RedirectResponse(f"{settings.frontend_url}/channels?instagram_error=missing_state")
-    q = f"oauth_code={code or ''}&oauth_state={state or ''}"
-    return RedirectResponse(f"{settings.frontend_url}/clients/{client_id}/channels/instagram?{q}")
+        return RedirectResponse(f"{origin}/channels?instagram_error=missing_state")
+    if error or not code:
+        query = urlencode({"oauth_error": "access_denied" if error == "access_denied" else "failed"})
+    else:
+        query = urlencode({"oauth_code": code, "oauth_state": state})
+    return RedirectResponse(
+        f"{origin}/clients/{client_id}/channels/instagram?{query}",
+        headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"},
+    )
 
 
 # --- Media library -----------------------------------------------------------
@@ -501,11 +518,24 @@ def delete_media(
 
 
 @public_router.get("/media-assets/{media_id}")
-def public_media(media_id: uuid.UUID, exp: int = Query(...), sig: str = Query(...), db: Session = Depends(get_db)):
+def public_media(
+    media_id: uuid.UUID, exp: int = Query(...), sig: str = Query(...), jpeg: bool = False, db: Session = Depends(get_db),
+):
     verify_media_signature(media_id, exp, sig)
     asset = db.query(MediaAsset).filter(MediaAsset.id == media_id).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Media not found")
+    if jpeg and asset.mime_type.startswith("image/") and asset.mime_type not in {"image/jpeg", "image/jpg"}:
+        try:
+            with Image.open(io.BytesIO(asset.file_data)) as source:
+                rgba = ImageOps.exif_transpose(source).convert("RGBA")
+                background = Image.new("RGB", rgba.size, "white")
+                background.paste(rgba, mask=rgba.getchannel("A"))
+                output = io.BytesIO()
+                background.save(output, format="JPEG", quality=90)
+        except (OSError, ValueError, Image.DecompressionBombError) as exc:
+            raise HTTPException(status_code=422, detail="Image could not be converted to JPEG") from exc
+        return Response(content=output.getvalue(), media_type="image/jpeg")
     return Response(content=asset.file_data, media_type=asset.mime_type)
 
 

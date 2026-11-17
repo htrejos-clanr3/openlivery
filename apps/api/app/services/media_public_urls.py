@@ -34,8 +34,12 @@ def verify_media_signature(asset_id: uuid.UUID, exp: int, sig: str) -> None:
         raise HTTPException(status_code=403, detail="Invalid media signature")
 
 
-def public_media_url(asset_id: uuid.UUID, *, ttl_seconds: int | None = None) -> str:
+def public_media_url(asset_id: uuid.UUID, *, ttl_seconds: int | None = None, jpeg: bool = False) -> str:
     settings = get_settings()
     exp, sig = sign_media_asset(asset_id, ttl_seconds=ttl_seconds)
     base = settings.backend_url.rstrip("/")
-    return f"{base}/api/public/media-assets/{asset_id}?exp={exp}&sig={sig}"
+    if base == "http://api:8000":
+        # Compose exposes /api through the public frontend gateway.
+        base = settings.frontend_url.rstrip("/")
+    rendition = "&jpeg=true" if jpeg else ""
+    return f"{base}/api/public/media-assets/{asset_id}?exp={exp}&sig={sig}{rendition}"
