@@ -6,16 +6,16 @@ Publish images, carousels, and Reels from each client’s Instagram professional
 
 - Instagram **Professional** account (Business or Creator) linked to a Facebook Page.
 - Meta App with Facebook Login + Instagram permissions (App Review for production).
-- Typical scopes (Facebook Login path):
+- Required scopes for the Facebook Login connection:
 
   - `pages_show_list`
   - `pages_read_engagement`
   - `instagram_basic`
   - `instagram_content_publish`
 
-  Newer Instagram API product names (`instagram_business_basic`, `instagram_business_content_publish`) are also accepted when granted.
+  The current dialog also requests `business_management`. The backend checks the permissions Meta granted before connecting the channel.
 
-- Public `BACKEND_URL` so Meta can download media via signed URLs (`/api/public/media-assets/{id}?exp=&sig=`).
+- A public HTTPS origin so Meta can fetch signed media URLs (`/api/public/media-assets/{id}?exp=&sig=`). The Docker Compose gateway serves them through `FRONTEND_URL` when `BACKEND_URL` is the internal `http://api:8000` service.
 
 Official guides:
 
@@ -30,7 +30,7 @@ Official guides:
 | `META_APP_ID` / `META_APP_SECRET` | Platform Meta App for OAuth |
 | `META_GRAPH_BASE_URL` | Graph root (default `https://graph.facebook.com/v23.0`) |
 | `FRONTEND_URL` | OAuth redirect origin |
-| `BACKEND_URL` | Absolute URL Meta uses to fetch media |
+| `BACKEND_URL` | Public media origin for a separately hosted API. The internal Docker Compose URL falls back to `FRONTEND_URL`. |
 | `INSTAGRAM_PUBLISHING_MOCK_MODE` | Simulate containers/publish without Meta |
 | `INSTAGRAM_OAUTH_REDIRECT_PATH` | Default `/api/instagram/oauth/callback` |
 | `INSTAGRAM_CONTAINER_POLL_MAX_ATTEMPTS` | Polling ceiling (default 30) |
@@ -39,29 +39,26 @@ Official guides:
 
 ## How to connect
 
-Every entry point (Channels hub → Configure Instagram, Client → Channels → Instagram, Carousel → Connect / open Instagram) lands on the same client Instagram page with:
+Open **Clients → your client → Channels → Instagram**. The **Connect with Meta** option uses the app configured by the Fast Livery administrator.
 
-1. **Connect actions** — Meta OAuth when `META_APP_ID` + `META_APP_SECRET` are set. If guided login is blocked, **Connect with Meta** stays visible but opens/scrolls the in-app guide (human-readable notice; the `BLOCKED_BY_EXTERNAL_CONFIGURATION` string is secondary).
-2. **Step-by-step guide** (accordion, open by default when disconnected) — prerequisites, what to copy (IG user ID, Page ID, username, token), where those values appear in Meta, numbered BYO steps ending in Advanced setup → Save. Optional OAuth / mock sections; no Instagram QR.
-3. **Advanced setup** — paste Instagram user ID, optional Page ID / username, and access token.
+### Connect with Meta
 
-### Recommended path (BYO — always works)
+1. Confirm that the client's Instagram account is a Business or Creator account linked to a Facebook Page you manage.
+2. Click **Connect with Meta**, confirm your authorization, then sign in to Facebook. If Meta shows several Pages, authorize only the Page linked to this client's Instagram account.
+3. Back in Fast Livery, verify the displayed `@username` and click **Check connection**. Confirm you can see a healthy connection before preparing a post.
 
-1. Convert the client’s Instagram to **Professional** (Business or Creator).
-2. Link it to a **Facebook Page** the client controls.
-3. In [Meta for Developers](https://developers.facebook.com/apps/), create/open a Meta App and enable Instagram Content Publishing products / Facebook Login as needed.
-4. Issue a **Page access token** with `instagram_basic` + `instagram_content_publish` (or `instagram_business_basic` / `instagram_business_content_publish`).
-5. Copy the **Instagram user ID** (numeric IG Business Account id — not `@username`). Often: Graph `GET /{page-id}?fields=instagram_business_account`.
-6. In Fast Livery → that client → Instagram → **Advanced setup**, paste ID + token (and optional Page ID / username) → **Save credentials**.
-7. Status becomes **Connected**. Use **New publication** or publish an approved carousel to verify.
+### Configure the Meta app
 
-### Guided Meta login (optional)
+Open **Set up the Meta app** in the connection guide to see the app's links, domain, callback URI, and requested permissions.
 
-Only when the Fast Livery server has `META_APP_ID` and `META_APP_SECRET`:
+1. In **App settings → Basic**, add the public hostname to **App Domains** and check the privacy, terms and data-deletion URLs. Save and reload.
+2. In **Facebook Login for Business → Settings**, enable **Client OAuth Login** and **Web OAuth Login**. Copy the exact callback URI into **Valid OAuth Redirect URIs**, then save and reload.
+3. In **Use cases → Instagram → API setup with Facebook login**, click **Add required content permissions**. In **Permissions and features**, verify **Ready for testing** for the requested permissions. Include `pages_read_engagement` for Instagram publishing.
+4. Test with an existing administrator or tester of the app who can access the real Page and Instagram account.
 
-1. Click **Connect with Meta**.
-2. Authorize permissions and choose the Page linked to the professional Instagram account.
-3. Return to Fast Livery; status becomes Connected when account + publish permission are valid.
+### Manual connection
+
+An administrator with an authorized Facebook Page token can use **Advanced setup**. The token needs `instagram_basic`, `instagram_content_publish`, and `pages_read_engagement`. Look up the Instagram account ID using `GET /{page-id}?fields=instagram_business_account{id,username}`. Paste the Instagram account ID and token, add the Page ID and username if available, save, then click **Check connection**.
 
 ### Mock (local)
 
@@ -102,8 +99,11 @@ UI can show usage from `GET /{ig-user-id}/content_publishing_limit` when Meta re
 
 | Symptom | Check |
 |---------|--------|
-| OAuth blocked | `META_APP_ID` + `META_APP_SECRET` |
-| Media rejected by Meta | `BACKEND_URL` must be publicly reachable |
+| OAuth unavailable | Ask the platform administrator to verify the Meta app configuration on the server |
+| Domain or callback rejected | Check that the public domain and exact callback in Fast Livery are registered in Meta |
+| `Invalid Scopes: pages_read_engagement` | Enable the permission in the Instagram use case and confirm it is ready for testing |
+| Meta returned no eligible account | Check the Page–Instagram link and the Facebook account's access to both assets |
+| Media rejected by Meta | The signed media URL must be reachable over public HTTPS |
 | Partial connection | Missing `instagram_content_publish` — reconnect |
 | Schedule never fires | API process must be running (in-process scheduler) |
 | Tenant errors | Content/channel always scoped by `agency_id` + `client_id` |

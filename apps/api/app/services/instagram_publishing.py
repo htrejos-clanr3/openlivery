@@ -98,19 +98,20 @@ async def publish_content(
         )
         container_id: str
         if content.content_type == "IMAGE":
-            url = public_media_url(links[0].media_id)
+            url = public_media_url(links[0].media_id, jpeg=True)
             container_id = await provider.create_image_container(image_url=url, caption=caption)
         elif content.content_type == "CAROUSEL":
             children: list[str] = []
             for link in links:
                 media = link.media
-                url = public_media_url(media.id)
                 if media.mime_type.startswith("video/"):
                     child = await provider.create_video_container(
-                        video_url=url, media_type="VIDEO", is_carousel_item=True
+                        video_url=public_media_url(media.id), media_type="VIDEO", is_carousel_item=True
                     )
                 else:
-                    child = await provider.create_image_container(image_url=url, is_carousel_item=True)
+                    child = await provider.create_image_container(
+                        image_url=public_media_url(media.id, jpeg=True), is_carousel_item=True,
+                    )
                 await provider.wait_until_finished(child)
                 children.append(child)
             container_id = await provider.create_carousel_container(children=children, caption=caption)
@@ -121,7 +122,7 @@ async def publish_content(
                 video_url=public_media_url(video.id),
                 media_type="REELS",
                 caption=caption,
-                cover_url=public_media_url(cover.id) if cover else None,
+                cover_url=public_media_url(cover.id, jpeg=True) if cover else None,
             )
         else:
             raise HTTPException(status_code=400, detail="Unsupported content type")

@@ -580,6 +580,7 @@ export type InstagramOAuthOptions = {
   graph_version: string;
   scopes: string[];
   redirect_path: string;
+  redirect_uri?: string;
   blocked_reason: string | null;
 };
 

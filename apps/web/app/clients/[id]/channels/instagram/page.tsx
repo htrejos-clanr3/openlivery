@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
-  ArrowLeft, BookOpen, CheckCircle2, ChevronDown, Circle, CircleAlert, ExternalLink,
+  ArrowLeft, BookOpen, CheckCircle2, ChevronDown, Circle, CircleAlert,
   Instagram, LoaderCircle, Plus, Power, RefreshCw, Sparkles,
 } from "lucide-react";
-import { buildChannelConsent } from "@/components/channel-connect-consent-modal";
+import { ChannelConnectConsentModal, buildChannelConsent } from "@/components/channel-connect-consent-modal";
 import { Alert } from "@/components/ui";
 import { api, messageFrom } from "@/lib/api";
 import { useT, type I18nKey } from "@/lib/i18n";
@@ -63,8 +63,8 @@ function InstagramChannelPageInner() {
   const [publications, setPublications] = useState<InstagramPublication[]>([]);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(true);
-  const [guideByoOpen, setGuideByoOpen] = useState(true);
-  const [guideOauthOpen, setGuideOauthOpen] = useState(false);
+  const [guideByoOpen, setGuideByoOpen] = useState(false);
+  const [guideOauthOpen, setGuideOauthOpen] = useState(true);
   const [guideMockOpen, setGuideMockOpen] = useState(false);
   const [guideTroubleOpen, setGuideTroubleOpen] = useState(false);
   const [igUserId, setIgUserId] = useState("");
@@ -119,7 +119,6 @@ function InstagramChannelPageInner() {
         setOptions(opts);
         const isConnected = ch.status === "connected";
         setGuideOpen(!isConnected);
-        setGuideByoOpen(!isConnected);
         if (isConnected) await refreshConnectedData();
       } catch (err) {
         setError(messageFrom(err));
@@ -129,27 +128,12 @@ function InstagramChannelPageInner() {
     })();
   }, [id, applyChannel, refreshConnectedData]);
 
-  const router = useRouter();
-
-  // This screen is legacy: the single configuration page replaced it. Keep the
-  // ?connect=1 entry here because the OAuth flow lives in this component.
-  useEffect(() => {
-    if (search?.get("connect") === "1") return;
-    router.replace(`/clients/${id}/channels/instagram-config`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, id]);
-
-  useEffect(() => {
-    if (search?.get("connect") !== "1") return;
-    const timer = window.setTimeout(() => requestConnect(false), 400);
-    return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
-
   function openGuide() {
-    // The guided wizard replaced the inline accordion: same steps, but they are
-    // computed against Meta instead of being static text.
-    window.location.href = `/clients/${id}/channels/instagram-setup`;
+    setGuideOpen(true);
+    setGuideOauthOpen(true);
+    requestAnimationFrame(() => {
+      document.getElementById("ig-connect-guide")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }
 
   function openAdvancedFromGuide() {
@@ -173,8 +157,15 @@ function InstagramChannelPageInner() {
   useEffect(() => {
     const code = search.get("oauth_code");
     const state = search.get("oauth_state");
-    if (!code || !state || oauthHandled.current) return;
+    const oauthError = search.get("oauth_error");
+    if (loading || oauthHandled.current || (!oauthError && !(code && state))) return;
     oauthHandled.current = true;
+    window.history.replaceState({}, "", `/clients/${id}/channels/instagram`);
+    if (oauthError) {
+      setError(t(oauthError === "access_denied" ? "instagram.oauthCancelled" : "instagram.oauthFailed"));
+      setGuideOpen(true);
+      return;
+    }
     (async () => {
       setBusy(true);
       setError("");
@@ -186,20 +177,31 @@ function InstagramChannelPageInner() {
         });
         applyChannel(updated);
         await refreshConnectedData();
-        window.history.replaceState({}, "", `/clients/${id}/channels/instagram`);
-        setInfo("");
       } catch (err) {
-        setError(messageFrom(err));
-        setInfo("");
+        const message = messageFrom(err);
+        const missingPermissionsPrefix = "instagram_oauth_missing_permissions: ";
+        if (message.startsWith(missingPermissionsPrefix)) {
+          setError(t("instagram.oauthMissingPermissions", { permissions: message.slice(missingPermissionsPrefix.length) }));
+        } else if (message === "instagram_oauth_permissions_unavailable") {
+          setError(t("instagram.oauthPermissionsUnavailable"));
+        } else if (message === "instagram_oauth_no_account") {
+          setError(t("instagram.oauthNoAccount"));
+        } else if (message === "instagram_oauth_select_page") {
+          setError(t("instagram.oauthSelectPage"));
+        } else {
+          setError(message);
+        }
+        setGuideOpen(true);
       } finally {
+        setInfo("");
         setBusy(false);
       }
     })();
-  }, [search, id, applyChannel, refreshConnectedData, t]);
+  }, [search, id, loading, applyChannel, refreshConnectedData, t]);
 
   function requestConnect(useMock = false) {
     setPendingMockConnect(useMock);
-    void connectWithMeta(useMock);
+    setConsentOpen(true);
   }
 
   async function connectWithMeta(useMock = false) {
@@ -295,9 +297,13 @@ function InstagramChannelPageInner() {
   }
 
   const connected = channel?.status === "connected";
-  const uiStatus = health?.ui_status || (connected ? "ok" : "disconnected");
+  const uiStatus = health?.ui_status || (connected ? "error" : "disconnected");
+  const metaAppUrl = options?.meta_app_id && /^\d+$/.test(options.meta_app_id)
+    ? `https://developers.facebook.com/apps/${options.meta_app_id}`
+    : null;
+  const redirectUri = options?.redirect_uri;
+  const appDomain = redirectUri && URL.canParse(redirectUri) ? new URL(redirectUri).hostname : null;
   const setupChecks = [
-    { id: "pro", label: t("instagram.guideCheckPro"), done: connected },
     { id: "page", label: t("instagram.guideCheckPage"), done: Boolean(channel?.page_id) },
     { id: "token", label: t("instagram.guideCheckToken"), done: Boolean(channel?.access_token_configured) },
     { id: "igid", label: t("instagram.guideCheckIgId"), done: Boolean(channel?.instagram_user_id) },
@@ -379,6 +385,9 @@ function InstagramChannelPageInner() {
                   <Link className="button primary" href={`/clients/${id}/channels/instagram/compose`}>
                     <Plus size={17} /> {t("instagram.newPost")}
                   </Link>
+                  <button className="button secondary" type="button" onClick={() => void refreshConnectedData()}>
+                    <RefreshCw size={17} /> {t("instagram.guideRefreshStatus")}
+                  </button>
                   <button className="button danger" type="button" onClick={disconnect} disabled={busy}>
                     <Power size={17} /> {t("instagram.disconnect")}
                   </button>
@@ -503,6 +512,9 @@ function InstagramChannelPageInner() {
                     <button className="button primary" type="button" onClick={() => requestConnect(false)} disabled={busy}>
                       {busy ? <LoaderCircle className="spin" size={17} /> : <RefreshCw size={17} />} {t("instagram.reconnectMeta")}
                     </button>
+                    <button className="button secondary" type="button" onClick={openGuide}>
+                      <BookOpen size={17} /> {t("instagram.openGuide")}
+                    </button>
                   </div>
                 </Alert>
               )}
@@ -525,28 +537,207 @@ function InstagramChannelPageInner() {
                 <p className="ig-muted" style={{ marginBottom: 12 }}>{t("instagram.oauthAvailableHint")}</p>
               )}
               <div className="wa-actions">
-                <button
-                  className="button primary"
-                  type="button"
-                  onClick={() => {
-                    window.location.href = `/clients/${id}/channels/instagram-setup`;
-                  }}
-                  disabled={busy}
-                >
-                  <Instagram size={17} /> {t("instagram.connectMeta")}
+                <button className="button primary" type="button" onClick={() => requestConnect(false)} disabled={busy}>
+                  {busy ? <LoaderCircle className="spin" size={17} /> : <Instagram size={17} />} {t("instagram.connectMeta")}
                 </button>
                 {options?.mock_mode && (
                   <button className="button secondary" type="button" onClick={() => requestConnect(true)} disabled={busy}>
                     {t("instagram.connectMock")}
                   </button>
                 )}
+                <button className="button secondary" type="button" onClick={openGuide}>
+                  <BookOpen size={17} /> {t("instagram.openGuide")}
+                </button>
                 <button className="button secondary" type="button" onClick={openAdvancedFromGuide}>
                   {t("instagram.openAdvanced")}
                 </button>
               </div>
+              <div className="wa-benefits">
+                <h3>{t("instagram.benefitsTitle")}</h3>
+                <ul>
+                  <li>✓ {t("instagram.benefit1")}</li>
+                  <li>✓ {t("instagram.benefit2")}</li>
+                  <li>✓ {t("instagram.benefit3")}</li>
+                  <li>✓ {t("instagram.benefit4")}</li>
+                </ul>
+              </div>
             </section>
           )}
 
+          <section className="wa-panel wa-accordion-panel" id="ig-connect-guide">
+            <button type="button" className="wa-accordion-trigger" onClick={() => setGuideOpen((v) => !v)} aria-expanded={guideOpen}>
+              <span><BookOpen size={19} /></span>
+              <div>
+                <h2>{t("instagram.guideTitle")}</h2>
+                <p>{t("instagram.guideCopy")}</p>
+              </div>
+              <ChevronDown size={18} className={guideOpen ? "open" : ""} />
+            </button>
+            {guideOpen && (
+              <div className="wa-accordion-body wa-guide">
+                <div className="wa-guide-block">
+                  <h3>{t("instagram.guideChecklistTitle")}</h3>
+                  <ul className="wa-guide-checklist">
+                    {setupChecks.map((item) => (
+                      <li key={item.id} className={item.done ? "done" : ""}>
+                        {item.done ? <CheckCircle2 size={16} /> : <Circle size={16} />}
+                        <span>{item.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideOauthOpen((v) => !v)}
+                    aria-expanded={guideOauthOpen}
+                  >
+                    <strong>{t("instagram.guideOauthTitle")}</strong>
+                    <ChevronDown size={16} className={guideOauthOpen ? "open" : ""} />
+                  </button>
+                  {guideOauthOpen && (
+                    <div className="wa-nested-body">
+                      <p>{t("instagram.guideOauthIntro")}</p>
+                      {!options?.oauth_available && !options?.mock_mode ? (
+                        <Alert type="info">{t("instagram.guideOauthUnavailable")}</Alert>
+                      ) : (
+                        <ol className="wa-guide-steps">
+                          <li>{t("instagram.guideOauth1")}</li>
+                          <li>{t("instagram.guideOauth2")}</li>
+                          <li>{t("instagram.guideOauth3")}</li>
+                          <li>{t("instagram.guideOauth4")}</li>
+                        </ol>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <details className="wa-nested-accordion">
+                  <summary className="wa-nested-trigger"><strong>{t("instagram.guideAdminTitle")}</strong></summary>
+                  <div className="wa-nested-body">
+                    <p>{t("instagram.guideAdminIntro")}</p>
+                    <ol className="wa-guide-steps">
+                      <li>
+                        <a href={metaAppUrl ? `${metaAppUrl}/settings/basic/` : "https://developers.facebook.com/apps/"} target="_blank" rel="noreferrer">
+                          {t("instagram.guideAdminBasicLabel")}
+                        </a>{" · "}{t("instagram.guideAdminBasic")}
+                        {appDomain && <> <code>{appDomain}</code></>}
+                      </li>
+                      <li>
+                        <a href={metaAppUrl ? `${metaAppUrl}/business-login/settings/` : "https://developers.facebook.com/apps/"} target="_blank" rel="noreferrer">
+                          {t("instagram.guideAdminLoginLabel")}
+                        </a>{" · "}{t("instagram.guideAdminLogin")}
+                        {redirectUri && <p><code>{redirectUri}</code></p>}
+                      </li>
+                      <li>
+                        <a href={metaAppUrl ? `${metaAppUrl}/use_cases/customize/API-Setup-with-Facebook-login/?use_case_enum=INSTAGRAM_BUSINESS` : "https://developers.facebook.com/apps/"} target="_blank" rel="noreferrer">
+                          {t("instagram.guideAdminPermissionsLabel")}
+                        </a>{" · "}{t("instagram.guideAdminPermissions")}
+                        {options?.scopes.length ? <p><code>{options.scopes.join(", ")}</code></p> : null}
+                      </li>
+                      <li>
+                        <a href={metaAppUrl ? `${metaAppUrl}/roles/roles/` : "https://developers.facebook.com/apps/"} target="_blank" rel="noreferrer">
+                          {t("instagram.guideAdminRolesLabel")}
+                        </a>{" · "}{t("instagram.guideAdminRoles")}
+                      </li>
+                    </ol>
+                  </div>
+                </details>
+
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideByoOpen((v) => !v)}
+                    aria-expanded={guideByoOpen}
+                  >
+                    <strong>{t("instagram.guideByoTitle")}</strong>
+                    <ChevronDown size={16} className={guideByoOpen ? "open" : ""} />
+                  </button>
+                  {guideByoOpen && (
+                    <div className="wa-nested-body">
+                      <p>{t("instagram.guideByoIntro")}</p>
+                      <div className="wa-guide-block">
+                        <h3>{t("instagram.guideByoNeedTitle")}</h3>
+                        <ul className="wa-guide-checklist">
+                          <li><Circle size={16} /><span>{t("instagram.guideByoNeedIg")}</span></li>
+                          <li><Circle size={16} /><span>{t("instagram.guideByoNeedPage")}</span></li>
+                          <li><Circle size={16} /><span>{t("instagram.guideByoNeedUser")}</span></li>
+                          <li><Circle size={16} /><span>{t("instagram.guideByoNeedToken")}</span></li>
+                        </ul>
+                      </div>
+                      <div className="wa-guide-block">
+                        <h3>{t("instagram.guideByoWhereTitle")}</h3>
+                        <p>{t("instagram.guideByoWhereCopy")}</p>
+                        <p className="wa-guide-note">
+                          <a href="https://developers.facebook.com/docs/instagram-platform/content-publishing" target="_blank" rel="noreferrer">
+                            {t("instagram.guideDocsHint")}
+                          </a>
+                        </p>
+                      </div>
+                      <ol className="wa-guide-steps">
+                        <li>{t("instagram.guideByo1")}</li>
+                        <li>{t("instagram.guideByo2")}</li>
+                        <li>{t("instagram.guideByo3")}</li>
+                        <li>{t("instagram.guideByo4")}</li>
+                        <li>{t("instagram.guideByo5")}</li>
+                        <li>
+                          {t("instagram.guideByo6")}{" "}
+                          <button type="button" className="text-button" onClick={openAdvancedFromGuide}>
+                            {t("instagram.advancedTitle")}
+                          </button>
+                        </li>
+                        <li>{t("instagram.guideByo7")}</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+
+                {options?.mock_mode && (
+                  <div className="wa-nested-accordion">
+                    <button
+                      type="button"
+                      className="wa-nested-trigger"
+                      onClick={() => setGuideMockOpen((v) => !v)}
+                      aria-expanded={guideMockOpen}
+                    >
+                      <strong>{t("instagram.guideMockTitle")}</strong>
+                      <ChevronDown size={16} className={guideMockOpen ? "open" : ""} />
+                    </button>
+                    {guideMockOpen && (
+                      <div className="wa-nested-body">
+                        <p>{t("instagram.guideMockIntro")}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="wa-nested-accordion">
+                  <button
+                    type="button"
+                    className="wa-nested-trigger"
+                    onClick={() => setGuideTroubleOpen((v) => !v)}
+                    aria-expanded={guideTroubleOpen}
+                  >
+                    <strong>{t("instagram.guideTroubleshootTitle")}</strong>
+                    <ChevronDown size={16} className={guideTroubleOpen ? "open" : ""} />
+                  </button>
+                  {guideTroubleOpen && (
+                    <div className="wa-nested-body">
+                      <ol className="wa-guide-steps">
+                        <li>{t("instagram.guideTroubleshoot1")}</li>
+                        <li>{t("instagram.guideTroubleshoot2")}</li>
+                        <li>{t("instagram.guideTroubleshoot3")}</li>
+                        <li>{t("instagram.guideTroubleshoot4")}</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
 
           <section className="wa-panel wa-accordion-panel" id="ig-advanced-setup">
             <button
@@ -610,11 +801,24 @@ function InstagramChannelPageInner() {
           ) : (
             <>
               <p>{t("instagram.connectCopy")}</p>
+              <button type="button" className="button secondary" style={{ marginTop: 12 }} onClick={openGuide}>
+                <BookOpen size={16} /> {t("instagram.openGuide")}
+              </button>
             </>
           )}
         </aside>
       </div>
-
+      <ChannelConnectConsentModal
+        open={consentOpen}
+        channel="instagram"
+        clientId={id}
+        providerTermsUrl="https://developers.facebook.com/terms/"
+        onClose={() => setConsentOpen(false)}
+        onConfirmed={() => {
+          setConsentOpen(false);
+          void connectWithMeta(pendingMockConnect);
+        }}
+      />
     </div>
   );
 }

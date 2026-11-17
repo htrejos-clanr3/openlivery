@@ -18,16 +18,19 @@ from .instagram_graph import mock_enabled
 
 
 STATE_TTL_SECONDS = 60 * 15
-# Scopes for Instagram API with Facebook Login (Content Publishing).
-# Prefer business_* names when the Meta App uses Instagram API product;
-# keep classic names for broader compatibility during App Review transitions.
-DEFAULT_SCOPES = [
+# The Facebook Login flow discovers the linked Instagram account through its Page.
+REQUIRED_PUBLISHING_SCOPES = (
     "pages_show_list",
     "pages_read_engagement",
     "instagram_basic",
     "instagram_content_publish",
-    "business_management",
-]
+)
+DEFAULT_SCOPES = [*REQUIRED_PUBLISHING_SCOPES, "business_management"]
+
+
+def oauth_redirect_uri() -> str:
+    settings = get_settings()
+    return f"{settings.frontend_url.rstrip('/')}{settings.instagram_oauth_redirect_path}"
 
 
 def oauth_options(app_id: str | None = None, agency_has_secret: bool = False) -> dict:
@@ -44,6 +47,7 @@ def oauth_options(app_id: str | None = None, agency_has_secret: bool = False) ->
         "graph_version": settings.meta_graph_base_url.rstrip("/").split("/")[-1],
         "scopes": DEFAULT_SCOPES,
         "redirect_path": settings.instagram_oauth_redirect_path,
+        "redirect_uri": oauth_redirect_uri(),
         "blocked_reason": None
         if configured
         else "BLOCKED_BY_EXTERNAL_CONFIGURATION: save the App ID and App Secret in Settings, Meta (or set META_APP_ID + META_APP_SECRET).",
@@ -91,12 +95,11 @@ def build_oauth_dialog_url(state: str, app_id: str | None = None) -> str | None:
     resolved_app_id = (settings.meta_app_id or (app_id or "").strip()) or None
     if not resolved_app_id:
         return None
-    redirect = f"{settings.frontend_url.rstrip('/')}{settings.instagram_oauth_redirect_path}"
     version = settings.meta_graph_base_url.rstrip("/").split("/")[-1]
     query = urlencode(
         {
             "client_id": resolved_app_id,
-            "redirect_uri": redirect,
+            "redirect_uri": oauth_redirect_uri(),
             "state": state,
             "response_type": "code",
             "scope": ",".join(DEFAULT_SCOPES),
@@ -109,14 +112,13 @@ async def exchange_code_for_token(code: str) -> dict:
     settings = get_settings()
     if mock_enabled():
         return {"access_token": f"mock_user_token_{secrets.token_hex(8)}", "expires_in": 3600}
-    redirect = f"{settings.frontend_url.rstrip('/')}{settings.instagram_oauth_redirect_path}"
     async with httpx.AsyncClient(timeout=30) as client:
         response = await client.get(
             f"{settings.meta_graph_base_url.rstrip('/')}/oauth/access_token",
             params={
                 "client_id": settings.meta_app_id,
                 "client_secret": settings.meta_app_secret,
-                "redirect_uri": redirect,
+                "redirect_uri": oauth_redirect_uri(),
                 "code": code,
             },
         )
@@ -145,6 +147,28 @@ async def exchange_long_lived_user_token(short_token: str) -> dict:
         # Keep short-lived token if exchange fails.
         return {"access_token": short_token, "expires_in": None}
     return payload
+
+
+async def fetch_granted_permissions(user_access_token: str) -> list[str]:
+    """Read the permissions Meta granted to this user for the app."""
+    graph_base = get_settings().meta_graph_base_url.rstrip("/")
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            response = await client.get(
+                f"{graph_base}/me/permissions",
+                headers={"Authorization": f"Bearer {user_access_token}"},
+            )
+        response.raise_for_status()
+        permissions = response.json().get("data")
+        if not isinstance(permissions, list):
+            raise ValueError("Missing permissions")
+    except (httpx.HTTPError, AttributeError, ValueError) as exc:
+        raise HTTPException(status_code=502, detail="instagram_oauth_permissions_unavailable") from exc
+    return sorted({
+        item["permission"]
+        for item in permissions
+        if isinstance(item, dict) and item.get("status") == "granted" and isinstance(item.get("permission"), str)
+    })
 
 
 async def discover_instagram_accounts(user_access_token: str) -> list[dict]:
@@ -178,7 +202,7 @@ async def discover_instagram_accounts(user_access_token: str) -> list[dict]:
             )
         for page in pages_payload.get("data") or []:
             ig = page.get("instagram_business_account") or {}
-            if not ig.get("id"):
+            if not ig.get("id") or not page.get("access_token"):
                 continue
             accounts.append(
                 {
